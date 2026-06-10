@@ -31,6 +31,8 @@ address public constant VAULT = 0x2433D6AC11193b4695D9ca73530de93c538aD18a
 
 
 #### OWNER
+The hardcoded beneficiary on whose behalf withdrawals are executed
+
 
 ```solidity
 address public constant OWNER = 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796
@@ -38,7 +40,7 @@ address public constant OWNER = 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796
 
 
 #### keeper
-Contract owner (deployer)
+The address authorized to execute withdrawals and rescue tokens
 
 
 ```solidity
@@ -55,6 +57,8 @@ constructor(address _keeper) ;
 ```
 
 #### onlyKeeper
+
+Restricts a function to the keeper address
 
 
 ```solidity
@@ -106,31 +110,57 @@ function rescueToken(address token, uint256 amount, address to) external onlyKee
 
 ### Events
 #### Executed
+Emitted when a max withdrawal is executed
+
 
 ```solidity
 event Executed(address indexed caller, uint256 assetsWithdrawn, uint256 sharesBurned);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`caller`|`address`|The keeper that triggered the withdrawal|
+|`assetsWithdrawn`|`uint256`|The amount of underlying assets withdrawn to OWNER|
+|`sharesBurned`|`uint256`|The number of vault shares burned|
+
 #### RescueToken
+Emitted when ERC20 tokens are rescued from this contract
+
 
 ```solidity
 event RescueToken(address indexed token, address indexed to, uint256 amount);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`address`|The rescued token address|
+|`to`|`address`|The destination address|
+|`amount`|`uint256`|The amount transferred|
+
 ### Errors
 #### NotKeeper
+Thrown when a keeper-only function is called by a non-keeper
+
 
 ```solidity
 error NotKeeper();
 ```
 
 #### NothingToWithdraw
+Thrown when there is nothing available to withdraw
+
 
 ```solidity
 error NothingToWithdraw();
 ```
 
 #### TransferFailed
+Thrown when an ERC20 transfer returns false
+
 
 ```solidity
 error TransferFailed();
@@ -141,21 +171,42 @@ error TransferFailed();
 ## IERC20
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/misc/MaxWithdrawExecutor.sol)
 
+**Title:**
+IERC20
+
 Minimal ERC20 interface subset for token rescue
 
 
 ### Functions
 #### transfer
 
+Transfers `amount` tokens to `to`
+
 
 ```solidity
 function transfer(address to, uint256 amount) external returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`to`|`address`|The recipient address|
+|`amount`|`uint256`|The amount of tokens to transfer|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the transfer succeeded|
+
 
 
 
 ## IERC4626
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/misc/MaxWithdrawExecutor.sol)
+
+**Title:**
+IERC4626
 
 Minimal ERC-4626 interface subset used here
 
@@ -163,14 +214,43 @@ Minimal ERC-4626 interface subset used here
 ### Functions
 #### withdraw
 
+Withdraws `assets` of the underlying token from the vault, burning shares from `owner`
+
 
 ```solidity
 function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying assets to withdraw|
+|`receiver`|`address`|The address that receives the withdrawn assets|
+|`owner`|`address`|The address whose shares are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The number of shares burned|
+
 
 #### maxWithdraw
+
+Returns the maximum amount of underlying assets `owner` can currently withdraw
 
 
 ```solidity
 function maxWithdraw(address owner) external view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose maximum withdrawal is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The maximum withdrawable amount of underlying assets|

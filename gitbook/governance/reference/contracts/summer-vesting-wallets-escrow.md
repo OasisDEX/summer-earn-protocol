@@ -119,7 +119,7 @@ function getVestingFactory(uint256 index) external view override returns (addres
 
 ### userStakedVestingFactories
 
-Returns the list of vesting factories from which the user has staked.
+Returns the list of vesting factories the user currently has staked positions with
 
 
 ```solidity
@@ -129,20 +129,18 @@ function userStakedVestingFactories(address _user) external view override return
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_user`|`address`||
+|`_user`|`address`|The user to query|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`address[]`|factories Array of vesting factory addresses the user has staked from.|
+|`<none>`|`address[]`|The addresses of the user's staked vesting factories|
 
 
 ### getUserStakedVestingFactory
 
-Returns the vesting factory address at `index` for a given user.
-
-Reverts if the index is out of bounds for the user's list.
+Returns the vesting factory at a given index in the user's staked-factory list
 
 
 ```solidity
@@ -152,26 +150,21 @@ function getUserStakedVestingFactory(address _user, uint256 _index) external vie
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_user`|`address`||
-|`_index`|`uint256`||
+|`_user`|`address`|The user to query|
+|`_index`|`uint256`|Index into the user's staked vesting factories list|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`address`|factory The vesting factory address.|
+|`<none>`|`address`|The vesting factory address at the given index|
 
 
 ### addVestingFactory
 
-Adds a new vesting factory to the allowed set.
+Adds a vesting factory to the governance-controlled allowlist
 
-Access restricted to governor in implementing contract.
-
-**Notes:**
-- reverts: Staking_InvalidAddress If `vestingFactory` is the zero address.
-
-- emits: VestingFactoryAdded Emitted upon successful addition.
+Only callable by the protocol governor
 
 
 ```solidity
@@ -181,19 +174,14 @@ function addVestingFactory(address _vestingFactory) external override onlyGovern
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_vestingFactory`|`address`||
+|`_vestingFactory`|`address`|The vesting factory address to add (must be non-zero and not already present)|
 
 
 ### removeVestingFactory
 
-Removes a vesting factory from the allowed set.
+Removes a vesting factory from the governance-controlled allowlist
 
-Access restricted to governor in implementing contract.
-
-**Notes:**
-- reverts: Staking_InvalidAddress If `vestingFactory` is the zero address.
-
-- emits: VestingFactoryRemoved Emitted upon successful removal.
+Only callable by the protocol governor
 
 
 ```solidity
@@ -203,18 +191,14 @@ function removeVestingFactory(address _vestingFactory) external override onlyGov
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_vestingFactory`|`address`||
+|`_vestingFactory`|`address`|The vesting factory address to remove (must be non-zero and present)|
 
 
 ### rescueWallet
 
-Transfers ownership of a vesting wallet to a new owner.
+Transfers ownership of a vesting wallet held by the escrow to a new owner (emergency use)
 
-Access restricted to governor in implementing contract. This is an emergency escape hatch; governance is
-responsible for downstream reconciliation of any tokens associated with the vesting wallet.
-
-**Note:**
-reverts: Staking_InvalidAddress If `newOwner` is the zero address.
+Only callable by the protocol governor
 
 
 ```solidity
@@ -224,15 +208,15 @@ function rescueWallet(address _wallet, address _newOwner) external override only
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_wallet`|`address`||
-|`_newOwner`|`address`||
+|`_wallet`|`address`|The vesting wallet address whose ownership will be transferred|
+|`_newOwner`|`address`|The new owner address (must be non-zero)|
 
 
 ### rescueToken
 
-Transfers any balance of an ERC-20 token held by the escrow to a specified address.
+Sweeps the escrow's full balance of an arbitrary ERC20 token to a recipient (emergency use)
 
-Access restricted to governor in implementing contract.
+Only callable by the protocol governor
 
 
 ```solidity
@@ -242,8 +226,8 @@ function rescueToken(address _token, address _to) external override onlyGovernor
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_token`|`address`||
-|`_to`|`address`||
+|`_token`|`address`|The ERC-20 token address to rescue|
+|`_to`|`address`|The recipient of the rescued tokens|
 
 
 ### stakeVesting

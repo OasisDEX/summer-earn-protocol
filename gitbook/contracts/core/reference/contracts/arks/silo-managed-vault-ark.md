@@ -202,6 +202,8 @@ function _validateDisembarkData(bytes calldata) internal override;
 ## InvalidGaugeAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SiloManagedVaultArk.sol)
 
+Thrown when the resolved gauge (hook receiver) address is the zero address
+
 
 ```solidity
 error InvalidGaugeAddress();
@@ -212,6 +214,8 @@ error InvalidGaugeAddress();
 ## InvalidIncentivesControllerAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SiloManagedVaultArk.sol)
 
+Thrown when the supplied Silo incentives controller address is the zero address
+
 
 ```solidity
 error InvalidIncentivesControllerAddress();
@@ -221,6 +225,8 @@ error InvalidIncentivesControllerAddress();
 
 ## InvalidSiloAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SiloManagedVaultArk.sol)
+
+Thrown when the supplied Silo vault address is the zero address
 
 
 ```solidity

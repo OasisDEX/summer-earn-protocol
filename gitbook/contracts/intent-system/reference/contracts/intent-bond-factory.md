@@ -23,6 +23,8 @@ Each solver gets their own bond contract for complete isolation
 
 ### State Variables
 #### SUMMER_TOKEN_DECIMALS
+The number of decimals for the Summer token
+
 
 ```solidity
 uint256 public constant SUMMER_TOKEN_DECIMALS = 18
@@ -46,6 +48,8 @@ address public intentHandler
 
 
 #### oracle
+The address of the price oracle used to value Summer token bonds
+
 
 ```solidity
 address public oracle
@@ -286,19 +290,38 @@ function removeBond(address solver) external onlyKeeper;
 
 #### slashBond
 
+Slashes a solver's bond contract by a specified amount (only callable by the intent handler)
+
 
 ```solidity
 function slashBond(address solver, uint256 slashAmount) external onlyIntentHandler;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|The address of the solver whose bond should be slashed|
+|`slashAmount`|`uint256`|The amount of tokens to slash|
+
 
 #### setIntentHandler
+
+Sets the address of the IntentHandler contract (can only be set once)
 
 
 ```solidity
 function setIntentHandler(address _intentHandler) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_intentHandler`|`address`|The address of the IntentHandler contract|
+
 
 #### onlyIntentHandler
+
+Modifier to restrict function access to only the designated IntentHandler contract
 
 
 ```solidity
@@ -307,84 +330,162 @@ modifier onlyIntentHandler() ;
 
 ### Events
 #### BondCreated
+Emitted when a new bond contract is created for a solver
+
 
 ```solidity
 event BondCreated(address indexed solver, address indexed bondContract);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+|`bondContract`|`address`|Address of the created bond contract|
+
 #### BondRemoved
+Emitted when a bond contract is removed for a solver
+
 
 ```solidity
 event BondRemoved(address indexed solver, address indexed bondContract);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+|`bondContract`|`address`|Address of the removed bond contract|
+
 #### OracleSet
+Emitted when a new oracle address is set
+
 
 ```solidity
 event OracleSet(address indexed oracle);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`oracle`|`address`|Address of the new oracle|
+
 ### Errors
 #### IntentBondFactory__InvalidSolver
+Thrown when the solver address is invalid
+
 
 ```solidity
 error IntentBondFactory__InvalidSolver();
 ```
 
 #### IntentBondFactory__BondAlreadyExists
+Thrown when attempting to create a bond contract that already exists
+
 
 ```solidity
 error IntentBondFactory__BondAlreadyExists();
 ```
 
 #### IntentBondFactory__BondNotFound
+Thrown when the bond contract for a solver cannot be found
+
 
 ```solidity
 error IntentBondFactory__BondNotFound();
 ```
 
 #### IntentBondFactory__IntentHandlerAlreadySet
+Thrown when attempting to set the intent handler address after it has already been set
+
 
 ```solidity
 error IntentBondFactory__IntentHandlerAlreadySet();
 ```
 
 #### IntentBondFactory__NotIntentHandler
+Thrown when a caller is not the authorized IntentHandler contract
+
 
 ```solidity
 error IntentBondFactory__NotIntentHandler();
 ```
 
 #### IntentBondFactory__InvalidAddress
+Thrown when an input address parameters is invalid (e.g. zero address)
+
 
 ```solidity
 error IntentBondFactory__InvalidAddress(string message);
 ```
+
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`message`|`string`|Reason describing why the address is invalid|
 
 
 
 ## ISolverBond
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/intent-system/src/contracts/IntentBondFactory.sol)
 
+**Title:**
+ISolverBond
+
+Interface for individual solver bond contracts managed by the factory
+
 
 ### Functions
 #### hasSufficientBond
+
+Checks if the bond has a sufficient amount of tokens deposited
 
 
 ```solidity
 function hasSufficientBond(uint256 requiredAmount) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`requiredAmount`|`uint256`|The amount of tokens required|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the bond is sufficient, false otherwise|
+
 
 #### getBondAmount
+
+Gets the total amount of tokens currently bonded
 
 
 ```solidity
 function getBondAmount() external view returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The total amount of bonded tokens|
+
 
 #### slashBond
+
+Slashes a specified amount from the bond
 
 
 ```solidity
 function slashBond(uint256 slashAmount) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`slashAmount`|`uint256`|The amount of tokens to slash|

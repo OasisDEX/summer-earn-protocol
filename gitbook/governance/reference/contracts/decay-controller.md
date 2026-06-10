@@ -64,10 +64,19 @@ function _setRewardsManager(address rewardsManager_) internal;
 
 ### _updateDecay
 
+Updates both the base voting-decay factor on the token and the smoothed decay factor
+on the rewards manager for an account (no-op for the zero address)
+
 
 ```solidity
 function _updateDecay(address account) internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The account whose decay factors are updated|
+
 
 ### updateDecay
 

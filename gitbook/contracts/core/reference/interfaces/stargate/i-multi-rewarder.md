@@ -13,6 +13,9 @@ description: >-
 **Inherits:**
 [IRewarder](./i-rewarder.md)
 
+**Title:**
+IMultiRewarder
+
 A rewarder that can distribute multiple reward tokens (ERC20 and native) to `StargateStaking` pools.
 
 The native token is encoded as 0x0.
@@ -28,6 +31,15 @@ reward over this period will be increased by any rewards on the pool that haven'
 ```solidity
 function setReward(address rewardToken, uint256 rewards, uint48 start, uint48 duration) external payable;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The reward token to configure|
+|`rewards`|`uint256`|The total reward amount to distribute over the period|
+|`start`|`uint48`|The start time of the emission|
+|`duration`|`uint48`|The emission duration in seconds|
+
 
 #### extendReward
 
@@ -38,6 +50,13 @@ equivalent time according to the `rewardPerSec` rate of the pool.
 ```solidity
 function extendReward(address rewardToken, uint256 amount) external payable;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The reward token to extend|
+|`amount`|`uint256`|The additional reward amount to add|
+
 
 #### setAllocPoints
 
@@ -54,6 +73,14 @@ function setAllocPoints(
 )
     external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The reward token whose allocations are configured|
+|`stakingTokens`|`IERC20[]`|The staking tokens to set allocation points for|
+|`allocPoints`|`uint48[]`|The allocation points for each staking token|
+
 
 #### stopReward
 
@@ -65,6 +92,14 @@ not be sent to the owner, this should only be set to false in case the token is 
 ```solidity
 function stopReward(address rewardToken, address receiver, bool pullTokens) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The reward token to stop|
+|`receiver`|`address`|The address that receives the pulled token balance|
+|`pullTokens`|`bool`|Whether to transfer the remaining token balance to the receiver|
+
 
 #### getRewards
 
@@ -75,6 +110,20 @@ for these pools.
 ```solidity
 function getRewards(IERC20 stakingToken, address user) external view returns (address[] memory, uint256[] memory);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`stakingToken`|`IERC20`|The staking token whose linked reward pools are queried|
+|`user`|`address`|The user whose pending rewards are returned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address[]`|The reward token addresses|
+|`<none>`|`uint256[]`|The pending reward amounts, one per reward token|
+
 
 #### allocPointsByReward
 
@@ -87,6 +136,19 @@ function allocPointsByReward(address rewardToken)
     view
     returns (IERC20[] memory stakingTokens, uint48[] memory allocPoints);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The reward token to query|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`stakingTokens`|`IERC20[]`|The staking tokens linked to the reward token|
+|`allocPoints`|`uint48[]`|The allocation points for each staking token|
+
 
 #### allocPointsByStake
 
@@ -99,6 +161,19 @@ function allocPointsByStake(IERC20 stakingToken)
     view
     returns (address[] memory rewardTokens, uint48[] memory allocPoints);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`stakingToken`|`IERC20`|The staking token to query|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardTokens`|`address[]`|The reward tokens linked to the staking token|
+|`allocPoints`|`uint48[]`|The allocation points for each reward token|
+
 
 #### rewardTokens
 
@@ -117,6 +192,18 @@ Returns the emission details of a `rewardToken`, configured via `setReward`.
 ```solidity
 function rewardDetails(address rewardToken) external view returns (RewardDetails memory);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The reward token to query|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`RewardDetails`|The reward token's emission details|
+
 
 ### Events
 #### RewardExtended
@@ -275,6 +362,8 @@ error MultiRewarderZeroRewardRate();
 
 ### Structs
 #### RewardDetails
+Emission configuration and schedule for a reward token
+
 
 ```solidity
 struct RewardDetails {
@@ -290,6 +379,10 @@ struct RewardDetails {
 
 ## RewardPool
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/stargate/IMultiRewarder.sol)
+
+Per-pool reward accounting state shared between multiple libraries.
+
+This is an internal struct, placed here as its shared between multiple libraries.
 
 
 ```solidity

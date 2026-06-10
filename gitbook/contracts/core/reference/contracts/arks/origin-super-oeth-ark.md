@@ -160,8 +160,9 @@ function isWithdrawalClaimRequired() public view returns (bool);
 
 Internal function to get the total assets that are withdrawable
 
-Returns the sum of the direct asset balance and the redeemable amount from Origin ETH
-limited by the ARM balance
+Returns only the direct asset (WETH) balance held by this Ark. The
+OETH position is not synchronously redeemable here: exits go through
+requestWithdrawal/claimWithdrawal or withdrawUsingSwap.
 
 
 ```solidity
@@ -270,7 +271,9 @@ function _validateDisembarkData(bytes calldata) internal pure override;
 
 ## Errors
 ### AssetMismatch
-Error thrown when the asset in ArkParams doesn't match WETH
+Declared to signal a mismatch between the configured asset and
+the expected underlying. Currently unused: the constructor does
+not perform this check, so the error is never reverted.
 
 
 ```solidity

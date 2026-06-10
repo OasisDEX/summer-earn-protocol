@@ -431,7 +431,6 @@ function updatePenaltyEnabled(bool _penaltyEnabled) external;
 
 Claims rewards for a specific account and specific reward token
 
-
 Authorization: the caller MUST be on the receiver-managed authorization list.
 The receiver adds/removes callers via `setAuthorization(caller, isAuthorized)`.
 If the caller is not authorized by `_receiver`, the call reverts with

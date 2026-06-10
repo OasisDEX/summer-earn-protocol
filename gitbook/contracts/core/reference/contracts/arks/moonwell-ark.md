@@ -30,6 +30,8 @@ IMToken public immutable mToken
 
 
 ### comptroller
+The Moonwell comptroller for the mToken, used to claim emission rewards on harvest
+
 
 ```solidity
 IComptroller public immutable comptroller
@@ -72,7 +74,10 @@ function totalAssets() public view override returns (uint256 assets);
 
 Internal function to get the total assets that are withdrawable
 
-MoonwellArk is always withdrawable
+Caps the withdrawable amount by the mToken's available cash
+(the underlying asset balance held by the mToken). When the market
+is highly utilised this can be less than the Ark's underlying
+balance, since borrowed assets cannot be redeemed.
 
 
 ```solidity
@@ -113,9 +118,13 @@ function _disembark(uint256 amount, bytes calldata) internal override;
 
 ### _harvest
 
-Internal function for harvesting rewards
+Internal function for harvesting Moonwell emission rewards
 
-This function is a no-op for most Moonwell vaults as they automatically accrue interest
+Claims rewards for the mToken from the comptroller, then transfers
+every emission token with a non-zero balance to the raft(). The
+returned arrays are compacted to only include reward tokens that
+were actually received. Reverts with InvalidMoonwellAddress if the
+comptroller has no reward distributor configured.
 
 
 ```solidity
@@ -134,8 +143,8 @@ function _harvest(bytes calldata)
 
 |Name|Type|Description|
 |----|----|-----------|
-|`rewardTokens`|`address[]`|The addresses of the reward tokens|
-|`rewardAmounts`|`uint256[]`|The amounts of the reward tokens|
+|`rewardTokens`|`address[]`|The addresses of the reward tokens transferred to the raft|
+|`rewardAmounts`|`uint256[]`|The amounts of each reward token transferred to the raft|
 
 
 ### _validateBoardData
@@ -195,12 +204,25 @@ function balanceOfUnderlyingWithInterest(address user) public view returns (uint
 
 ### _calculateCurrentExchangeRate
 
+Computes the mToken's current exchange rate including interest
+that has accrued since the last on-chain accrual, without
+mutating state
+
 
 ```solidity
 function _calculateCurrentExchangeRate() internal view returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The exchange rate (underlying per mToken share, WAD-scaled)|
+
 
 ### _calculateInterestAccumulated
+
+Computes the interest accrued on outstanding borrows since the
+mToken's last accrual timestamp
 
 
 ```solidity
@@ -213,40 +235,80 @@ function _calculateInterestAccumulated(
     view
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`totalCash`|`uint256`|The mToken's current underlying cash balance|
+|`borrowsPrior`|`uint256`|The total borrows recorded at the last accrual|
+|`reservesPrior`|`uint256`|The total reserves recorded at the last accrual|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The interest accumulated over the elapsed time|
+
 
 ### _calculateNewReserves
+
+Computes the mToken's total reserves after applying the reserve
+factor to newly accumulated interest
 
 
 ```solidity
 function _calculateNewReserves(uint256 reservesPrior, uint256 interestAccumulated) internal view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`reservesPrior`|`uint256`|The total reserves recorded at the last accrual|
+|`interestAccumulated`|`uint256`|The interest accumulated since the last accrual|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The updated total reserves|
+
 
 ## Errors
 ### MoonwellMintFailed
+Thrown when mToken.mint() returns a non-zero (failure) code while boarding
+
 
 ```solidity
 error MoonwellMintFailed();
 ```
 
 ### MoonwellRedeemUnderlyingFailed
+Thrown when mToken.redeem() returns a non-zero (failure) code during a full-position exit
+
 
 ```solidity
 error MoonwellRedeemUnderlyingFailed();
 ```
 
 ### MoonwellAssetMismatch
+Thrown when the mToken's underlying asset does not match the Ark's configured asset
+
 
 ```solidity
 error MoonwellAssetMismatch();
 ```
 
 ### InvalidMoonwellAddress
+Thrown when the mToken, its comptroller, or the reward distributor address is the zero address
+
 
 ```solidity
 error InvalidMoonwellAddress();
 ```
 
 ### MoonwellRedeemFailed
+Thrown when mToken.redeemUnderlying() returns a non-zero (failure) code during a partial exit
+
 
 ```solidity
 error MoonwellRedeemFailed();

@@ -51,9 +51,11 @@ constructor(
 
 Internal function to get the total assets that are withdrawable
 
-PendlePTArk is always withdrawable
-
-TODO:  add logic to check for pause etc
+Returns the full totalAssets() (the slippage-adjusted, oracle-valued
+PT position). It does not apply any market-pause or AMM-liquidity
+cap: pre-expiry withdrawals route through the Pendle market swap and
+can revert at execution time if liquidity is insufficient, while
+post-expiry withdrawals redeem PT at the fixed redemption rate.
 
 
 ```solidity
@@ -246,6 +248,8 @@ function _validateDisembarkData(bytes calldata) internal override;
 ## PendlePtArkConstructorParams
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/PendlePTArk.sol)
 
+Constructor parameters for PendlePTArk
+
 
 ```solidity
 struct PendlePtArkConstructorParams {
@@ -254,3 +258,11 @@ address oracle;
 address router;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`market`|`address`|Address of the Pendle market|
+|`oracle`|`address`|Address of the Pendle PY/LP oracle|
+|`router`|`address`|Address of the Pendle router|

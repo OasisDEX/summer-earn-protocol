@@ -22,6 +22,8 @@ see: IConfigurationManaged
 
 ## State Variables
 ### configurationManager
+Gets the address of the ConfigurationManager contract
+
 
 ```solidity
 IConfigurationManager public immutable configurationManager

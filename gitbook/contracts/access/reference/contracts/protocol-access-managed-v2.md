@@ -54,6 +54,8 @@ modifier onlyOperator() ;
 
 ### _revertIfNotOperator
 
+Reverts if the account does not hold the Operator role on this contract.
+
 Reverts with `CallerIsNotOperator(account)` if `account` does not hold the Operator
 role on this contract. Helper for `onlyOperator` and ad-hoc checks.
 
@@ -61,6 +63,12 @@ role on this contract. Helper for `onlyOperator` and ad-hoc checks.
 ```solidity
 function _revertIfNotOperator(address account) internal view;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address to check.|
+
 
 ### hasOperatorRole
 

@@ -45,7 +45,7 @@ function executeTransferAssets(
 |Name|Type|Description|
 |----|----|-----------|
 |`params`|`BridgeTypes.ExecuteTransferParams`|Struct containing all parameters for the transfer execution.|
-|`options`|`BridgeTypes.BridgeOptions`||
+|`options`|`BridgeTypes.BridgeOptions`|Struct containing bridge options including adapter choice and parameters.|
 
 **Returns**
 
@@ -78,7 +78,7 @@ function executeReadState(
 |Name|Type|Description|
 |----|----|-----------|
 |`params`|`BridgeTypes.ExecuteReadStateParams`|Struct containing all parameters for the state read execution.|
-|`options`|`BridgeTypes.BridgeOptions`||
+|`options`|`BridgeTypes.BridgeOptions`|Struct containing bridge options including adapter choice and parameters.|
 
 **Returns**
 
@@ -110,7 +110,7 @@ function executeSendMessage(
 |Name|Type|Description|
 |----|----|-----------|
 |`params`|`BridgeTypes.ExecuteSendMessageParams`|Struct containing all parameters for the message send execution.|
-|`options`|`BridgeTypes.BridgeOptions`||
+|`options`|`BridgeTypes.BridgeOptions`|Struct containing bridge options including adapter choice and parameters.|
 
 **Returns**
 
@@ -285,6 +285,29 @@ function recoverAssets(address token, address recipient, uint256 amount) externa
 |`token`|`address`|Address of the ERC20 token to recover; use address(0) for native ETH|
 |`recipient`|`address`|Address to receive the recovered assets|
 |`amount`|`uint256`|Amount of assets to recover|
+
+
+### supportsInterface
+
+Returns true if this contract implements the interface defined by `interfaceId`.
+
+See ERC-165. Implementations should check their own interface plus the parent IERC165.
+
+
+```solidity
+function supportsInterface(bytes4 interfaceId) external view returns (bool);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`interfaceId`|`bytes4`|The ERC-165 interface identifier to query.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the interface is supported.|
 
 
 ## Events

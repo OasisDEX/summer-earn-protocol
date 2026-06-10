@@ -23,6 +23,8 @@ Implements strategy for direct depositing tokens via IERC4626 and managing withd
 
 ### State Variables
 #### vault
+The Maple/Syrup pool (ERC4626-style vault) this Ark deposits into
+
 
 ```solidity
 ISyrupPool public immutable vault
@@ -30,6 +32,8 @@ ISyrupPool public immutable vault
 
 
 #### manager
+The Maple/Syrup pool manager, used to resolve the withdrawal manager
+
 
 ```solidity
 ISyrupManager public immutable manager
@@ -37,6 +41,8 @@ ISyrupManager public immutable manager
 
 
 #### withdrawalManager
+The Maple/Syrup withdrawal manager that escrows shares and processes redemptions
+
 
 ```solidity
 ISyrupWithdrawalManagerV2 public immutable withdrawalManager
@@ -192,6 +198,8 @@ function _withdrawableTotalAssets() internal view override returns (uint256);
 
 #### _board
 
+Deposits the asset into the Maple pool, receiving pool shares
+
 
 ```solidity
 function _board(uint256 amount, bytes calldata) internal override;
@@ -199,12 +207,16 @@ function _board(uint256 amount, bytes calldata) internal override;
 
 #### _disembark
 
+No-op disembark hook; exits are asynchronous via requestWithdrawal through the withdrawal manager
+
 
 ```solidity
 function _disembark(uint256, bytes calldata) internal override;
 ```
 
 #### _harvest
+
+No-op harvest: the Maple pool auto-accrues yield, so no rewards are claimed here
 
 
 ```solidity
@@ -217,12 +229,16 @@ function _harvest(bytes calldata)
 
 #### _validateBoardData
 
+Validates the board data (no-op; this Ark requires no board data)
+
 
 ```solidity
 function _validateBoardData(bytes calldata) internal override;
 ```
 
 #### _validateDisembarkData
+
+Validates the disembark data (no-op; this Ark requires no disembark data)
 
 
 ```solidity
@@ -255,6 +271,8 @@ function _withdrawalRequestId() internal view returns (uint256);
 ## InvalidWithdrawalManager
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/MapleInstitutionalArk.sol)
 
+Thrown when the Maple pool's manager reports a zero withdrawal manager address
+
 
 ```solidity
 error InvalidWithdrawalManager();
@@ -264,6 +282,8 @@ error InvalidWithdrawalManager();
 
 ## WrongAmountOfSharesReturned
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/MapleInstitutionalArk.sol)
+
+Thrown when cancelling a withdrawal returns a different share amount than was escrowed
 
 
 ```solidity

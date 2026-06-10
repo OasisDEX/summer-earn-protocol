@@ -32,8 +32,6 @@ address public immutable token
 
 
 ### vestingWallets
-Mapping from beneficiary address to their vesting wallet address
-
 
 ```solidity
 mapping(address beneficiary => address vestingWallet) public vestingWallets
@@ -41,8 +39,6 @@ mapping(address beneficiary => address vestingWallet) public vestingWallets
 
 
 ### vestingWalletOwners
-Mapping from vesting wallet address to its beneficiary address
-
 
 ```solidity
 mapping(address vestingWallet => address beneficiary) public vestingWalletOwners

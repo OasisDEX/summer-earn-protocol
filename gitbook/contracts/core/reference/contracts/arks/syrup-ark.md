@@ -23,6 +23,8 @@ Implements strategy for depositing tokens with signature authorization and manag
 
 ### State Variables
 #### vault
+The Syrup pool (ERC4626-style vault) this Ark deposits into
+
 
 ```solidity
 ISyrupPool public immutable vault
@@ -30,6 +32,8 @@ ISyrupPool public immutable vault
 
 
 #### manager
+The Syrup pool manager, used to resolve the withdrawal manager
+
 
 ```solidity
 ISyrupManager public immutable manager
@@ -37,6 +41,8 @@ ISyrupManager public immutable manager
 
 
 #### withdrawalManager
+The Syrup withdrawal manager that tracks redemption requests
+
 
 ```solidity
 ISyrupWithdrawalManager public immutable withdrawalManager
@@ -44,6 +50,8 @@ ISyrupWithdrawalManager public immutable withdrawalManager
 
 
 #### router
+The Syrup router used to deposit with a referral code
+
 
 ```solidity
 ISyrupRouter public immutable router
@@ -51,6 +59,8 @@ ISyrupRouter public immutable router
 
 
 #### summerReferralCode
+Referral code passed to the Syrup router on deposit
+
 
 ```solidity
 bytes32 public immutable summerReferralCode
@@ -183,12 +193,16 @@ function withdrawUsingSwap(uint256 amount, bytes calldata data) external onlyKee
 
 #### _withdrawableTotalAssets
 
+Returns only the asset balance already processed by the withdrawal manager and held by the Ark
+
 
 ```solidity
 function _withdrawableTotalAssets() internal view override returns (uint256);
 ```
 
 #### _board
+
+Deposits the asset into the Syrup pool via the router, passing the referral code
 
 
 ```solidity
@@ -197,12 +211,16 @@ function _board(uint256 amount, bytes calldata) internal override;
 
 #### _disembark
 
+No-op disembark hook; exits are asynchronous via requestWithdrawal through the withdrawal manager
+
 
 ```solidity
 function _disembark(uint256, bytes calldata) internal override;
 ```
 
 #### _harvest
+
+No-op harvest: the Syrup pool auto-accrues yield, so no rewards are claimed here
 
 
 ```solidity
@@ -215,12 +233,16 @@ function _harvest(bytes calldata)
 
 #### _validateBoardData
 
+Validates the board data (no-op; this Ark requires no board data)
+
 
 ```solidity
 function _validateBoardData(bytes calldata) internal override;
 ```
 
 #### _validateDisembarkData
+
+Validates the disembark data (no-op; this Ark requires no disembark data)
 
 
 ```solidity
@@ -232,6 +254,8 @@ function _validateDisembarkData(bytes calldata) internal override;
 ## InvalidManager
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArk.sol)
 
+Thrown when the resolved pool manager address is invalid
+
 
 ```solidity
 error InvalidManager();
@@ -242,6 +266,8 @@ error InvalidManager();
 ## InvalidRouterAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArk.sol)
 
+Thrown when the supplied Syrup router address is the zero address
+
 
 ```solidity
 error InvalidRouterAddress();
@@ -251,6 +277,8 @@ error InvalidRouterAddress();
 
 ## InvalidWithdrawalManager
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArk.sol)
+
+Thrown when the pool manager reports a zero withdrawal manager address
 
 
 ```solidity

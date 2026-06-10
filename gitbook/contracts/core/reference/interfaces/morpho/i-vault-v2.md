@@ -8,6 +8,9 @@ description: >-
 # IVaultV2
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/morpho/IVaultV2.sol)
 
+**Title:**
+IVaultV2
+
 Minimal interface for Morpho VaultV2 (MetaMorpho V2) used by integrations.
 
 Kept intentionally small to avoid pulling in GPL-licensed sources.
@@ -16,35 +19,92 @@ Kept intentionally small to avoid pulling in GPL-licensed sources.
 ## Functions
 ### liquidityAdapter
 
+Returns the address of the vault's current liquidity adapter
+
 
 ```solidity
 function liquidityAdapter() external view returns (address);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|The liquidity adapter address|
+
 
 ### liquidityData
+
+Returns the encoded liquidity data passed to the liquidity adapter
 
 
 ```solidity
 function liquidityData() external view returns (bytes memory);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bytes`|The liquidity data|
+
 
 ### isAdapter
+
+Returns whether an address is a registered adapter of the vault
 
 
 ```solidity
 function isAdapter(address adapter) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`adapter`|`address`|The address to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the address is a registered adapter|
+
 
 ### canSendShares
+
+Returns whether an account is allowed to send (transfer out) vault shares
 
 
 ```solidity
 function canSendShares(address account) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The account to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the account may send shares|
+
 
 ### canReceiveAssets
+
+Returns whether an account is allowed to receive vault assets
 
 
 ```solidity
 function canReceiveAssets(address account) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The account to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the account may receive assets|

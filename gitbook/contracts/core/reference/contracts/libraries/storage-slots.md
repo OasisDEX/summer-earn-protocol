@@ -8,6 +8,9 @@ description: >-
 # StorageSlots
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/libraries/StorageSlots.sol)
 
+**Title:**
+StorageSlots
+
 The subtraction of 1 from the keccak256 hash is used to avoid potential conflicts
 with Solidity's default storage slot allocation for state variables.
 
@@ -18,6 +21,8 @@ For more information, see: https://eips.ethereum.org/EIPS/eip-1967
 
 ## State Variables
 ### TOTAL_ASSETS_STORAGE
+Transient storage slot for the cached total assets value
+
 
 ```solidity
 bytes32 public constant TOTAL_ASSETS_STORAGE = keccak256(
@@ -27,6 +32,8 @@ bytes32 public constant TOTAL_ASSETS_STORAGE = keccak256(
 
 
 ### IS_TOTAL_ASSETS_CACHED_STORAGE
+Transient storage slot for the flag indicating whether total assets are cached
+
 
 ```solidity
 bytes32 public constant IS_TOTAL_ASSETS_CACHED_STORAGE = keccak256(
@@ -36,6 +43,8 @@ bytes32 public constant IS_TOTAL_ASSETS_CACHED_STORAGE = keccak256(
 
 
 ### ARKS_TOTAL_ASSETS_ARRAY_STORAGE
+Transient storage slot for the cached per-Ark total assets array
+
 
 ```solidity
 bytes32 public constant ARKS_TOTAL_ASSETS_ARRAY_STORAGE = keccak256(
@@ -45,6 +54,8 @@ bytes32 public constant ARKS_TOTAL_ASSETS_ARRAY_STORAGE = keccak256(
 
 
 ### ARKS_ADDRESS_ARRAY_STORAGE
+Transient storage slot for the cached active-Ark address array
+
 
 ```solidity
 bytes32 public constant ARKS_ADDRESS_ARRAY_STORAGE = keccak256(
@@ -54,6 +65,8 @@ bytes32 public constant ARKS_ADDRESS_ARRAY_STORAGE = keccak256(
 
 
 ### ARKS_LENGTH_STORAGE
+Transient storage slot for the cached count of active Arks
+
 
 ```solidity
 bytes32 public constant ARKS_LENGTH_STORAGE = keccak256(
@@ -63,6 +76,8 @@ bytes32 public constant ARKS_LENGTH_STORAGE = keccak256(
 
 
 ### WITHDRAWABLE_ARKS_TOTAL_ASSETS_STORAGE
+Transient storage slot for the cached total assets of withdrawable Arks
+
 
 ```solidity
 bytes32 public constant WITHDRAWABLE_ARKS_TOTAL_ASSETS_STORAGE = keccak256(
@@ -72,6 +87,8 @@ bytes32 public constant WITHDRAWABLE_ARKS_TOTAL_ASSETS_STORAGE = keccak256(
 
 
 ### WITHDRAWABLE_ARKS_TOTAL_ASSETS_ARRAY_STORAGE
+Transient storage slot for the cached per-Ark total assets array of withdrawable Arks
+
 
 ```solidity
 bytes32 public constant WITHDRAWABLE_ARKS_TOTAL_ASSETS_ARRAY_STORAGE = keccak256(
@@ -81,6 +98,8 @@ bytes32 public constant WITHDRAWABLE_ARKS_TOTAL_ASSETS_ARRAY_STORAGE = keccak256
 
 
 ### WITHDRAWABLE_ARKS_ADDRESS_ARRAY_STORAGE
+Transient storage slot for the cached withdrawable-Ark address array
+
 
 ```solidity
 bytes32 public constant WITHDRAWABLE_ARKS_ADDRESS_ARRAY_STORAGE = keccak256(
@@ -90,6 +109,8 @@ bytes32 public constant WITHDRAWABLE_ARKS_ADDRESS_ARRAY_STORAGE = keccak256(
 
 
 ### WITHDRAWABLE_ARKS_LENGTH_STORAGE
+Transient storage slot for the cached count of withdrawable Arks
+
 
 ```solidity
 bytes32 public constant WITHDRAWABLE_ARKS_LENGTH_STORAGE = keccak256(
@@ -99,6 +120,8 @@ bytes32 public constant WITHDRAWABLE_ARKS_LENGTH_STORAGE = keccak256(
 
 
 ### IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
+Transient storage slot for the flag indicating whether withdrawable-Arks total assets are cached
+
 
 ```solidity
 bytes32 public constant IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE = keccak256(
@@ -108,6 +131,8 @@ bytes32 public constant IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE = kecca
 
 
 ### ARK_INFLOW_BALANCE_STORAGE
+Transient storage slot for the per-Ark inflow balance accumulated during a rebalance
+
 
 ```solidity
 bytes32 public constant ARK_INFLOW_BALANCE_STORAGE = keccak256(
@@ -117,6 +142,8 @@ bytes32 public constant ARK_INFLOW_BALANCE_STORAGE = keccak256(
 
 
 ### ARK_OUTFLOW_BALANCE_STORAGE
+Transient storage slot for the per-Ark outflow balance accumulated during a rebalance
+
 
 ```solidity
 bytes32 public constant ARK_OUTFLOW_BALANCE_STORAGE = keccak256(
@@ -126,6 +153,8 @@ bytes32 public constant ARK_OUTFLOW_BALANCE_STORAGE = keccak256(
 
 
 ### ARK_MAX_INFLOW_BALANCE_STORAGE
+Transient storage slot for the per-Ark maximum allowed inflow balance during a rebalance
+
 
 ```solidity
 bytes32 public constant ARK_MAX_INFLOW_BALANCE_STORAGE = keccak256(
@@ -135,6 +164,8 @@ bytes32 public constant ARK_MAX_INFLOW_BALANCE_STORAGE = keccak256(
 
 
 ### ARK_MAX_OUTFLOW_BALANCE_STORAGE
+Transient storage slot for the per-Ark maximum allowed outflow balance during a rebalance
+
 
 ```solidity
 bytes32 public constant ARK_MAX_OUTFLOW_BALANCE_STORAGE = keccak256(
@@ -144,6 +175,8 @@ bytes32 public constant ARK_MAX_OUTFLOW_BALANCE_STORAGE = keccak256(
 
 
 ### TIP_TAKEN_STORAGE
+Transient storage slot for the flag indicating a tip is currently being collected
+
 
 ```solidity
 bytes32 public constant TIP_TAKEN_STORAGE = keccak256(

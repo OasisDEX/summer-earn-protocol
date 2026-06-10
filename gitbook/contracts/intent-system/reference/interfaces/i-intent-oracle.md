@@ -138,25 +138,41 @@ function getMaxPriceAge() external view returns (uint256);
 
 ## Events
 ### PriceUpdated
+Emitted when a token's price is updated
+
 
 ```solidity
 event PriceUpdated(address indexed token, uint256 price, uint256 timestamp);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`address`|The address of the token|
+|`price`|`uint256`|The new price of the token in USD (18 decimals)|
+|`timestamp`|`uint256`|The block timestamp when the price was updated|
+
 ## Errors
 ### StalePrice
+Thrown when attempting to retrieve or use a stale price
+
 
 ```solidity
 error StalePrice();
 ```
 
 ### InvalidToken
+Thrown when attempting to query price for an unsupported/invalid token
+
 
 ```solidity
 error InvalidToken();
 ```
 
 ### PriceTooOld
+Thrown when the retrieved price timestamp is older than allowed
+
 
 ```solidity
 error PriceTooOld();

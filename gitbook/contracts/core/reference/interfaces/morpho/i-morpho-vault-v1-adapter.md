@@ -8,6 +8,9 @@ description: >-
 # IMorphoVaultV1Adapter
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/morpho/IMorphoVaultV1Adapter.sol)
 
+**Title:**
+IMorphoVaultV1Adapter
+
 Minimal interface for Morpho's MorphoVaultV1Adapter used as a VaultV2 liquidity adapter.
 
 Kept intentionally small to avoid pulling in GPL-licensed sources.
@@ -16,7 +19,14 @@ Kept intentionally small to avoid pulling in GPL-licensed sources.
 ## Functions
 ### morphoVaultV1
 
+Returns the address of the underlying MetaMorpho V1 vault this adapter wraps
+
 
 ```solidity
 function morphoVaultV1() external view returns (address);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|The MorphoVaultV1 address|

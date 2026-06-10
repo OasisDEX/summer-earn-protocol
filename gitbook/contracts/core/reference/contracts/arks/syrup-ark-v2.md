@@ -23,6 +23,8 @@ Implements strategy for depositing tokens with signature authorization and manag
 
 ### State Variables
 #### VAULT
+The Syrup pool (ERC4626-style vault) this Ark deposits into
+
 
 ```solidity
 ISyrupPool public immutable VAULT
@@ -30,6 +32,8 @@ ISyrupPool public immutable VAULT
 
 
 #### MANAGER
+The Syrup pool manager, used to resolve the withdrawal manager
+
 
 ```solidity
 ISyrupManager public immutable MANAGER
@@ -37,6 +41,8 @@ ISyrupManager public immutable MANAGER
 
 
 #### WITHDRAWAL_MANAGER
+The Syrup V2 withdrawal manager that escrows shares and processes redemptions
+
 
 ```solidity
 ISyrupWithdrawalManagerV2 public immutable WITHDRAWAL_MANAGER
@@ -44,6 +50,8 @@ ISyrupWithdrawalManagerV2 public immutable WITHDRAWAL_MANAGER
 
 
 #### ROUTER
+The Syrup router used to deposit (and authorize) with a referral code
+
 
 ```solidity
 ISyrupRouter public immutable ROUTER
@@ -51,6 +59,8 @@ ISyrupRouter public immutable ROUTER
 
 
 #### SUMMER_REFERRAL_CODE
+Referral code passed to the Syrup router on deposit
+
 
 ```solidity
 bytes32 public immutable SUMMER_REFERRAL_CODE
@@ -125,6 +135,17 @@ function authorizeAndDeposit(
     onlyKeeper
     nonReentrant;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`bitmap`|`uint256`|Permission bitmap forwarded to the router's authorize step|
+|`deadline`|`uint256`|Expiry timestamp for the authorization signature|
+|`authV`|`uint8`|ECDSA signature v component for the authorization|
+|`authR`|`bytes32`|ECDSA signature r component for the authorization|
+|`authS`|`bytes32`|ECDSA signature s component for the authorization|
+|`amount`|`uint256`|Amount of the asset to pull from the keeper and deposit|
+
 
 #### requestWithdrawal
 
@@ -217,6 +238,8 @@ function withdrawUsingSwap(uint256 amount, bytes calldata data) external onlyKee
 
 #### _withdrawableTotalAssets
 
+Returns only the asset balance already processed by the withdrawal manager and held by the Ark
+
 Returns the underlying asset balance held directly by the Ark.
 Only includes tokens already processed by Maple's withdrawal manager
 and sent back to the Ark — not shares or escrowed amounts.
@@ -228,6 +251,8 @@ function _withdrawableTotalAssets() internal view override returns (uint256);
 
 #### _board
 
+Deposits the asset into the Syrup pool via the router, passing the referral code
+
 
 ```solidity
 function _board(uint256 amount, bytes calldata) internal override;
@@ -235,12 +260,16 @@ function _board(uint256 amount, bytes calldata) internal override;
 
 #### _disembark
 
+No-op disembark hook; exits are asynchronous via requestWithdrawal through the withdrawal manager
+
 
 ```solidity
 function _disembark(uint256, bytes calldata) internal override;
 ```
 
 #### _harvest
+
+No-op harvest: the Syrup pool auto-accrues yield, so no rewards are claimed here
 
 
 ```solidity
@@ -253,12 +282,16 @@ function _harvest(bytes calldata)
 
 #### _validateBoardData
 
+Validates the board data (no-op; this Ark requires no board data)
+
 
 ```solidity
 function _validateBoardData(bytes calldata) internal override;
 ```
 
 #### _validateDisembarkData
+
+Validates the disembark data (no-op; this Ark requires no disembark data)
 
 
 ```solidity
@@ -291,6 +324,8 @@ function _withdrawalRequestId() internal view returns (uint256);
 ## AlreadyWhitelisted
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
 
+Thrown when authorizeAndDeposit is called while the Ark already has deposit permission
+
 
 ```solidity
 error AlreadyWhitelisted();
@@ -300,6 +335,8 @@ error AlreadyWhitelisted();
 
 ## InvalidManager
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
+
+Thrown when the resolved pool manager address is invalid
 
 
 ```solidity
@@ -311,6 +348,8 @@ error InvalidManager();
 ## InvalidPoolPermissionManagerAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
 
+Thrown when the router reports a zero pool permission manager address
+
 
 ```solidity
 error InvalidPoolPermissionManagerAddress();
@@ -320,6 +359,8 @@ error InvalidPoolPermissionManagerAddress();
 
 ## InvalidRouterAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
+
+Thrown when the supplied Syrup router address is the zero address
 
 
 ```solidity
@@ -331,6 +372,8 @@ error InvalidRouterAddress();
 ## InvalidWithdrawalManager
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
 
+Thrown when the pool manager reports a zero withdrawal manager address
+
 
 ```solidity
 error InvalidWithdrawalManager();
@@ -341,6 +384,8 @@ error InvalidWithdrawalManager();
 ## WhitelistFailed
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
 
+Thrown when authorizeAndDeposit fails to grant the Ark deposit permission
+
 
 ```solidity
 error WhitelistFailed();
@@ -350,6 +395,8 @@ error WhitelistFailed();
 
 ## WrongAmountOfSharesReturned
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/SyrupArkV2.sol)
+
+Thrown when cancelling a withdrawal returns a different share amount than was escrowed
 
 
 ```solidity

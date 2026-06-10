@@ -224,6 +224,18 @@ Converts shares to assets at the current oracle price.
 ```solidity
 function sharesToAssets(uint256 shares) external view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The amount of fund-token shares to convert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The equivalent base-asset amount|
+
 
 ### claimWithdrawal
 
@@ -262,6 +274,12 @@ Updates the sweep slippage band. Keeper-gated.
 ```solidity
 function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`newSweepSlippage`|`Percentage`|The new sweep slippage cap (must be <= MAX_SWEEP_SLIPPAGE)|
+
 
 ### setDepositSlippage
 
@@ -271,6 +289,12 @@ Updates the deposit slippage band. Keeper-gated.
 ```solidity
 function setDepositSlippage(Percentage newDepositSlippage) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`newDepositSlippage`|`Percentage`|The new deposit slippage cap (must be <= MAX_DEPOSIT_SLIPPAGE)|
+
 
 ### requestWithdrawal
 
@@ -361,12 +385,16 @@ function _sweep(uint256 amountToSweep)
 
 ### _setSweepSlippage
 
+Validates and stores a new sweep slippage band, emitting SweepSlippageUpdated
+
 
 ```solidity
 function _setSweepSlippage(Percentage newSweepSlippage) internal;
 ```
 
 ### _setDepositSlippage
+
+Validates and stores a new deposit slippage band, emitting DepositSlippageUpdated
 
 
 ```solidity
@@ -424,12 +452,16 @@ function _harvest(bytes calldata)
 
 ### _validateBoardData
 
+Validates the board data (no-op; Superstate arks require no board data)
+
 
 ```solidity
 function _validateBoardData(bytes calldata) internal override;
 ```
 
 ### _validateDisembarkData
+
+Validates the disembark data (no-op; Superstate arks require no disembark data)
 
 
 ```solidity

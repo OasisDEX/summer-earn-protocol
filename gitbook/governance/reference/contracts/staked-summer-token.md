@@ -29,6 +29,8 @@ Access control model:
 
 ## State Variables
 ### MINTER_ROLE
+AccessControl role identifier authorizing an address to mint xSUMR
+
 
 ```solidity
 bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE")
@@ -36,6 +38,8 @@ bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE")
 
 
 ### BURNER_ROLE
+AccessControl role identifier authorizing an address to burn xSUMR from other accounts
+
 
 ```solidity
 bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE")
@@ -121,9 +125,7 @@ function unpause() external onlyGuardianOrGovernor;
 
 ### mint
 
-Mints xSUMR to a recipient address.
-
-Access is expected to be restricted to authorized staking modules.
+Mints xSUMR to a recipient address. Restricted to addresses holding MINTER_ROLE.
 
 
 ```solidity
@@ -133,15 +135,13 @@ function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`to`|`address`||
-|`amount`|`uint256`||
+|`to`|`address`|Recipient address for newly minted xSUMR|
+|`amount`|`uint256`|Amount of xSUMR to mint|
 
 
 ### burn
 
-Burns caller's xSUMR balance.
-
-Access: Token owner. Used for self-burn flows like unstaking where the owner directly initiates the burn.
+Burns xSUMR from the caller's own balance
 
 
 ```solidity
@@ -151,14 +151,13 @@ function burn(uint256 amount) public override(ERC20Burnable, IStakedSummerToken)
 
 |Name|Type|Description|
 |----|----|-----------|
-|`amount`|`uint256`||
+|`amount`|`uint256`|Amount of xSUMR to burn from the caller's balance|
 
 
 ### burnFrom
 
-Burns xSUMR from a specified address using module authorization and/or allowance
-
-Implementations SHOULD allow either the token owner or an authorized burner module to execute.
+Burns xSUMR from a specified address; allowed for the owner or a BURNER_ROLE holder,
+subject to standard ERC20 allowance rules when the caller is not the owner
 
 
 ```solidity
@@ -168,8 +167,8 @@ function burnFrom(address from, uint256 amount) public override(ERC20Burnable, I
 
 |Name|Type|Description|
 |----|----|-----------|
-|`from`|`address`||
-|`amount`|`uint256`||
+|`from`|`address`|Address from which tokens will be burned|
+|`amount`|`uint256`|Amount of xSUMR to burn|
 
 
 ### clock
@@ -192,17 +191,42 @@ function CLOCK_MODE() public pure override returns (string memory);
 
 ### _update
 
+Internal balance-update hook that enforces the transfer restriction (mint/burn only)
+before running the pausable and votes checkpoint logic
+
 
 ```solidity
 function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Pausable, ERC20Votes);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`from`|`address`|The address tokens move from (zero address for mints)|
+|`to`|`address`|The address tokens move to (zero address for burns)|
+|`value`|`uint256`|The amount of tokens moved|
+
 
 ### nonces
+
+Returns the current permit nonce for an owner address
 
 
 ```solidity
 function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address to query the nonce for|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The current nonce for the specified owner|
+
 
 ### grantMinterRole
 

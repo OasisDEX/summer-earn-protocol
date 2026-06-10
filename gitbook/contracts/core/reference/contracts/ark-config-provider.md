@@ -265,12 +265,16 @@ function unregisterFleetCommander() external;
 
 ### onlyCommander
 
+Restricts a function to the registered commander (FleetCommander) of this Ark
+
 
 ```solidity
 modifier onlyCommander() ;
 ```
 
 ### _revertIfNotCommander
+
+Reverts unless the caller is the registered commander of this Ark
 
 
 ```solidity

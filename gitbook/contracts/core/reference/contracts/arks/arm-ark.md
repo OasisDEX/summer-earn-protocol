@@ -131,9 +131,11 @@ function requestWithdrawal(uint256 amount) external onlyKeeper;
 
 ### claimWithdrawal
 
-ARM appears to handle withdrawals automatically based on the withdrawal queue
+Claims a previously requested ARM redemption
 
-This function checks if the withdrawal has been automatically processed and resets the requestId
+Reverts if no withdrawal is outstanding, otherwise calls
+arm.claimRedeem(withdrawalRequestId) (which returns WETH, so no
+wrapping is needed) and clears the stored request id.
 
 
 ```solidity
@@ -186,7 +188,12 @@ function _board(uint256 amount, bytes calldata) internal override;
 
 ### _disembark
 
-Withdraws assets from the ARM protocol via swap
+No-op disembark hook
+
+Direct synchronous disembark is not supported: exits from the ARM
+position go through requestWithdrawal/claimWithdrawal or
+withdrawUsingSwap. Only WETH already held directly is immediately
+withdrawable (see _withdrawableTotalAssets).
 
 
 ```solidity
@@ -196,7 +203,7 @@ function _disembark(uint256 amount, bytes calldata) internal override;
 
 |Name|Type|Description|
 |----|----|-----------|
-|`amount`|`uint256`|The amount of assets to withdraw|
+|`amount`|`uint256`|The amount of assets to withdraw (unused)|
 |`<none>`|`bytes`||
 
 

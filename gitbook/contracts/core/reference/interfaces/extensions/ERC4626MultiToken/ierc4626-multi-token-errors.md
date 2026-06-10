@@ -8,6 +8,9 @@ description: >-
 # IERC4626MultiTokenErrors
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/extensions/ERC4626MultiToken/IERC4626MultiTokenErrors.sol)
 
+**Title:**
+IERC4626MultiTokenErrors
+
 **Author:**
 Roberto Cano <robercano>
 

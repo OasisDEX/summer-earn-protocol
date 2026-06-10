@@ -25,6 +25,8 @@ with auctions
 
 ## State Variables
 ### auctions
+Mapping of auction ID to Auction struct containing all auction data
+
 
 ```solidity
 mapping(uint256 => DutchAuctionLibrary.Auction) public auctions
@@ -32,6 +34,8 @@ mapping(uint256 => DutchAuctionLibrary.Auction) public auctions
 
 
 ### auctionCounter
+Counter for generating unique auction IDs
+
 
 ```solidity
 uint256 public auctionCounter

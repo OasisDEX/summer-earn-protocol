@@ -49,6 +49,8 @@ function _collectTipPre() private;
 
 ### _collectTipPost
 
+Clears the tip-collection flag after a tip-collecting action completes
+
 
 ```solidity
 function _collectTipPost() private;
@@ -56,12 +58,16 @@ function _collectTipPost() private;
 
 ### _useCachePre
 
+Populates the Arks data cache before a cache-using action
+
 
 ```solidity
 function _useCachePre() private;
 ```
 
 ### _useWithdrawCachePre
+
+Populates the withdrawable-Arks data cache before a withdraw cache-using action
 
 
 ```solidity
@@ -311,6 +317,11 @@ function redeemFromArks(
 
 ### deposit
 
+Deposits `assets` of the underlying token, mints shares to `receiver`,
+and boards the assets into the buffer Ark
+
+Reverts when paused; collects the tip and refreshes the totals cache before executing
+
 
 ```solidity
 function deposit(
@@ -324,6 +335,19 @@ function deposit(
     whenNotPaused
     returns (uint256 shares);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying assets to deposit|
+|`receiver`|`address`|The address that receives the minted shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The amount of shares minted|
+
 
 ### deposit
 
@@ -344,6 +368,11 @@ function deposit(uint256 assets, address receiver, bytes memory referralCode) ex
 
 ### mint
 
+Mints exactly `shares` to `receiver`, pulling the required assets and boarding
+them into the buffer Ark
+
+Reverts when paused; collects the tip and refreshes the totals cache before executing
+
 
 ```solidity
 function mint(
@@ -357,6 +386,19 @@ function mint(
     whenNotPaused
     returns (uint256 assets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The amount of shares to mint|
+|`receiver`|`address`|The address that receives the minted shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying assets pulled from the caller|
+
 
 ### tip
 
@@ -374,6 +416,8 @@ function tip() public whenNotPaused returns (uint256);
 
 
 ### totalSupply
+
+Returns the total supply of FleetCommander shares, including not-yet-minted accrued tip shares
 
 Overrides the totalSupply function to include the tip shares
 
@@ -436,17 +480,47 @@ function withdrawableTotalAssets() public view returns (uint256);
 
 ### maxDeposit
 
+Returns the maximum amount of assets `owner` can deposit, bounded by the remaining
+deposit cap and the owner's asset balance
+
 
 ```solidity
 function maxDeposit(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose maximum deposit is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_maxDeposit`|`uint256`|The maximum depositable amount of underlying assets|
+
 
 ### maxMint
+
+Returns the maximum number of shares `owner` can mint, bounded by the remaining
+deposit cap and the owner's asset balance
 
 
 ```solidity
 function maxMint(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxMint);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose maximum mint is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_maxMint`|`uint256`|The maximum number of shares that can be minted|
+
 
 ### maxBufferWithdraw
 
@@ -472,17 +546,47 @@ function maxBufferWithdraw(address owner) public view returns (uint256 _maxBuffe
 
 ### maxWithdraw
 
+Returns the maximum amount of assets `owner` can withdraw, bounded by the currently
+withdrawable total assets and the owner's share value
+
 
 ```solidity
 function maxWithdraw(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose maximum withdrawal is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_maxWithdraw`|`uint256`|The maximum withdrawable amount of underlying assets|
+
 
 ### maxRedeem
+
+Returns the maximum number of shares `owner` can redeem, bounded by the currently
+withdrawable total assets and the owner's share balance
 
 
 ```solidity
 function maxRedeem(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose maximum redemption is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_maxRedeem`|`uint256`|The maximum number of shares that can be redeemed|
+
 
 ### maxBufferRedeem
 
@@ -530,7 +634,7 @@ function rebalance(RebalanceData[] calldata rebalanceData)
 
 |Name|Type|Description|
 |----|----|-----------|
-|`rebalanceData`|`RebalanceData[]`||
+|`rebalanceData`|`RebalanceData[]`|The array of rebalance operations to execute|
 
 
 ### setTipRate
@@ -564,7 +668,7 @@ function setMinimumPauseTime(uint256 _newMinimumPauseTime) public onlyGovernor w
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_newMinimumPauseTime`|`uint256`||
+|`_newMinimumPauseTime`|`uint256`|The new minimum pause time in seconds|
 
 
 ### updateRebalanceCooldown
@@ -596,7 +700,7 @@ function forceRebalance(RebalanceData[] calldata rebalanceData) external onlyGov
 
 |Name|Type|Description|
 |----|----|-----------|
-|`rebalanceData`|`RebalanceData[]`||
+|`rebalanceData`|`RebalanceData[]`|The array of rebalance operations to execute|
 
 
 ### pause
@@ -623,17 +727,42 @@ function unpause() external onlyGuardianOrGovernor;
 
 ### transfer
 
+Transfers `amount` shares to `to`
+
 
 ```solidity
 function transfer(address to, uint256 amount) public override(IERC20, ERC20) returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`to`|`address`|The recipient of the shares|
+|`amount`|`uint256`|The amount of shares to transfer|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the transfer succeeded|
+
 
 ### transferFrom
+
+Transfers `amount` shares from `from` to `to` using the caller's allowance
 
 
 ```solidity
 function transferFrom(address from, address to, uint256 amount) public override(IERC20, ERC20) returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`from`|`address`|The address to transfer the shares from|
+|`to`|`address`|The recipient of the shares|
+|`amount`|`uint256`|The amount of shares to transfer|
+
 
 ### _mintTip
 
@@ -1059,7 +1188,35 @@ function _validateRedeemFromArks(uint256 shares, address owner) internal view;
 
 ### _getActiveArksAddresses
 
+Returns an array of addresses for all currently active Arks in the fleet
+
+This is an abstract internal function that must be implemented by the FleetCommander contract
+It serves as a critical component in the caching system for efficient ark management
+
+**Notes:**
+- purpose: 
+- Provides the foundation for the caching system by identifying which Arks are currently active
+- Used by _getArksData and _getWithdrawableArksData to populate cache data
+- Essential for operations that need to iterate over or manage all active Arks
+- Defined as virtual to be overridden by the FleetCommander contract and avoid calling it before it's required
+
+- implementation-notes: 
+- Must be implemented by the inheriting FleetCommander contract
+- Should return a fresh array of addresses each time it's called
+- Buffer Ark should NOT be included in this list (it's handled separately)
+- Only truly active and operational Arks should be included
+
+- related-functions: 
+- _getArksData: Uses this function to get data for all active Arks
+- _getWithdrawableArksData: Uses this function to identify withdrawable Arks
+- _getAllArks: Combines these addresses with the buffer Ark
+
 
 ```solidity
 function _getActiveArksAddresses() internal view override(FleetCommanderCache) returns (address[] memory);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address[]`|address[] An array containing the addresses of all active Arks|

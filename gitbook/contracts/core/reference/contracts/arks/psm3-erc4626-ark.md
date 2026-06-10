@@ -266,24 +266,32 @@ function _depositToken() internal view returns (IERC20);
 
 ## Errors
 ### InvalidPSMAddress
+Thrown when the supplied PSM3 address is the zero address
+
 
 ```solidity
 error InvalidPSMAddress();
 ```
 
 ### InvalidUSDSAddress
+Thrown when the supplied USDS address is the zero address
+
 
 ```solidity
 error InvalidUSDSAddress();
 ```
 
 ### InvalidSUSDSAddress
+Thrown when the supplied sUSDS address is the zero address
+
 
 ```solidity
 error InvalidSUSDSAddress();
 ```
 
 ### InvalidGemAddress
+Thrown when the supplied gem (fleet asset) address is the zero address
+
 
 ```solidity
 error InvalidGemAddress();

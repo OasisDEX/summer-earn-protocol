@@ -48,9 +48,11 @@ constructor(
 
 Internal function to get the total assets that are withdrawable
 
-PendleLPArk is always withdrawable
-
-TODO:  add logic to check for pause etc
+Returns the full totalAssets() (the slippage-adjusted, oracle-valued
+LP position). It does not apply any market-pause or AMM-liquidity
+cap: withdrawals route through Pendle's removeLiquiditySingleToken
+and can revert at execution time if the market lacks sufficient
+liquidity.
 
 
 ```solidity

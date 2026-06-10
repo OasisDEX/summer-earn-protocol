@@ -116,6 +116,8 @@ function superstateOracle() external returns (address);
 ## SupportedStablecoin
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/superstate/ISuperstateToken.sol)
 
+Configuration for a stablecoin accepted for subscriptions
+
 
 ```solidity
 struct SupportedStablecoin {
@@ -123,3 +125,10 @@ address sweepDestination;
 uint96 fee;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`sweepDestination`|`address`|The address that received subscribed stablecoins are swept to|
+|`fee`|`uint96`|The subscription fee charged for this stablecoin|

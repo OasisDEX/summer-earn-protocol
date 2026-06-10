@@ -77,7 +77,10 @@ function totalAssets() public view override returns (uint256 assets);
 
 Internal function to get the total assets that are withdrawable
 
-MetaMorphoArk is always withdrawable
+MorphoVaultArk caps the withdrawable amount by
+metaMorpho.maxWithdraw(), which reflects the liquidity available
+across the vault's underlying Morpho markets. This can be less than
+totalAssets() when those markets are illiquid.
 
 
 ```solidity
@@ -207,6 +210,8 @@ struct RewardsData {
 ## InvalidUrdAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/MorphoVaultArk.sol)
 
+Thrown when a claim references a distributor not deployed by the configured URD factory
+
 
 ```solidity
 error InvalidUrdAddress();
@@ -216,6 +221,8 @@ error InvalidUrdAddress();
 
 ## InvalidUrdFactoryAddress
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/MorphoVaultArk.sol)
+
+Thrown when the supplied Universal Rewards Distributor factory address is the zero address
 
 
 ```solidity

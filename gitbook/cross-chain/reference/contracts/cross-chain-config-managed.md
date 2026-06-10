@@ -22,6 +22,8 @@ see: ICrossChainConfigManaged
 
 ## State Variables
 ### CROSS_CHAIN_REGISTRY
+The cross-chain registry contract instance
+
 
 ```solidity
 ICrossChainRegistry public immutable CROSS_CHAIN_REGISTRY
@@ -99,6 +101,18 @@ Returns true if the given address is an executor
 ```solidity
 function isExecutor(address executor) public view virtual returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`executor`|`address`|The address of the executor candidate to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the address is an authorized executor, false otherwise|
+
 
 ## Errors
 ### CrossChainRegistryZeroAddress

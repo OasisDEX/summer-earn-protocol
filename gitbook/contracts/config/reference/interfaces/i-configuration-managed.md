@@ -111,6 +111,8 @@ function fleetCommanderRewardsManagerFactory() external view returns (address);
 
 ## Errors
 ### ConfigurationManagerZeroAddress
+Thrown when the configuration manager address is set to address(0)
+
 
 ```solidity
 error ConfigurationManagerZeroAddress();

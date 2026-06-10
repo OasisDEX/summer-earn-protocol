@@ -84,13 +84,13 @@ function getCurrentPrice(Auction memory auction) public view returns (uint256);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`auction`|`Auction`|The Auction struct|
+|`auction`|`Auction`|The Auction struct containing configuration and state for the auction|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`uint256`|The current price of tokens in the auction|
+|`<none>`|`uint256`|The current price of tokens in the auction, denominated in payment token units and scaled to the payment token's own decimals|
 
 
 ### buyTokens

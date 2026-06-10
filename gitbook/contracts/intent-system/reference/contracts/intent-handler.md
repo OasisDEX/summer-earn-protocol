@@ -23,6 +23,8 @@ Deploys escrows for each solver to hold yield
 
 ## State Variables
 ### MAX_PRICE_AGE
+The maximum age of a price update before it is considered stale
+
 
 ```solidity
 uint256 public constant MAX_PRICE_AGE = 1 hours
@@ -30,6 +32,8 @@ uint256 public constant MAX_PRICE_AGE = 1 hours
 
 
 ### MIN_TERM
+The minimum term duration allowed for an intent
+
 
 ```solidity
 uint256 public constant MIN_TERM = 1 days
@@ -37,6 +41,8 @@ uint256 public constant MIN_TERM = 1 days
 
 
 ### MAX_TERM
+The maximum term duration allowed for an intent
+
 
 ```solidity
 uint256 public constant MAX_TERM = 365 days
@@ -44,6 +50,8 @@ uint256 public constant MAX_TERM = 365 days
 
 
 ### BUFFER_TIME
+The buffer time window after an intent is solved during which it cannot be committed
+
 
 ```solidity
 uint256 public constant BUFFER_TIME = 10 minutes
@@ -51,6 +59,8 @@ uint256 public constant BUFFER_TIME = 10 minutes
 
 
 ### intentStates
+Mapping from intent ID to its current lifecycle state
+
 
 ```solidity
 mapping(bytes32 intentId => IntentState state) public intentStates
@@ -58,6 +68,8 @@ mapping(bytes32 intentId => IntentState state) public intentStates
 
 
 ### solverEscrows
+Mapping from solver address to their deployed Escrow contract
+
 
 ```solidity
 mapping(address solver => Escrow escrow) public solverEscrows
@@ -65,6 +77,8 @@ mapping(address solver => Escrow escrow) public solverEscrows
 
 
 ### intentSolvers
+Mapping from intent ID to the address of the solver who solved it
+
 
 ```solidity
 mapping(bytes32 intentId => address solver) public intentSolvers
@@ -72,6 +86,8 @@ mapping(bytes32 intentId => address solver) public intentSolvers
 
 
 ### intentSolveTime
+Mapping from intent ID to the block timestamp when it was solved
+
 
 ```solidity
 mapping(bytes32 intentId => uint256 solveTime) public intentSolveTime
@@ -79,6 +95,8 @@ mapping(bytes32 intentId => uint256 solveTime) public intentSolveTime
 
 
 ### intentBondFactory
+The IntentBondFactory contract address
+
 
 ```solidity
 IIntentBondFactory public immutable intentBondFactory
@@ -86,6 +104,8 @@ IIntentBondFactory public immutable intentBondFactory
 
 
 ### intentOracle
+The IntentOracle contract address
+
 
 ```solidity
 IIntentOracle public immutable intentOracle
@@ -93,6 +113,8 @@ IIntentOracle public immutable intentOracle
 
 
 ### summerToken
+The Summer token contract address
+
 
 ```solidity
 IERC20 public immutable summerToken
@@ -100,6 +122,8 @@ IERC20 public immutable summerToken
 
 
 ### accessManager
+The address of the AccessManager contract
+
 
 ```solidity
 address public immutable accessManager
@@ -129,61 +153,136 @@ modifier onlySolver() ;
 
 ### createIntent
 
+Creates a new intent
+
 
 ```solidity
 function createIntent(Intent memory intent) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|Intent struct containing intent information|
+
 
 ### solveIntent
+
+Solver solves an intent directly
 
 
 ```solidity
 function solveIntent(Intent memory intent, uint256 escrowedYield) external onlySolver;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|Intent struct containing intent information|
+|`escrowedYield`|`uint256`|Amount of yield escrowed upfront|
+
 
 ### settleIntent
+
+Settles an intent once it has reached its expiry
+
+Permissionless: callable by anyone; gated on block.timestamp >= intent.expiry
+and on the intent being in the Solved state.
 
 
 ```solidity
 function settleIntent(Intent memory intent) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|Intent struct containing intent information|
+
 
 ### resignByUser
+
+Resigns an intent on behalf of the user
+
+Callable by a keeper (onlyKeeper) while the intent is in the Created or
+Solved state; in the Solved state the escrow is returned to the solver.
 
 
 ```solidity
 function resignByUser(Intent memory intent) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|Intent struct containing intent information|
+
 
 ### resignBySolver
+
+Resigns an intent by the solver (50% bond penalty)
 
 
 ```solidity
 function resignBySolver(Intent memory intent) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|Intent struct containing intent information|
+
 
 ### addSolverEscrow
+
+Deploys and associates a new Escrow contract for a solver
 
 
 ```solidity
 function addSolverEscrow(address solver, address asset) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+|`asset`|`address`|Address of the asset/token used by this solver|
+
 
 ### removeSolverEscrow
+
+Removes the Escrow contract association for a solver
 
 
 ```solidity
 function removeSolverEscrow(address solver) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+
 
 ### withdrawToken
+
+Withdraws a specified amount of tokens from this contract to the caller
 
 
 ```solidity
 function withdrawToken(address token, uint256 amount) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`address`|Address of the token to withdraw (use address(0) for native ETH)|
+|`amount`|`uint256`|The amount of tokens to withdraw|
+
 
 ### hasCommitted
+
+Checks if an intent has met the commitment conditions (sufficient assets and buffer time elapsed)
 
 
 ```solidity
@@ -193,41 +292,87 @@ function hasCommitted(Intent memory intent)
     onlyExistingIntent(intent)
     returns (uint256 requiredNotional, uint256 arkAssets, bool isCommited);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|The Intent struct containing all parameters of the intent|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`requiredNotional`|`uint256`|The required notional value for the intent|
+|`arkAssets`|`uint256`|The total assets of the user's Ark contract|
+|`isCommited`|`bool`|True if commitment conditions are satisfied, false otherwise|
+
 
 ### onlyExistingIntent
+
+Modifier restricting function execution to only existing intents
 
 
 ```solidity
 modifier onlyExistingIntent(Intent memory intent) ;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`intent`|`Intent`|The Intent struct to validate|
+
 
 ## Events
 ### SolverEscrowAdded
+Emitted when a solver's Escrow contract is successfully added
+
 
 ```solidity
 event SolverEscrowAdded(address indexed solver, address indexed escrow, address indexed asset);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+|`escrow`|`address`|Address of the newly deployed Escrow contract|
+|`asset`|`address`|Address of the asset associated with the escrow|
+
 ### SolverEscrowRemoved
+Emitted when a solver's Escrow contract is removed
+
 
 ```solidity
 event SolverEscrowRemoved(address indexed solver);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+
 ## Errors
 ### IntentHandler__SolverEscrowAlreadyExists
+Thrown when attempting to add an escrow for a solver that already has one
+
 
 ```solidity
 error IntentHandler__SolverEscrowAlreadyExists();
 ```
 
 ### IntentHandler__SolverEscrowNotFound
+Thrown when the escrow for a solver cannot be found
+
 
 ```solidity
 error IntentHandler__SolverEscrowNotFound();
 ```
 
 ### IntentHandler__WithdrawFailed
+Thrown when the token withdrawal fails
+
 
 ```solidity
 error IntentHandler__WithdrawFailed();

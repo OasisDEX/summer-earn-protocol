@@ -50,6 +50,18 @@ Returns true if the given address is an executor
 ```solidity
 function isExecutor(address executor) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`executor`|`address`|The address of the executor candidate to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the address is an authorized executor, false otherwise|
+
 
 ## Errors
 ### CrossChainConfigManagerZeroAddress

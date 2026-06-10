@@ -80,6 +80,12 @@ Returns the address of the target ERC-4626 vault this wrapper batches deposits f
 ```solidity
 function vault() public view returns (address vaultAddress);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`vaultAddress`|`address`|The address of the wrapped target vault|
+
 
 ### _redeemFromTarget
 

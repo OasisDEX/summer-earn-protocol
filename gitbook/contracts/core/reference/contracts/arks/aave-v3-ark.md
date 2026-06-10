@@ -84,7 +84,13 @@ function totalAssets() public view override returns (uint256 assets);
 
 Internal function to get the total assets that are withdrawable
 
-AaveV3Ark is withdrawable if the asset is active, not frozen, and not paused
+Returns 0 unless the reserve is active and not paused. A frozen
+reserve is deliberately NOT treated as blocking: Aave keeps
+withdrawals/repayments/liquidations active on frozen reserves and
+only halts supplying/borrowing. When withdrawals are allowed, the
+amount is capped by the underlying liquidity held by the aToken
+(config.asset.balanceOf(aToken)), so it can be less than totalAssets()
+when the market is highly utilised.
 
 
 ```solidity
@@ -172,12 +178,16 @@ function _validateDisembarkData(bytes calldata) internal override;
 
 ### _isActive
 
+Returns whether the Aave reserve is active, decoded from its packed configuration bitmap
+
 
 ```solidity
 function _isActive(uint256 configData) internal pure returns (bool);
 ```
 
 ### _isPaused
+
+Returns whether the Aave reserve is paused, decoded from its packed configuration bitmap
 
 
 ```solidity

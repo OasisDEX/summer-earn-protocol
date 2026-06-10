@@ -142,7 +142,7 @@ function shake(address fleetCommander_) external whenNotPaused onlyKeeper;
 
 |Name|Type|Description|
 |----|----|-----------|
-|`fleetCommander_`|`address`||
+|`fleetCommander_`|`address`|The FleetCommander to distribute accumulated tips from|
 
 
 ### shakeMultiple

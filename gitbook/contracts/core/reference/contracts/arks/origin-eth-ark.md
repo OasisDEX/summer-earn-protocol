@@ -271,7 +271,9 @@ function _validateDisembarkData(bytes calldata) internal pure override;
 
 ## Errors
 ### AssetMismatch
-Error thrown when the asset in ArkParams doesn't match WETH
+Declared to signal a mismatch between the configured asset and
+the expected underlying. Currently unused: the constructor does
+not perform this check, so the error is never reverted.
 
 
 ```solidity

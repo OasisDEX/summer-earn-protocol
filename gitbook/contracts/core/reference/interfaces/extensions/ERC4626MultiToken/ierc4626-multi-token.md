@@ -11,6 +11,9 @@ description: >-
 **Inherits:**
 [IERC1155FullSupply](../ERC1155FullSupply/ierc1155-full-supply.md)
 
+**Title:**
+IERC4626MultiToken
+
 **Author:**
 Roberto Cano <robercano>
 
@@ -35,7 +38,8 @@ support the ERC-1155 receipts.
 
 EXTERNAL FUNCTIONS
 
-Returns the address of the underlying token used for the Vault for accounting, depositing, and withdrawing.
+Returns the address of the underlying token used for the Vault for accounting, depositing, and
+withdrawing.
 - MUST be an ERC-20 token contract.
 - MUST NOT revert.
 
@@ -43,6 +47,12 @@ Returns the address of the underlying token used for the Vault for accounting, d
 ```solidity
 function asset() external view returns (address assetTokenAddress);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assetTokenAddress`|`address`|The address of the underlying asset token|
+
 
 ### totalAssets
 
@@ -55,6 +65,12 @@ Returns the total amount of the underlying asset that is “managed” by Vault.
 ```solidity
 function totalAssets() external view returns (uint256 totalManagedAssets);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`totalManagedAssets`|`uint256`|The total amount of underlying assets managed by the Vault|
+
 
 ### maxDeposit
 
@@ -68,6 +84,18 @@ through a deposit call.
 ```solidity
 function maxDeposit(address receiver) external view returns (uint256 maxAssets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`receiver`|`address`|The address that would receive the deposited shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`maxAssets`|`uint256`|The maximum amount of assets that can be deposited|
+
 
 ### deposit
 
@@ -83,6 +111,19 @@ NOTE: most implementations will require pre-approval of the Vault with the Vault
 ```solidity
 function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying tokens to deposit|
+|`receiver`|`address`|The address that receives the minted shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The amount of shares minted|
+
 
 ### maxRedeem
 
@@ -96,6 +137,18 @@ through a redeem call.
 ```solidity
 function maxRedeem(address owner) external view returns (uint256 maxShares);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose redeemable shares are queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`maxShares`|`uint256`|The maximum amount of shares that can be redeemed|
+
 
 ### redeem
 
@@ -119,6 +172,21 @@ function redeem(
     external
     returns (uint256 assets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`sharesId`|`uint256`|The ERC-1155 id of the shares to redeem|
+|`sharesAmount`|`uint256`|The amount of shares to redeem|
+|`receiver`|`address`|The address that receives the underlying assets|
+|`owner`|`address`|The address whose shares are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying assets sent to the receiver|
+
 
 ### redeemBatch
 
@@ -142,3 +210,17 @@ function redeemBatch(
     external
     returns (uint256 assets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`sharesIds`|`uint256[]`|The ERC-1155 ids of the shares to redeem|
+|`sharesAmounts`|`uint256[]`|The amounts of shares to redeem, one per id|
+|`receiver`|`address`|The address that receives the underlying assets|
+|`owner`|`address`|The address whose shares are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The total amount of underlying assets sent to the receiver|

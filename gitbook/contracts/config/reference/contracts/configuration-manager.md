@@ -22,6 +22,8 @@ see: IConfigurationManager
 
 ## State Variables
 ### initialized
+Indicates whether the configuration manager has been initialized
+
 
 ```solidity
 bool public initialized

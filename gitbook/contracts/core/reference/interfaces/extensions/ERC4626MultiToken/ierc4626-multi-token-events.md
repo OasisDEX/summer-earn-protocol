@@ -8,6 +8,9 @@ description: >-
 # IERC4626MultiTokenEvents
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/extensions/ERC4626MultiToken/IERC4626MultiTokenEvents.sol)
 
+**Title:**
+IERC4626MultiTokenEvents
+
 **Author:**
 Roberto Cano <robercano>
 

@@ -149,6 +149,8 @@ modifier onlyGovernor() ;
 
 ### _revertIfNotGovernor
 
+Reverts if the caller does not have the Governor role.
+
 
 ```solidity
 function _revertIfNotGovernor() private view;
@@ -182,6 +184,8 @@ modifier onlyKeeper() ;
 
 ### _revertIfNotKeeper
 
+Reverts if the caller does not have the Keeper or Super Keeper role.
+
 
 ```solidity
 function _revertIfNotKeeper() private view;
@@ -212,6 +216,8 @@ modifier onlySuperKeeper() ;
 
 ### _revertIfNotSuperKeeper
 
+Reverts if the caller does not have the Super Keeper role.
+
 
 ```solidity
 function _revertIfNotSuperKeeper() private view;
@@ -236,10 +242,18 @@ modifier onlyCurator(address fleetAddress) ;
 
 ### _revertIfNotCurator
 
+Reverts if the caller does not have the Curator role for the specified fleet address.
+
 
 ```solidity
 function _revertIfNotCurator(address fleetAddress) private view;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`fleetAddress`|`address`|The address of the fleet to check.|
+
 
 ### onlyGuardian
 
@@ -265,6 +279,8 @@ modifier onlyGuardian() ;
 ```
 
 ### _revertIfNotGuardian
+
+Reverts if the caller does not have the Guardian role.
 
 
 ```solidity
@@ -299,6 +315,8 @@ modifier onlyGuardianOrGovernor() ;
 
 ### _revertIfNotGuardianOrGovernor
 
+Reverts if the caller does not have either the Guardian or Governor role.
+
 
 ```solidity
 function _revertIfNotGuardianOrGovernor() private view;
@@ -314,6 +332,8 @@ modifier onlyDecayController() ;
 ```
 
 ### _revertIfNotDecayController
+
+Reverts if the caller does not have the Decay Controller role.
 
 
 ```solidity
@@ -337,6 +357,8 @@ modifier onlyFoundation() ;
 ```
 
 ### _revertIfNotFoundation
+
+Reverts if the caller does not have the Foundation role.
 
 
 ```solidity
@@ -411,10 +433,24 @@ function _isGovernor(address account) internal view returns (bool);
 
 ### _isDecayController
 
+Helper function to check if an address has the Decay Controller role.
+
 
 ```solidity
 function _isDecayController(address account) internal view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address to check.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the address has the Decay Controller role, false otherwise.|
+
 
 ### _isFoundation
 

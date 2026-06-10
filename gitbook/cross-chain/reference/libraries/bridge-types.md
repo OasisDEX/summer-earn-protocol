@@ -145,6 +145,8 @@ struct RelayedReadResponse {
 ```
 
 ### RelayedTransferParams
+Struct representing the parameters of a relayed transfer
+
 
 ```solidity
 struct RelayedTransferParams {
@@ -159,6 +161,8 @@ struct RelayedTransferParams {
 ```
 
 ### RelayedMessageParams
+Struct representing the parameters of a relayed message
+
 
 ```solidity
 struct RelayedMessageParams {
@@ -171,6 +175,8 @@ struct RelayedMessageParams {
 ```
 
 ### DeliverPayload
+Struct representing delivery payload details for incoming bridge messages
+
 
 ```solidity
 struct DeliverPayload {
@@ -193,6 +199,8 @@ enum OperationStatus {
 ```
 
 ### OperationType
+Enum representing cross-chain operation types
+
 
 ```solidity
 enum OperationType {

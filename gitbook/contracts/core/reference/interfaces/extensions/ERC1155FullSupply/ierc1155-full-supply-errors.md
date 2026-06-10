@@ -11,6 +11,9 @@ description: >-
 **Inherits:**
 IERC1155Errors
 
+**Title:**
+IERC1155FullSupplyErrors
+
 **Author:**
 Roberto Cano <robercano>
 

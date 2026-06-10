@@ -165,10 +165,20 @@ function sweep(address[] memory tokens)
 
 ### whitelistMerklOperator
 
+Toggles a Merkl operator that may claim Merkl rewards on behalf of this Ark
+
+Callable only by the keeper; forwards to the Merkl distributor's toggleOperator
+
 
 ```solidity
 function whitelistMerklOperator(address operator) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`operator`|`address`|The operator address to toggle|
+
 
 ### board
 
@@ -242,10 +252,10 @@ function move(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`amount`|`uint256`|The amount of tokens to move|
-|`receiverArk`|`address`||
-|`boardData`|`bytes`|Additional data that might be required by a specific protocol to board funds|
-|`disembarkData`|`bytes`|Additional data that might be required by a specific protocol to disembark funds|
+|`amount`|`uint256`|The amount of assets to move|
+|`receiverArk`|`address`|The Ark that receives the moved assets|
+|`boardData`|`bytes`|Additional data forwarded to the receiving Ark's board operation|
+|`disembarkData`|`bytes`|Additional data forwarded to this Ark's disembark operation|
 
 
 ### _withdrawableTotalAssets

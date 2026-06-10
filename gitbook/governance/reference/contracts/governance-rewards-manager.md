@@ -97,10 +97,19 @@ constructor(
 
 ### stakeOnBehalfOf
 
+Stake tokens for an account on behalf of another account
+
 
 ```solidity
 function stakeOnBehalfOf(address, uint256) external pure override;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`||
+|`<none>`|`uint256`||
+
 
 ### unstakeAndWithdrawOnBehalfOf
 
@@ -115,6 +124,8 @@ function unstakeAndWithdrawOnBehalfOf(address, uint256, bool) external pure over
 
 ### stake
 
+Stake tokens for an account
+
 
 ```solidity
 function stake(uint256 amount)
@@ -123,8 +134,16 @@ function stake(uint256 amount)
     updateDecay(_msgSender())
     updateReward(_msgSender());
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The amount of tokens to stake|
+
 
 ### unstake
+
+Unstake staked tokens
 
 
 ```solidity
@@ -134,6 +153,12 @@ function unstake(uint256 amount)
     updateReward(_msgSender())
     updateDecay(_msgSender());
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The amount of tokens to unstake|
+
 
 ### updateSmoothedDecayFactor
 
@@ -179,6 +204,10 @@ function balanceOf(address account)
 
 ### earned
 
+Calculate the earned reward for an account and a specific reward token
+
+Calculated as: (balance * (rewardPerToken - userRewardPerTokenPaid)) / WAD + rewards
+
 
 ```solidity
 function earned(
@@ -190,6 +219,19 @@ function earned(
     override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address of the account|
+|`rewardToken`|`address`|The address of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The amount of reward tokens earned (not WAD-scaled)|
+
 
 ### calculateSmoothedDecayFactor
 

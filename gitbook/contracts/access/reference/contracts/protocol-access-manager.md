@@ -473,6 +473,8 @@ function selfRevokeContractSpecificRole(ContractSpecificRoles roleName, address 
 
 ### generateRole
 
+Generates a unique role identifier based on the role name and target contract address.
+
 Generates a unique role identifier based on the role name and target contract address
 
 **Notes:**

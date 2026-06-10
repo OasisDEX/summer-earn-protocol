@@ -84,6 +84,8 @@ IERC20 public immutable vault
 
 
 ### asyncDepositRequest
+The currently outstanding async deposit request (if any)
+
 
 ```solidity
 ArkRequest public asyncDepositRequest
@@ -91,6 +93,8 @@ ArkRequest public asyncDepositRequest
 
 
 ### asyncRedeemRequest
+The currently outstanding async redeem request (if any)
+
 
 ```solidity
 ArkRequest public asyncRedeemRequest
@@ -251,10 +255,18 @@ function assetsInWithdrawalQueue() public view returns (uint256);
 
 ### assetsInDepositQueue
 
+Returns assets currently in the async deposit queue
+
 
 ```solidity
 function assetsInDepositQueue() public view returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The underlying asset amount of the outstanding deposit request, or 0 if none is pending|
+
 
 ### requestWithdrawal
 
@@ -376,18 +388,31 @@ function _getRequestHashParams(
 
 ## Errors
 ### InvalidAddress
+Thrown when a required address is the zero address
+
 
 ```solidity
 error InvalidAddress(string name, address addr);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`name`|`string`|The name of the offending parameter|
+|`addr`|`address`|The invalid address supplied|
+
 ### AsyncDepositAlreadyExists
+Thrown when boarding while an async deposit request is already outstanding
+
 
 ```solidity
 error AsyncDepositAlreadyExists();
 ```
 
 ### AsyncRedeemAlreadyExists
+Thrown when requesting a withdrawal while an async redeem request is already outstanding
+
 
 ```solidity
 error AsyncRedeemAlreadyExists();
@@ -395,6 +420,8 @@ error AsyncRedeemAlreadyExists();
 
 ## Structs
 ### ArkRequest
+Tracks an outstanding async deposit/redeem request
+
 
 ```solidity
 struct ArkRequest {
@@ -402,3 +429,10 @@ struct ArkRequest {
     uint256 amount;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`hash`|`bytes32`|The provisioner request hash, used to check whether it is still pending|
+|`amount`|`uint256`|The underlying asset amount associated with the request|

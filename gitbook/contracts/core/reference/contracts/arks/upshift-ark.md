@@ -23,6 +23,8 @@ Implements strategy for depositing tokens, requesting withdrawals, and claiming 
 
 ### State Variables
 #### vault
+The Upshift TokenizedAccount (vault) this Ark interacts with
+
 
 ```solidity
 IUpshiftVault public immutable vault
@@ -30,6 +32,8 @@ IUpshiftVault public immutable vault
 
 
 #### pendingClaimYear
+Year component of the withdrawal epoch for the active redeem request
+
 
 ```solidity
 uint16 public pendingClaimYear
@@ -37,6 +41,8 @@ uint16 public pendingClaimYear
 
 
 #### pendingClaimMonth
+Month component of the withdrawal epoch for the active redeem request
+
 
 ```solidity
 uint8 public pendingClaimMonth
@@ -44,6 +50,8 @@ uint8 public pendingClaimMonth
 
 
 #### pendingClaimDay
+Day component of the withdrawal epoch for the active redeem request
+
 
 ```solidity
 uint8 public pendingClaimDay
@@ -51,6 +59,9 @@ uint8 public pendingClaimDay
 
 
 #### hasPendingClaim
+Declared pending-claim flag. Currently unused: the active request
+is tracked via the claimable amount rather than this boolean.
+
 
 ```solidity
 bool public hasPendingClaim
@@ -186,12 +197,17 @@ function withdrawUsingSwap(uint256, bytes calldata) external pure;
 
 #### _getClaimableAmount
 
+Returns the amount currently claimable for the stored withdrawal epoch and this Ark
+
 
 ```solidity
 function _getClaimableAmount() internal view returns (uint256);
 ```
 
 #### _withdrawableTotalAssets
+
+Returns only the asset balance held directly by the Ark; pending requests are reported via
+assetsInWithdrawalQueue
 
 
 ```solidity
@@ -200,6 +216,8 @@ function _withdrawableTotalAssets() internal view override returns (uint256);
 
 #### _board
 
+Deposits the asset into the Upshift vault, receiving vault shares
+
 
 ```solidity
 function _board(uint256 amount, bytes calldata) internal override;
@@ -207,12 +225,16 @@ function _board(uint256 amount, bytes calldata) internal override;
 
 #### _disembark
 
+No-op disembark hook; exits are asynchronous via requestWithdrawal/claimWithdrawal
+
 
 ```solidity
 function _disembark(uint256, bytes calldata) internal override;
 ```
 
 #### _harvest
+
+No-op harvest: the Upshift vault auto-accrues yield, so no rewards are claimed here
 
 
 ```solidity
@@ -225,12 +247,16 @@ function _harvest(bytes calldata)
 
 #### _validateBoardData
 
+Validates the board data (no-op; this Ark requires no board data)
+
 
 ```solidity
 function _validateBoardData(bytes calldata) internal override;
 ```
 
 #### _validateDisembarkData
+
+Validates the disembark data (no-op; this Ark requires no disembark data)
 
 
 ```solidity
@@ -242,6 +268,8 @@ function _validateDisembarkData(bytes calldata) internal override;
 ## NotSupported
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/UpshiftArk.sol)
 
+Thrown by operations that this Ark does not support (e.g. withdrawUsingSwap)
+
 
 ```solidity
 error NotSupported();
@@ -251,6 +279,8 @@ error NotSupported();
 
 ## PendingWithdrawalExists
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/contracts/arks/UpshiftArk.sol)
+
+Thrown when requesting a withdrawal while a prior request still has a non-zero claimable amount
 
 
 ```solidity

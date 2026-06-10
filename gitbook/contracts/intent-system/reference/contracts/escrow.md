@@ -30,6 +30,8 @@ address public immutable intentHandler
 
 
 ### intentAmounts
+The amount of tokens escrowed for a given intent ID
+
 
 ```solidity
 mapping(bytes32 intentId => uint256 amount) public intentAmounts
@@ -53,12 +55,24 @@ constructor(address _intentHandler) ;
 
 ### deposit
 
+Deposits a specified amount of an asset into the escrow for a specific intent ID.
+
 
 ```solidity
 function deposit(address asset, uint256 amount, bytes32 intentId) external onlyIntentHandler nonReentrant;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`asset`|`address`|The address of the asset/token to deposit.|
+|`amount`|`uint256`|The amount of the asset to deposit.|
+|`intentId`|`bytes32`|The unique identifier of the intent associated with the deposit.|
+
 
 ### withdraw
+
+Withdraws the escrowed asset for a specific intent ID to a destination address.
 
 
 ```solidity
@@ -72,9 +86,25 @@ function withdraw(
     nonReentrant
     returns (uint256 amount);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`asset`|`address`|The address of the asset/token to withdraw.|
+|`to`|`address`|The address to receive the withdrawn asset.|
+|`intentId`|`bytes32`|The unique identifier of the intent associated with the withdrawal.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The amount of the asset withdrawn.|
+
 
 ## Errors
 ### UnauthorizedCaller
+Thrown when the caller is not the authorized IntentHandler
+
 
 ```solidity
 error UnauthorizedCaller();

@@ -258,6 +258,9 @@ modifier validateMinPosition(address outgoing, address incoming) ;
 
 ### deposit
 
+Deposits `assets` of the underlying token into the currently open round and mints
+round-receipt tokens to `receiver`
+
 Mints Vault shares with the given id to receiver by depositing exactly amount of underlying tokens.
 - MUST emit the Deposit event.
 - MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
@@ -278,6 +281,19 @@ function deposit(
     validateMinPosition(VAULT_TYPE == BaseVaultType.Input ? address(0) : _msgSender(), receiver)
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying tokens to deposit|
+|`receiver`|`address`|The address that receives the minted shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|shares The amount of shares minted|
+
 
 ### redeem
 
@@ -304,8 +320,32 @@ function redeem(
     validateMinPosition(owner, receiver)
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`uint256`|The round-receipt token id to redeem (must be the currently open round)|
+|`amount`|`uint256`|The amount of round-receipt tokens to redeem|
+|`receiver`|`address`|The address that receives the redeemed assets|
+|`owner`|`address`|The address whose round-receipt tokens are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|assets The amount of underlying assets sent to the receiver|
+
 
 ### redeemBatch
+
+Burns each batch of shares and the specific amounts and sends assets of underlying tokens to receiver.
+- MUST emit the WithdrawBatch event.
+- MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
+redeem execution, and are accounted for during redeem.
+- MUST revert if all of shares cannot be redeemed (due to withdrawal limit being reached, slippage, the owner
+not having enough shares, etc).
+NOTE: some implementations will require pre-requesting to the Vault before a withdrawal may be performed.
+Those methods should be performed separately.
 
 All `ids` must equal the currently open round. To exchange settled-round receipts for the
 exchange asset, use `redeemExchangeAssetBatch` instead.
@@ -324,6 +364,21 @@ function redeemBatch(
     validateMinPosition(owner, receiver)
     returns (uint256 assets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ids`|`uint256[]`|The round-receipt token ids to redeem (all must be the currently open round)|
+|`amounts`|`uint256[]`|The amounts of each round-receipt token to redeem|
+|`receiver`|`address`|The address that receives the redeemed assets|
+|`owner`|`address`|The address whose round-receipt tokens are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The total amount of underlying assets sent to the receiver|
+
 
 ### redeemExchangeAsset
 
@@ -403,6 +458,8 @@ function redeemExchangeAssetBatch(
 
 ### safeTransferFrom
 
+Transfers `value` round-receipt tokens of token `id` from `from` to `to`
+
 Gate the function so only whitelisted addresses can transfer receipts
 
 
@@ -419,8 +476,20 @@ function safeTransferFrom(
     override(ERC1155, IERC1155)
     validateMinPosition(from, to);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`from`|`address`|The address to transfer the receipts from|
+|`to`|`address`|The address to transfer the receipts to|
+|`id`|`uint256`|The round-receipt token id being transferred|
+|`value`|`uint256`|The amount of round-receipt tokens to transfer|
+|`data`|`bytes`|Additional data forwarded to the ERC-1155 receiver hook|
+
 
 ### safeBatchTransferFrom
+
+Transfers batches of round-receipt tokens from `from` to `to`
 
 Gate the function so only whitelisted addresses can transfer receipts in batch
 
@@ -438,6 +507,16 @@ function safeBatchTransferFrom(
     override(ERC1155, IERC1155)
     validateMinPosition(from, to);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`from`|`address`|The address to transfer the receipts from|
+|`to`|`address`|The address to transfer the receipts to|
+|`ids`|`uint256[]`|The round-receipt token ids being transferred|
+|`values`|`uint256[]`|The amounts of each round-receipt token to transfer|
+|`data`|`bytes`|Additional data forwarded to the ERC-1155 receiver hook|
+
 
 ### getCurrentRound
 

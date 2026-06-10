@@ -17,17 +17,33 @@ Interface for the contract that can mint and burn vault units in exchange for to
 ## Functions
 ### MULTI_DEPOSITOR_VAULT
 
+Returns the address of the MultiDepositorVault this provisioner serves
+
 
 ```solidity
 function MULTI_DEPOSITOR_VAULT() external view returns (address);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|The MultiDepositorVault address|
+
 
 ### PRICE_FEE_CALCULATOR
+
+Returns the address of the price and fee calculator
 
 
 ```solidity
 function PRICE_FEE_CALCULATOR() external view returns (address);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|The PriceAndFeeCalculator address|
+
 
 ### deposit
 
@@ -180,7 +196,7 @@ function requestRedeem(
 |`solverTip`|`uint256`|The tip offered to the solver|
 |`deadline`|`uint256`|Duration in seconds for which the request is valid|
 |`maxPriceAge`|`uint256`|Maximum age of price data that solver can use|
-|`isFixedPrice`|`bool`||
+|`isFixedPrice`|`bool`|Whether the request is a fixed price request|
 
 
 ### solveRequestsVault
@@ -699,198 +715,264 @@ event TokenRemoved(IERC20 indexed token);
 
 ## Errors
 ### Aera__SyncDepositDisabled
+Thrown when a synchronous (direct) deposit is attempted while sync deposits are disabled
+
 
 ```solidity
 error Aera__SyncDepositDisabled();
 ```
 
 ### Aera__AsyncDepositDisabled
+Thrown when an async deposit request is attempted while async deposits are disabled
+
 
 ```solidity
 error Aera__AsyncDepositDisabled();
 ```
 
 ### Aera__AsyncRedeemDisabled
+Thrown when an async redeem request is attempted while async redeems are disabled
+
 
 ```solidity
 error Aera__AsyncRedeemDisabled();
 ```
 
 ### Aera__DepositCapExceeded
+Thrown when a deposit would exceed the vault deposit cap
+
 
 ```solidity
 error Aera__DepositCapExceeded();
 ```
 
 ### Aera__MinUnitsOutNotMet
+Thrown when the minted units are below the requested minimum
+
 
 ```solidity
 error Aera__MinUnitsOutNotMet();
 ```
 
 ### Aera__TokensInZero
+Thrown when the tokens-in amount is zero
+
 
 ```solidity
 error Aera__TokensInZero();
 ```
 
 ### Aera__UnitsInZero
+Thrown when the units-in amount is zero
+
 
 ```solidity
 error Aera__UnitsInZero();
 ```
 
 ### Aera__UnitsOutZero
+Thrown when the units-out amount is zero
+
 
 ```solidity
 error Aera__UnitsOutZero();
 ```
 
 ### Aera__MinUnitsOutZero
+Thrown when the minimum units-out is zero
+
 
 ```solidity
 error Aera__MinUnitsOutZero();
 ```
 
 ### Aera__MaxTokensInZero
+Thrown when the maximum tokens-in is zero
+
 
 ```solidity
 error Aera__MaxTokensInZero();
 ```
 
 ### Aera__MaxTokensInExceeded
+Thrown when the tokens required exceed the caller-specified maximum
+
 
 ```solidity
 error Aera__MaxTokensInExceeded();
 ```
 
 ### Aera__MaxDepositRefundTimeoutExceeded
+Thrown when the configured deposit refund timeout exceeds the allowed maximum
+
 
 ```solidity
 error Aera__MaxDepositRefundTimeoutExceeded();
 ```
 
 ### Aera__DepositHashNotFound
+Thrown when the referenced deposit hash does not exist
+
 
 ```solidity
 error Aera__DepositHashNotFound();
 ```
 
 ### Aera__HashNotFound
+Thrown when the referenced request hash does not exist
+
 
 ```solidity
 error Aera__HashNotFound();
 ```
 
 ### Aera__RefundPeriodExpired
+Thrown when a refund is attempted after the refund period has expired
+
 
 ```solidity
 error Aera__RefundPeriodExpired();
 ```
 
 ### Aera__DeadlineInPast
+Thrown when the supplied deadline is in the past
+
 
 ```solidity
 error Aera__DeadlineInPast();
 ```
 
 ### Aera__DeadlineTooFarInFuture
+Thrown when the supplied deadline is too far in the future
+
 
 ```solidity
 error Aera__DeadlineTooFarInFuture();
 ```
 
 ### Aera__DeadlineInFutureAndUnauthorized
+Thrown when the deadline is in the future and the caller is not authorized to act early
+
 
 ```solidity
 error Aera__DeadlineInFutureAndUnauthorized();
 ```
 
 ### Aera__MinTokenOutZero
+Thrown when the minimum tokens-out is zero
+
 
 ```solidity
 error Aera__MinTokenOutZero();
 ```
 
 ### Aera__HashCollision
+Thrown when a computed request hash collides with an existing one
+
 
 ```solidity
 error Aera__HashCollision();
 ```
 
 ### Aera__ZeroAddressPriceAndFeeCalculator
+Thrown when the price and fee calculator address is the zero address
+
 
 ```solidity
 error Aera__ZeroAddressPriceAndFeeCalculator();
 ```
 
 ### Aera__ZeroAddressMultiDepositorVault
+Thrown when the MultiDepositorVault address is the zero address
+
 
 ```solidity
 error Aera__ZeroAddressMultiDepositorVault();
 ```
 
 ### Aera__DepositMultiplierTooLow
+Thrown when the deposit multiplier is below the allowed minimum
+
 
 ```solidity
 error Aera__DepositMultiplierTooLow();
 ```
 
 ### Aera__DepositMultiplierTooHigh
+Thrown when the deposit multiplier is above the allowed maximum
+
 
 ```solidity
 error Aera__DepositMultiplierTooHigh();
 ```
 
 ### Aera__RedeemMultiplierTooLow
+Thrown when the redeem multiplier is below the allowed minimum
+
 
 ```solidity
 error Aera__RedeemMultiplierTooLow();
 ```
 
 ### Aera__RedeemMultiplierTooHigh
+Thrown when the redeem multiplier is above the allowed maximum
+
 
 ```solidity
 error Aera__RedeemMultiplierTooHigh();
 ```
 
 ### Aera__DepositCapZero
+Thrown when the deposit cap is set to zero
+
 
 ```solidity
 error Aera__DepositCapZero();
 ```
 
 ### Aera__PriceAndFeeCalculatorVaultPaused
+Thrown when the price and fee calculator reports the vault as paused
+
 
 ```solidity
 error Aera__PriceAndFeeCalculatorVaultPaused();
 ```
 
 ### Aera__AutoPriceSolveNotAllowed
+Thrown when an auto-price solve is attempted but not allowed for the request
+
 
 ```solidity
 error Aera__AutoPriceSolveNotAllowed();
 ```
 
 ### Aera__FixedPriceSolverTipNotAllowed
+Thrown when a solver tip is supplied for a fixed-price request, which is not allowed
+
 
 ```solidity
 error Aera__FixedPriceSolverTipNotAllowed();
 ```
 
 ### Aera__TokenCantBePriced
+Thrown when the token cannot be priced by the calculator
+
 
 ```solidity
 error Aera__TokenCantBePriced();
 ```
 
 ### Aera__CallerIsVault
+Thrown when the caller is the vault, which is not permitted for this action
+
 
 ```solidity
 error Aera__CallerIsVault();
 ```
 
 ### Aera__InvalidToken
+Thrown when the supplied token is not supported by the provisioner
+
 
 ```solidity
 error Aera__InvalidToken();

@@ -46,6 +46,18 @@ READ FUNCTIONS
 ```solidity
 function balanceOfAll(address account) public view virtual override returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The account whose aggregate balance is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The total balance across all token ids|
+
 
 ### _update
 

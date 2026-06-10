@@ -9,6 +9,8 @@
 This exists specifically to maintain the `getReserveData()` interface, since the new, internal
 `ReserveData` struct includes the reserve's `virtualUnderlyingBalance`.
 
+Legacy layout of on-chain reserve state and configuration
+
 
 ```solidity
 struct ReserveDataLegacy {
@@ -46,6 +48,8 @@ struct ReserveDataLegacy {
 ```
 
 ### ReserveData
+On-chain state and configuration of a single reserve
+
 
 ```solidity
 struct ReserveData {
@@ -87,6 +91,8 @@ struct ReserveData {
 ```
 
 ### ReserveConfigurationMap
+Packed bitmap encoding a reserve's configuration parameters
+
 
 ```solidity
 struct ReserveConfigurationMap {
@@ -117,6 +123,8 @@ struct ReserveConfigurationMap {
 ```
 
 ### UserConfigurationMap
+Packed bitmap encoding which assets a user supplies as collateral and borrows
+
 
 ```solidity
 struct UserConfigurationMap {
@@ -130,6 +138,8 @@ struct UserConfigurationMap {
 ```
 
 ### EModeCategoryLegacy
+Legacy layout of efficiency-mode (eMode) category risk parameters
+
 
 ```solidity
 struct EModeCategoryLegacy {
@@ -144,6 +154,8 @@ struct EModeCategoryLegacy {
 ```
 
 ### CollateralConfig
+Collateral risk configuration (LTV, liquidation threshold and bonus)
+
 
 ```solidity
 struct CollateralConfig {
@@ -154,6 +166,8 @@ struct CollateralConfig {
 ```
 
 ### EModeCategoryBaseConfiguration
+Base configuration fields of an efficiency-mode (eMode) category
+
 
 ```solidity
 struct EModeCategoryBaseConfiguration {
@@ -165,6 +179,8 @@ struct EModeCategoryBaseConfiguration {
 ```
 
 ### EModeCategory
+Risk parameters for an efficiency-mode (eMode) category
+
 
 ```solidity
 struct EModeCategory {
@@ -179,6 +195,8 @@ struct EModeCategory {
 ```
 
 ### ReserveCache
+Cached reserve state used during a single transaction's calculations
+
 
 ```solidity
 struct ReserveCache {
@@ -199,6 +217,8 @@ struct ReserveCache {
 ```
 
 ### ExecuteLiquidationCallParams
+Parameters for executing a liquidation call
+
 
 ```solidity
 struct ExecuteLiquidationCallParams {
@@ -215,6 +235,8 @@ struct ExecuteLiquidationCallParams {
 ```
 
 ### ExecuteSupplyParams
+Parameters for executing a supply
+
 
 ```solidity
 struct ExecuteSupplyParams {
@@ -226,6 +248,8 @@ struct ExecuteSupplyParams {
 ```
 
 ### ExecuteBorrowParams
+Parameters for executing a borrow
+
 
 ```solidity
 struct ExecuteBorrowParams {
@@ -244,6 +268,8 @@ struct ExecuteBorrowParams {
 ```
 
 ### ExecuteRepayParams
+Parameters for executing a repay
+
 
 ```solidity
 struct ExecuteRepayParams {
@@ -256,6 +282,8 @@ struct ExecuteRepayParams {
 ```
 
 ### ExecuteWithdrawParams
+Parameters for executing a withdraw
+
 
 ```solidity
 struct ExecuteWithdrawParams {
@@ -269,6 +297,8 @@ struct ExecuteWithdrawParams {
 ```
 
 ### ExecuteSetUserEModeParams
+Parameters for setting a user's eMode category
+
 
 ```solidity
 struct ExecuteSetUserEModeParams {
@@ -279,6 +309,8 @@ struct ExecuteSetUserEModeParams {
 ```
 
 ### FinalizeTransferParams
+Parameters for finalizing an aToken transfer
+
 
 ```solidity
 struct FinalizeTransferParams {
@@ -295,6 +327,8 @@ struct FinalizeTransferParams {
 ```
 
 ### FlashloanParams
+Parameters for executing a multi-asset flash loan
+
 
 ```solidity
 struct FlashloanParams {
@@ -316,6 +350,8 @@ struct FlashloanParams {
 ```
 
 ### FlashloanSimpleParams
+Parameters for executing a single-asset flash loan
+
 
 ```solidity
 struct FlashloanSimpleParams {
@@ -330,6 +366,8 @@ struct FlashloanSimpleParams {
 ```
 
 ### FlashLoanRepaymentParams
+Parameters describing the repayment of a flash loan
+
 
 ```solidity
 struct FlashLoanRepaymentParams {
@@ -343,6 +381,8 @@ struct FlashLoanRepaymentParams {
 ```
 
 ### CalculateUserAccountDataParams
+Parameters for calculating a user's aggregate account data
+
 
 ```solidity
 struct CalculateUserAccountDataParams {
@@ -355,6 +395,8 @@ struct CalculateUserAccountDataParams {
 ```
 
 ### ValidateBorrowParams
+Parameters for validating a borrow
+
 
 ```solidity
 struct ValidateBorrowParams {
@@ -375,6 +417,8 @@ struct ValidateBorrowParams {
 ```
 
 ### ValidateLiquidationCallParams
+Parameters for validating a liquidation call
+
 
 ```solidity
 struct ValidateLiquidationCallParams {
@@ -386,6 +430,8 @@ struct ValidateLiquidationCallParams {
 ```
 
 ### CalculateInterestRatesParams
+Parameters for calculating reserve interest rates
+
 
 ```solidity
 struct CalculateInterestRatesParams {
@@ -401,6 +447,8 @@ struct CalculateInterestRatesParams {
 ```
 
 ### InitReserveParams
+Parameters for initializing a new reserve
+
 
 ```solidity
 struct InitReserveParams {
@@ -415,6 +463,8 @@ struct InitReserveParams {
 
 ## Enums
 ### InterestRateMode
+The interest rate mode of a borrow position
+
 
 ```solidity
 enum InterestRateMode {

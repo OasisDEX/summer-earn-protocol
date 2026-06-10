@@ -72,6 +72,8 @@ address public immutable WRAPPED_NATIVE
 
 
 ### MERKL_DISTRIBUTOR
+The Merkl distributor contract used to claim Merkl rewards
+
 
 ```solidity
 address public immutable MERKL_DISTRIBUTOR = 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae
@@ -410,11 +412,11 @@ function swap(
 
 |Name|Type|Description|
 |----|----|-----------|
-|`fromToken`|`IERC20`|The token to swap from|
-|`toToken`|`IERC20`|The token to swap to|
-|`assets`|`uint256`||
-|`minTokensReceived`|`uint256`|The minimum amount of toToken to receive after the swap|
-|`swapCalldata`|`bytes`|The calldata for the 1inch swap|
+|`fromToken`|`IERC20`|The token being sold|
+|`toToken`|`IERC20`|The token being bought|
+|`assets`|`uint256`|The amount of `fromToken` to swap|
+|`minTokensReceived`|`uint256`|The minimum acceptable amount of `toToken` to receive|
+|`swapCalldata`|`bytes`|The encoded 1inch router calldata performing the swap|
 
 **Returns**
 
@@ -553,12 +555,16 @@ function _swap(
 
 ### _validateFleetCommander
 
+Reverts unless `fleetCommander` is an active FleetCommander registered in HarborCommand
+
 
 ```solidity
 function _validateFleetCommander(address fleetCommander) internal view;
 ```
 
 ### _validateToken
+
+Reverts when the token address is the zero address
 
 
 ```solidity
@@ -567,12 +573,16 @@ function _validateToken(IERC20 token) internal pure;
 
 ### _validateAmount
 
+Reverts when the amount is zero
+
 
 ```solidity
 function _validateAmount(uint256 amount) internal pure;
 ```
 
 ### _validateNativeAmount
+
+Reverts when the supplied amount does not match the native value sent or exceeds the balance
 
 
 ```solidity
@@ -680,8 +690,8 @@ function moveFromCompoundToAdmiralsQuarters(address cToken, uint256 assets) exte
 
 |Name|Type|Description|
 |----|----|-----------|
-|`cToken`|`address`|The address of the Compound cToken|
-|`assets`|`uint256`||
+|`cToken`|`address`|The Compound cToken whose underlying position is imported|
+|`assets`|`uint256`|The amount of underlying assets to move; 0 imports the caller's full balance|
 
 
 ### moveFromAaveToAdmiralsQuarters
@@ -698,8 +708,8 @@ function moveFromAaveToAdmiralsQuarters(address aToken, uint256 assets) external
 
 |Name|Type|Description|
 |----|----|-----------|
-|`aToken`|`address`|The address of the Aave aToken|
-|`assets`|`uint256`||
+|`aToken`|`address`|The Aave aToken whose underlying position is imported|
+|`assets`|`uint256`|The amount of underlying assets to move; 0 imports the caller's full balance|
 
 
 ### moveFromERC4626ToAdmiralsQuarters

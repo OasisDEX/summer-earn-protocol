@@ -17,26 +17,52 @@ Standard Chainlink price feed interface
 ## Functions
 ### decimals
 
+Returns the number of decimals in the feed's answer
+
 
 ```solidity
 function decimals() external view returns (uint8);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint8`|The number of decimals|
+
 
 ### description
+
+Returns a human-readable description of the feed
 
 
 ```solidity
 function description() external view returns (string memory);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`string`|The feed description|
+
 
 ### version
+
+Returns the version number of the aggregator
 
 
 ```solidity
 function version() external view returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The version|
+
 
 ### getRoundData
+
+Returns the data for a specific round
 
 
 ```solidity
@@ -45,8 +71,26 @@ function getRoundData(uint80 _roundId)
     view
     returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_roundId`|`uint80`|The round id to query|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`roundId`|`uint80`|The round id of the returned data|
+|`answer`|`int256`|The price answer for the round|
+|`startedAt`|`uint256`|The timestamp when the round started|
+|`updatedAt`|`uint256`|The timestamp when the round was last updated|
+|`answeredInRound`|`uint80`|The round in which the answer was computed|
+
 
 ### latestRoundData
+
+Returns the data for the latest round
 
 
 ```solidity
@@ -55,3 +99,12 @@ function latestRoundData()
     view
     returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`roundId`|`uint80`|The round id of the returned data|
+|`answer`|`int256`|The latest price answer|
+|`startedAt`|`uint256`|The timestamp when the round started|
+|`updatedAt`|`uint256`|The timestamp when the round was last updated|
+|`answeredInRound`|`uint80`|The round in which the answer was computed|

@@ -115,7 +115,7 @@ function setSlippage(uint256 _slippage) external onlyCurator(config.commander);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_slippage`|`uint256`||
+|`_slippage`|`uint256`|The new swap slippage in basis points; must not exceed MAX_SLIPPAGE|
 
 
 ### _applySlippage

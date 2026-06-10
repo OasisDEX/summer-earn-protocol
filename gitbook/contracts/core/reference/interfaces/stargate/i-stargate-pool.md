@@ -50,7 +50,13 @@ function redeem(uint256 _amountLD, address _receiver) external returns (uint256 
 |Name|Type|Description|
 |----|----|-----------|
 |`_amountLD`|`uint256`|The amount of LP tokens to redeem|
-|`_receiver`|`address`|The account to transfer the|
+|`_receiver`|`address`|The account to transfer the redeemed tokens to|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amountLD`|`uint256`|The actual amount of tokens redeemed in LD|
 
 
 ### redeemable

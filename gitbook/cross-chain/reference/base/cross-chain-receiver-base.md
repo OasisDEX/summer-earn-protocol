@@ -68,16 +68,24 @@ function getSupportedOperationTypes()
 
 ### supportsInterface
 
-Returns true if this contract implements the interface defined by
-`interfaceId`. See the corresponding
-https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]
-to learn more about how these ids are created.
-This function call must use less than 30 000 gas.
+Checks if the contract supports a given interface ID
 
 
 ```solidity
 function supportsInterface(bytes4 interfaceId) external pure virtual override returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`interfaceId`|`bytes4`|The interface ID to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the contract supports the interface, false otherwise|
+
 
 ### _handleMessage
 

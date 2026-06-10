@@ -252,18 +252,24 @@ event BondRemoved(address indexed solver, address indexed bondContract);
 
 ## Errors
 ### InvalidSolver
+Thrown when the solver address is invalid (e.g., zero address)
+
 
 ```solidity
 error InvalidSolver();
 ```
 
 ### BondAlreadyExists
+Thrown when attempting to create a bond contract for a solver that already has one
+
 
 ```solidity
 error BondAlreadyExists();
 ```
 
 ### BondNotFound
+Thrown when a bond contract for the specified solver does not exist
+
 
 ```solidity
 error BondNotFound();

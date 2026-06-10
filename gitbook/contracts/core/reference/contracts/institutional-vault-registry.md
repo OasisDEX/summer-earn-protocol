@@ -25,6 +25,8 @@ Soft-disable preserves visibility and auditability of old institutions.
 
 ## State Variables
 ### institutions
+Maps each institution identifier to its registered Institution record
+
 
 ```solidity
 mapping(bytes32 => IInstitutionalVaultRegistry.Institution) public institutions
@@ -88,12 +90,20 @@ function getStringInstitutionId(bytes32 id) public pure returns (string memory);
 
 ### exists
 
-Returns true if an institution id exists (active or disabled)
+Returns true if an institution id is currently registered
+
+Returns false after removeInstitution, which deletes the entry
 
 
 ```solidity
 function exists(bytes32 id) public view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
 
 ### getInstitution
 
@@ -108,6 +118,18 @@ function getInstitution(bytes32 id)
     view
     returns (IInstitutionalVaultRegistry.Institution memory institution);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`institution`|`IInstitutionalVaultRegistry.Institution`|The institution's wired component addresses|
+
 
 ### getConfigurationManager
 
@@ -119,6 +141,12 @@ Reverts if the institution does not exist
 ```solidity
 function getConfigurationManager(bytes32 id) public view returns (address);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
 
 ### getProtocolAccessManager
 
@@ -130,6 +158,12 @@ Reverts if the institution does not exist
 ```solidity
 function getProtocolAccessManager(bytes32 id) public view returns (address);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
 
 ### getAdmiralsQuarters
 
@@ -141,6 +175,12 @@ Reverts if the institution does not exist
 ```solidity
 function getAdmiralsQuarters(bytes32 id) public view returns (address);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
 
 ### getHarborCommand
 
@@ -152,6 +192,12 @@ Reverts if the institution does not exist; value is read from the institution's 
 ```solidity
 function getHarborCommand(bytes32 id) public view returns (address);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
 
 ### addInstitution
 
@@ -169,12 +215,20 @@ function addInstitution(
 
 ### removeInstitution
 
-Removes an existing institution id (keeps data visible)
+Removes an institution, deleting its stored data
+
+After removal exists(id) returns false and getInstitution(id) reverts
 
 
 ```solidity
 function removeInstitution(bytes32 id) external onlyOwner;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+
 
 ### updateAdmiralsQuarters
 
@@ -184,3 +238,9 @@ Updates only the AdmiralsQuarters address for institution with id `id`
 ```solidity
 function updateAdmiralsQuarters(bytes32 id, address newAdmiralsQuarters) external onlyOwner;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`bytes32`|The institution identifier|
+|`newAdmiralsQuarters`|`address`|The new AdmiralsQuarters address|

@@ -146,7 +146,7 @@ function isArkActiveOrBufferArk(address arkAddress) public view returns (bool);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`arkAddress`|`address`||
+|`arkAddress`|`address`|The address of the Ark to check|
 
 **Returns**
 
@@ -365,7 +365,7 @@ function setFleetDepositCap(uint256 newCap) external onlyCurator(address(this)) 
 
 |Name|Type|Description|
 |----|----|-----------|
-|`newCap`|`uint256`||
+|`newCap`|`uint256`|The new fleet-wide deposit cap|
 
 
 ### setMaxRebalanceOperations

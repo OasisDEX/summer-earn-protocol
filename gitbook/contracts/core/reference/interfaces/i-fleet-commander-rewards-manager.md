@@ -55,6 +55,8 @@ error InvalidUnstakeRecipient();
 ```
 
 ### CantAddStakingTokenAsReward
+Thrown when trying to add a staking token as a reward token
+
 
 ```solidity
 error CantAddStakingTokenAsReward();

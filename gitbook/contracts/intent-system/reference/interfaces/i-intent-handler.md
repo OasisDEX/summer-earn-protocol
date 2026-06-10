@@ -48,7 +48,10 @@ function solveIntent(Intent memory intent, uint256 escrowedYield) external;
 
 ### settleIntent
 
-Settles an intent (can only be called by the solver)
+Settles an intent once it has reached its expiry
+
+Permissionless: callable by anyone; gated on block.timestamp >= intent.expiry
+and on the intent being in the Solved state.
 
 
 ```solidity
@@ -63,7 +66,10 @@ function settleIntent(Intent memory intent) external;
 
 ### resignByUser
 
-Resigns an intent by the Ark (can only be called before solving)
+Resigns an intent on behalf of the user
+
+Callable by a keeper (onlyKeeper) while the intent is in the Created or
+Solved state; in the Solved state the escrow is returned to the solver.
 
 
 ```solidity
@@ -93,36 +99,90 @@ function resignBySolver(Intent memory intent) external;
 
 ## Events
 ### IntentCreated
+Emitted when a new intent is created
+
 
 ```solidity
 event IntentCreated(bytes32 orderId, Intent intent);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`orderId`|`bytes32`|Unique identifier of the intent order|
+|`intent`|`Intent`|Struct containing all parameters of the created intent|
+
 ### IntentSolved
+Emitted when an intent is successfully solved by a solver
+
 
 ```solidity
 event IntentSolved(address indexed ark, address indexed solver, uint256 escrowedYield);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark that created the intent|
+|`solver`|`address`|The address of the solver that solved the intent|
+|`escrowedYield`|`uint256`|The amount of yield escrowed by the solver|
+
 ### IntentActivated
+Reserved for a future activation step; not currently emitted
+
+The IntentState.Active state and this event are declared but never
+assigned/emitted by the current IntentHandler implementation.
+
 
 ```solidity
 event IntentActivated(address indexed ark, address indexed solver, uint256 startTime);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark|
+|`solver`|`address`|The address of the solver|
+|`startTime`|`uint256`|The block timestamp when the intent was activated|
+
 ### IntentSettled
+Emitted when an intent is settled
+
 
 ```solidity
 event IntentSettled(address indexed ark, address indexed solver, uint256 escrowedYield);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark|
+|`solver`|`address`|The address of the solver|
+|`escrowedYield`|`uint256`|The escrowed yield amount returned to solver/ark|
+
 ### IntentResignedByArk
+Emitted when an intent is resigned on behalf of the user
+
 
 ```solidity
 event IntentResignedByArk(address indexed ark, address indexed solver, uint256 escrowedYield);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark|
+|`solver`|`address`|Always address(0) for this event (not populated on user resignation)|
+|`escrowedYield`|`uint256`|Always 0 for this event (the escrow refund is not reported here)|
+
 ### IntentResignedBySolver
+Emitted when an intent is resigned by the solver, causing a bond penalty
+
 
 ```solidity
 event IntentResignedBySolver(
@@ -130,62 +190,97 @@ event IntentResignedBySolver(
 );
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark|
+|`solver`|`address`|The address of the solver|
+|`slashedAmount`|`uint256`|The amount of solver's bond slashed|
+|`escrowedYield`|`uint256`|The intent's target yield (intent.targetYield), which is the upper bound on the escrowed amount|
+
 ## Errors
 ### IntentHandler__IntentAlreadyExists
+Thrown when attempting to create an intent that already exists
+
 
 ```solidity
 error IntentHandler__IntentAlreadyExists();
 ```
 
 ### IntentHandler__IntentNotFound
+Thrown when the specified intent does not exist
+
 
 ```solidity
 error IntentHandler__IntentNotFound();
 ```
 
 ### IntentHandler__IntentExpired
+Thrown when attempting to interact with an expired intent
+
 
 ```solidity
 error IntentHandler__IntentExpired();
 ```
 
 ### IntentHandler__IntentNotSolved
+Thrown when attempting to settle/activate an intent that has not been solved
+
 
 ```solidity
 error IntentHandler__IntentNotSolved();
 ```
 
 ### IntentHandler__InsufficientBond
+Thrown when the solver has an insufficient bond balance to solve the intent
+
 
 ```solidity
 error IntentHandler__InsufficientBond();
 ```
 
 ### IntentHandler__InvalidOracle
+Thrown when the price oracle address is invalid
+
 
 ```solidity
 error IntentHandler__InvalidOracle();
 ```
 
 ### IntentHandler__InvalidState
+Thrown when the intent is in an invalid state for the requested operation
+
 
 ```solidity
 error IntentHandler__InvalidState();
 ```
 
 ### IntentHandler__UnauthorizedCaller
+Thrown when the caller is not authorized to perform the operation
+
 
 ```solidity
 error IntentHandler__UnauthorizedCaller();
 ```
 
 ### IntentHandler__ConstructorParamsInvalid
+Thrown when constructor parameters are invalid
+
 
 ```solidity
 error IntentHandler__ConstructorParamsInvalid(string reason);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`reason`|`string`|String detailing the validation failure|
+
 ### IntentHandler__TooLittleEscrowed
+Thrown when the yield amount escrowed is less than the required amount
+
 
 ```solidity
 error IntentHandler__TooLittleEscrowed();
@@ -209,6 +304,8 @@ struct Intent {
 
 ## Enums
 ### IntentState
+Enum representing the lifecycle states of an intent
+
 
 ```solidity
 enum IntentState {

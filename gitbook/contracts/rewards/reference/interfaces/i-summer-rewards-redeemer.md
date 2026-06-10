@@ -235,63 +235,151 @@ function rewardsToken() external view returns (IERC20);
 ### Claimed
 EVENTS
 
+Emitted when a user successfully claims rewards
+
 
 ```solidity
 event Claimed(address indexed user, uint256 indexed index, uint256 amount);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user who claimed the rewards|
+|`index`|`uint256`|The distribution index from which the rewards were claimed|
+|`amount`|`uint256`|The amount of tokens claimed|
+
 ### RootAdded
+Emitted when a new Merkle root is added for a distribution
+
 
 ```solidity
 event RootAdded(uint256 indexed index, bytes32 root);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`index`|`uint256`|The distribution index for the root|
+|`root`|`bytes32`|The Merkle root hash|
+
 ### RootRemoved
+Emitted when a Merkle root is removed
+
 
 ```solidity
 event RootRemoved(uint256 indexed index);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`index`|`uint256`|The distribution index of the removed root|
+
 ## Errors
 ### InvalidRewardsToken
 ERRORS
+
+Thrown when attempting to initialize the contract with an invalid rewards token address
 
 
 ```solidity
 error InvalidRewardsToken(address token);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`address`|The address of the invalid token|
+
 ### RootAlreadyAdded
+Thrown when attempting to add a Merkle root for an index that already has one
+
 
 ```solidity
 error RootAlreadyAdded(uint256 index, bytes32 root);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`index`|`uint256`|The distribution index|
+|`root`|`bytes32`|The Merkle root hash that was attempted to be added|
+
 ### UserCannotClaim
+Thrown when a user cannot claim rewards due to an invalid Merkle proof
+
 
 ```solidity
 error UserCannotClaim(address user, uint256 index, uint256 amount, bytes32[] proof);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user|
+|`index`|`uint256`|The distribution index|
+|`amount`|`uint256`|The amount attempted to claim|
+|`proof`|`bytes32[]`|The Merkle proof provided|
+
 ### UserAlreadyClaimed
+Thrown when a user attempts to claim rewards they have already claimed
+
 
 ```solidity
 error UserAlreadyClaimed(address user, uint256 index, uint256 amount, bytes32[] proof);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user|
+|`index`|`uint256`|The distribution index|
+|`amount`|`uint256`|The amount attempted to claim|
+|`proof`|`bytes32[]`|The Merkle proof provided|
+
 ### ClaimMultipleLengthMismatch
+Thrown when claiming multiple rewards and the arrays have mismatched lengths
+
 
 ```solidity
 error ClaimMultipleLengthMismatch(uint256[] indices, uint256[] amounts, bytes32[][] proofs);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`indices`|`uint256[]`|Array of distribution indices|
+|`amounts`|`uint256[]`|Array of reward amounts|
+|`proofs`|`bytes32[][]`|Array of Merkle proofs|
+
 ### ClaimMultipleEmpty
+Thrown when claiming multiple rewards and the provided arrays are empty
+
 
 ```solidity
 error ClaimMultipleEmpty(uint256[] indices, uint256[] amounts, bytes32[][] proofs);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`indices`|`uint256[]`|Array of distribution indices|
+|`amounts`|`uint256[]`|Array of reward amounts|
+|`proofs`|`bytes32[][]`|Array of Merkle proofs|
+
 ### CallerNotAdmiralsQuarters
+Thrown when the caller is not the Admirals Quarters router contract
+
 
 ```solidity
 error CallerNotAdmiralsQuarters();

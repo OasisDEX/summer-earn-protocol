@@ -37,6 +37,29 @@ function updateInflightAssets(uint256 amount) external;
 |`amount`|`uint256`|Amount of assets that are now in-flight|
 
 
+### supportsInterface
+
+Returns true if this contract implements the interface defined by `interfaceId`.
+
+See ERC-165. Implementations must return true for IInflightAssetTracking and IERC165 selectors.
+
+
+```solidity
+function supportsInterface(bytes4 interfaceId) external view returns (bool);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`interfaceId`|`bytes4`|The ERC-165 interface identifier to query.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the interface is supported.|
+
+
 ## Events
 ### InflightAssetsUpdated
 Emitted when inflight assets amount is updated

@@ -175,6 +175,8 @@ function unpause() external;
 
 ## Structs
 ### TipStream
+Defines a recipient's share of distributed tips
+
 
 ```solidity
 struct TipStream {
@@ -183,3 +185,11 @@ struct TipStream {
     uint256 lockedUntilEpoch;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`recipient`|`address`|The address that receives this stream's allocation|
+|`allocation`|`Percentage`|The fraction of total tips allocated to the recipient, as a Percentage|
+|`lockedUntilEpoch`|`uint256`|The epoch until which the stream cannot be modified or removed|

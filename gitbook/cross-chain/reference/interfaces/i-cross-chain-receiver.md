@@ -61,6 +61,29 @@ function getSupportedOperationTypes() external view returns (BridgeTypes.Operati
 |`supportedTypes`|`BridgeTypes.OperationType[]`|Array of supported operation types|
 
 
+### supportsInterface
+
+Returns true if this contract implements the interface defined by `interfaceId`.
+
+See ERC-165. Implementations must return true for ICrossChainReceiver and IERC165 selectors.
+
+
+```solidity
+function supportsInterface(bytes4 interfaceId) external view returns (bool);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`interfaceId`|`bytes4`|The ERC-165 interface identifier to query.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the interface is supported.|
+
+
 ## Events
 ### CrossChainOperationReceived
 Emitted when a cross-chain operation is successfully processed

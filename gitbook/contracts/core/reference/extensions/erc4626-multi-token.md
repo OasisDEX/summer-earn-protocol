@@ -58,14 +58,16 @@ constructor(address asset_, string memory uri_) ERC1155(uri_);
 
 EXTERNAL/PUBLIC FUNCTIONS
 
-Returns the address of the underlying token used for the Vault for accounting, depositing, and withdrawing.
-- MUST be an ERC-20 token contract.
-- MUST NOT revert.
-
 
 ```solidity
 function asset() public view virtual override returns (address);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|assetTokenAddress The address of the underlying asset token|
+
 
 ### totalAssets
 
@@ -78,6 +80,12 @@ Returns the total amount of the underlying asset that is “managed” by Vault.
 ```solidity
 function totalAssets() public view virtual override returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|totalManagedAssets The total amount of underlying assets managed by the Vault|
+
 
 ### maxDeposit
 
@@ -91,6 +99,18 @@ through a deposit call.
 ```solidity
 function maxDeposit(address) public view virtual override returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`||
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|maxAssets The maximum amount of assets that can be deposited|
+
 
 ### maxRedeem
 
@@ -105,6 +125,18 @@ per-id or per-round limits.
 ```solidity
 function maxRedeem(address owner) public view virtual override returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address whose redeemable shares are queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|maxShares The maximum amount of shares that can be redeemed|
+
 
 ### deposit
 
@@ -120,6 +152,19 @@ NOTE: most implementations will require pre-approval of the Vault with the Vault
 ```solidity
 function deposit(uint256 assets, address receiver) public virtual override returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of underlying tokens to deposit|
+|`receiver`|`address`|The address that receives the minted shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|shares The amount of shares minted|
+
 
 ### redeem
 
@@ -145,6 +190,21 @@ function redeem(
     override
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`id`|`uint256`||
+|`amount`|`uint256`||
+|`receiver`|`address`|The address that receives the underlying assets|
+|`owner`|`address`|The address whose shares are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|assets The amount of underlying assets sent to the receiver|
+
 
 ### redeemBatch
 
@@ -170,6 +230,21 @@ function redeemBatch(
     override
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ids`|`uint256[]`||
+|`amounts`|`uint256[]`||
+|`receiver`|`address`|The address that receives the underlying assets|
+|`owner`|`address`|The address whose shares are burned|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|assets The total amount of underlying assets sent to the receiver|
+
 
 ### _deposit
 

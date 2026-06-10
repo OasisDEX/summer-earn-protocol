@@ -30,6 +30,8 @@ IMorpho public immutable MORPHO
 
 
 ### URD_FACTORY
+The Morpho Universal Rewards Distributor factory, used to validate URDs during harvest
+
 
 ```solidity
 IUrdFactory public immutable URD_FACTORY
@@ -92,7 +94,10 @@ function totalAssets() public view override returns (uint256 assets);
 
 Internal function to get the total assets that are withdrawable
 
-MorphoArk is always withdrawable
+Caps the withdrawable amount by the Morpho market's available
+on-chain liquidity (totalSupplyAssets - totalBorrowAssets). When the
+market is fully utilised this can be less than totalAssets(), and is
+0 when no liquidity is available.
 
 
 ```solidity
@@ -196,24 +201,32 @@ function _validateDisembarkData(bytes calldata) internal override;
 
 ## Errors
 ### InvalidMorphoAddress
+Thrown when the supplied Morpho protocol address is the zero address
+
 
 ```solidity
 error InvalidMorphoAddress();
 ```
 
 ### InvalidMarketId
+Thrown when the supplied Morpho market ID is zero
+
 
 ```solidity
 error InvalidMarketId();
 ```
 
 ### InvalidUrdFactoryAddress
+Thrown when the supplied Universal Rewards Distributor factory address is the zero address
+
 
 ```solidity
 error InvalidUrdFactoryAddress();
 ```
 
 ### InvalidUrdAddress
+Thrown when a claim references a distributor not deployed by the configured URD factory
+
 
 ```solidity
 error InvalidUrdAddress();

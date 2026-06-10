@@ -239,6 +239,8 @@ function emergencyWithdraw(address token, address to, uint256 amount) external o
 
 INTERNALS
 
+Helper function to check if a user is included in the Merkle root for a given distribution
+
 
 ```solidity
 function _couldClaim(
@@ -251,15 +253,45 @@ function _couldClaim(
     view
     returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user to check|
+|`index`|`uint256`|The distribution index|
+|`amount`|`uint256`|The reward amount|
+|`proof`|`bytes32[]`|The Merkle proof verifying inclusion|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the proof is valid, false otherwise|
+
 
 ### _verifyClaim
+
+Verifies that a claim is valid and has not already been made
+
+Reverts if the proof is invalid or if the user already claimed
 
 
 ```solidity
 function _verifyClaim(address user, uint256 index, uint256 amount, bytes32[] memory proof) internal view;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user attempting to claim|
+|`index`|`uint256`|The distribution index|
+|`amount`|`uint256`|The reward amount to claim|
+|`proof`|`bytes32[]`|The Merkle proof verifying inclusion|
+
 
 ### _processClaim
+
+Processes a single claim by verifying it, marking it as claimed in the bitmap, and emitting an event
 
 
 ```solidity
@@ -272,13 +304,32 @@ function _processClaim(
 )
     internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user claiming the reward|
+|`index`|`uint256`|The distribution index|
+|`amount`|`uint256`|The reward amount|
+|`proof`|`bytes32[]`|The Merkle proof verifying inclusion|
+|`userClaimedRoots`|`BitMaps.BitMap`|The bitmap tracking claimed roots for the user|
+
 
 ### _sendRewards
+
+Internal helper to transfer reward tokens to a recipient
 
 
 ```solidity
 function _sendRewards(address to, uint256 amount) internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`to`|`address`|The recipient address|
+|`amount`|`uint256`|The amount of tokens to transfer|
+
 
 ### hasClaimed
 
@@ -304,6 +355,10 @@ function hasClaimed(address user, uint256 index) public view returns (bool);
 
 ### _claimMultiple
 
+Processes claims for multiple distributions in a single transaction
+
+Reverts if there is an array length mismatch or if the arrays are empty
+
 
 ```solidity
 function _claimMultiple(
@@ -314,3 +369,11 @@ function _claimMultiple(
 )
     internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user claiming the rewards|
+|`indices`|`uint256[]`|Array of distribution indices|
+|`amounts`|`uint256[]`|Array of reward amounts|
+|`proofs`|`bytes32[][]`|Matrix of Merkle proofs for each distribution|

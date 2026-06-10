@@ -19,6 +19,8 @@ Based on LayerZero V2 OFT standard with Stargate extensions
 ## Functions
 ### sendToken
 
+Send tokens cross-chain via Stargate V2
+
 
 ```solidity
 function sendToken(
@@ -30,8 +32,26 @@ function sendToken(
     payable
     returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt, Ticket memory ticket);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_sendParam`|`SendParam`|Struct containing parameters for the send operation|
+|`_fee`|`MessagingFee`|The LayerZero messaging fee|
+|`_refundAddress`|`address`|The address to receive any gas refunds|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`msgReceipt`|`MessagingReceipt`|The message receipt|
+|`oftReceipt`|`OFTReceipt`|The OFT receipt|
+|`ticket`|`Ticket`|The transit ticket details|
+
 
 ### quoteSend
+
+Estimate the messaging fee for sending tokens cross-chain
 
 
 ```solidity
@@ -43,10 +63,23 @@ function quoteSend(
     view
     returns (MessagingFee memory msgFee);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_sendParam`|`SendParam`|Struct containing parameters for the send operation|
+|`_payInLzToken`|`bool`|True if paying in LZ token, false for native gas token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`msgFee`|`MessagingFee`|The messaging fee quote|
+
 
 ### quoteOFT
 
-forge-lint: disable-next-item(mixed-case-function)
+Query the OFT limits and estimated fees for a send operation
 
 
 ```solidity
@@ -55,23 +88,55 @@ function quoteOFT(SendParam calldata _sendParam)
     view
     returns (OFTLimit memory limit, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory oftReceipt);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_sendParam`|`SendParam`|Struct containing parameters for the send operation, including destination chain, recipient, amount to send, and minimum amount to receive|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`limit`|`OFTLimit`|The OFT transfer limit details (min/max sendable amounts)|
+|`oftFeeDetails`|`OFTFeeDetail[]`|Detailed fee breakdown for the OFT transfer|
+|`oftReceipt`|`OFTReceipt`|Predicted receipt details including amount sent and amount received|
+
 
 ### stargateType
+
+Returns the Stargate type of this endpoint
 
 
 ```solidity
 function stargateType() external pure returns (StargateType);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`StargateType`|The StargateType (Pool or OFT)|
+
 
 ### token
+
+Returns the address of the underlying token managed by this Stargate contract
 
 
 ```solidity
 function token() external view returns (address);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|The token address|
+
 
 ## Structs
 ### Ticket
+Ticket structure representing cross-chain transfer details
+
 
 ```solidity
 struct Ticket {
@@ -82,6 +147,8 @@ struct Ticket {
 
 ## Enums
 ### StargateType
+Type of Stargate endpoint (Pool or OFT)
+
 
 ```solidity
 enum StargateType {

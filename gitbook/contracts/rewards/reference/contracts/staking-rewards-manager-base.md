@@ -28,6 +28,8 @@ Implements IStakingRewards interface and inherits from ReentrancyGuardTransient 
 
 ## State Variables
 ### _rewardTokensList
+List of all reward tokens supported by this contract
+
 
 ```solidity
 EnumerableSet.AddressSet internal _rewardTokensList
@@ -35,6 +37,8 @@ EnumerableSet.AddressSet internal _rewardTokensList
 
 
 ### stakingToken
+The token that users stake to earn rewards
+
 
 ```solidity
 address public immutable stakingToken
@@ -42,6 +46,8 @@ address public immutable stakingToken
 
 
 ### rewardData
+Mapping of reward token to its reward distribution data
+
 
 ```solidity
 mapping(address rewardToken => RewardData data) public rewardData
@@ -49,6 +55,8 @@ mapping(address rewardToken => RewardData data) public rewardData
 
 
 ### userRewardPerTokenPaid
+Tracks the last reward per token paid to each user for each reward token
+
 
 ```solidity
 mapping(address rewardToken => mapping(address account => uint256 rewardPerTokenPaid)) public
@@ -57,6 +65,8 @@ mapping(address rewardToken => mapping(address account => uint256 rewardPerToken
 
 
 ### rewards
+Tracks the unclaimed rewards for each user for each reward token
+
 
 ```solidity
 mapping(address rewardToken => mapping(address account => uint256 rewardAmount)) public rewards
@@ -64,6 +74,8 @@ mapping(address rewardToken => mapping(address account => uint256 rewardAmount))
 
 
 ### totalSupply
+Total amount of tokens staked in the contract
+
 
 ```solidity
 uint256 public totalSupply
@@ -71,6 +83,8 @@ uint256 public totalSupply
 
 
 ### _balances
+Mapping from user address to their staked balance
+
 
 ```solidity
 mapping(address account => uint256 balance) internal _balances
@@ -109,75 +123,209 @@ constructor(address accessManager) ProtocolAccessManaged(accessManager);
 
 ### rewardTokens
 
+Get the reward token at a specific index
+
+Reverts with IndexOutOfBounds if index >= rewardTokensLength()
+
 
 ```solidity
 function rewardTokens(uint256 index) external view override returns (address);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`index`|`uint256`|The index of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|The address of the reward token|
+
 
 ### rewardTokensLength
+
+Get the total number of reward tokens
 
 
 ```solidity
 function rewardTokensLength() external view returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The length of the reward tokens list|
+
 
 ### balanceOf
+
+Get the staked balance of a specific account
 
 
 ```solidity
 function balanceOf(address account) public view virtual returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address of the account to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The staked balance of the account|
+
 
 ### lastTimeRewardApplicable
+
+Get the last time the reward was applicable for a specific reward token
 
 
 ```solidity
 function lastTimeRewardApplicable(address rewardToken) public view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The timestamp of the last applicable reward time|
+
 
 ### rewardPerToken
+
+Get the reward per token for a specific reward token
+
+Returns a WAD-scaled value (1e18) to maintain precision in calculations
 
 
 ```solidity
 function rewardPerToken(address rewardToken) public view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The reward amount per staked token (WAD-scaled)|
+
 
 ### earned
+
+Calculate the earned reward for an account and a specific reward token
+
+Calculated as: (balance * (rewardPerToken - userRewardPerTokenPaid)) / WAD + rewards
 
 
 ```solidity
 function earned(address account, address rewardToken) public view virtual returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address of the account|
+|`rewardToken`|`address`|The address of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The amount of reward tokens earned (not WAD-scaled)|
+
 
 ### getRewardForDuration
+
+Get the reward for the entire duration for a specific reward token
+
+After the period ends, returns (rewardRate * rewardsDuration) / WAD;
+during an active period, returns (rewardRate * (periodFinish - block.timestamp)) / WAD.
 
 
 ```solidity
 function getRewardForDuration(address rewardToken) external view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The reward amount for the remaining period (not WAD-scaled)|
+
 
 ### isRewardToken
+
+Check if a token is in the list of reward tokens
 
 
 ```solidity
 function isRewardToken(address rewardToken) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the token is a reward token, false otherwise|
+
 
 ### stake
+
+Stake tokens for an account
 
 
 ```solidity
 function stake(uint256 amount) external virtual updateReward(_msgSender());
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The amount of tokens to stake|
+
 
 ### unstake
+
+Unstake staked tokens
 
 
 ```solidity
 function unstake(uint256 amount) external virtual updateReward(_msgSender());
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The amount of tokens to unstake|
+
 
 ### getReward
+
+Claim accumulated rewards for all reward tokens
 
 
 ```solidity
@@ -186,12 +334,22 @@ function getReward() public virtual nonReentrant;
 
 ### getReward
 
+Claim accumulated rewards for a specific reward token
+
 
 ```solidity
 function getReward(address rewardToken) public virtual nonReentrant;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the reward token to claim|
+
 
 ### exit
+
+Withdraw all staked tokens and claim rewards
 
 
 ```solidity
@@ -231,6 +389,10 @@ function getRewardFor(address account, address rewardToken) public virtual nonRe
 
 ### notifyRewardAmount
 
+Notify the contract about new reward amount
+
+Internally sets rewardRate as (reward * WAD) / duration to maintain precision
+
 
 ```solidity
 function notifyRewardAmount(
@@ -243,13 +405,30 @@ function notifyRewardAmount(
     onlyGovernor
     updateReward(address(0));
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the reward token|
+|`reward`|`uint256`|The amount of new reward (not WAD-scaled)|
+|`newRewardsDuration`|`uint256`|The duration for rewards distribution (only used when adding a new reward token)|
+
 
 ### setRewardsDuration
+
+Set the duration for rewards distribution
 
 
 ```solidity
 function setRewardsDuration(address rewardToken, uint256 _rewardsDuration) external onlyGovernor;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the reward token|
+|`_rewardsDuration`|`uint256`|The new duration for rewards|
+
 
 ### removeRewardToken
 
@@ -268,45 +447,113 @@ function removeRewardToken(address rewardToken) external onlyGovernor;
 
 ### rescueToken
 
+Rescues a token from the contract
+
+Can only be called by governor
+
 
 ```solidity
 function rescueToken(address _token, address _to) public virtual onlyGovernor;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_token`|`address`|The address of the token to rescue|
+|`_to`|`address`|The address to send the rescued tokens to|
+
 
 ### _isRewardToken
+
+Helper function to check if a token address is registered as a reward token
 
 
 ```solidity
 function _isRewardToken(address rewardToken) internal view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rewardToken`|`address`|The address of the token to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|bool True if the token is a reward token, false otherwise|
+
 
 ### _stake
+
+Stakes tokens for an account
 
 
 ```solidity
 function _stake(address staker, address receiver, uint256 amount) internal virtual;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`staker`|`address`|The address providing the tokens|
+|`receiver`|`address`|The address whose staking balance will be increased|
+|`amount`|`uint256`|The amount of tokens to stake|
+
 
 ### _unstake
+
+Unstakes tokens for an account
 
 
 ```solidity
 function _unstake(address staker, address receiver, uint256 amount) internal virtual;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`staker`|`address`|The address whose staking balance will be decreased|
+|`receiver`|`address`|The address receiving the unstaked tokens|
+|`amount`|`uint256`|The amount of tokens to unstake|
+
 
 ### _earned
+
+Internal function to calculate earned rewards for an account
 
 
 ```solidity
 function _earned(address account, address rewardToken) internal view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address to calculate earnings for|
+|`rewardToken`|`address`|The reward token to calculate earnings for|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The amount of reward tokens earned|
+
 
 ### _updateReward
+
+Updates the reward state for all reward tokens for a specific account
 
 
 ```solidity
 function _updateReward(address account) internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address of the account to update rewards for|
+
 
 ### _getReward
 
@@ -345,6 +592,8 @@ function _notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRew
 
 ## Structs
 ### RewardData
+Struct containing distribution information for a reward token
+
 
 ```solidity
 struct RewardData {
@@ -355,3 +604,13 @@ struct RewardData {
     uint256 rewardPerTokenStored;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`periodFinish`|`uint256`|The timestamp when the current rewards distribution period ends|
+|`rewardRate`|`uint256`|The rate of rewards distributed per second (scaled by WAD)|
+|`rewardsDuration`|`uint256`|The duration of the rewards distribution period in seconds|
+|`lastUpdateTime`|`uint256`|The last timestamp when rewards were updated|
+|`rewardPerTokenStored`|`uint256`|The accumulated reward per token stored (scaled by WAD)|

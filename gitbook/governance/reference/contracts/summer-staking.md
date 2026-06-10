@@ -45,6 +45,8 @@ Staking_BucketCapExceeded)
 
 ## State Variables
 ### SUMMER_TOKEN
+The SUMR token that users stake
+
 
 ```solidity
 IERC20 public immutable SUMMER_TOKEN
@@ -52,6 +54,8 @@ IERC20 public immutable SUMMER_TOKEN
 
 
 ### STAKED_SUMMER_TOKEN
+The xSUMR token minted 1:1 to stakers as their staked representation
+
 
 ```solidity
 IStakedSummerToken public immutable STAKED_SUMMER_TOKEN
@@ -59,6 +63,8 @@ IStakedSummerToken public immutable STAKED_SUMMER_TOKEN
 
 
 ### WRAPPED_SUMMER_TOKEN
+The wrapped SUMR token held internally to back staked positions
+
 
 ```solidity
 WrappedStakingToken public immutable WRAPPED_SUMMER_TOKEN
@@ -66,6 +72,8 @@ WrappedStakingToken public immutable WRAPPED_SUMMER_TOKEN
 
 
 ### MAX_LOCKUP_PERIOD
+Maximum lockup duration allowed for a stake, in seconds (3 years)
+
 
 ```solidity
 uint256 public constant MAX_LOCKUP_PERIOD = 3 * 365 days
@@ -73,6 +81,8 @@ uint256 public constant MAX_LOCKUP_PERIOD = 3 * 365 days
 
 
 ### MAX_AMOUNT_OF_STAKES
+Maximum number of distinct stake positions a single owner may hold
+
 
 ```solidity
 uint256 public constant MAX_AMOUNT_OF_STAKES = 1000
@@ -80,6 +90,8 @@ uint256 public constant MAX_AMOUNT_OF_STAKES = 1000
 
 
 ### MIN_PENALTY_PERCENTAGE
+Minimum early-unstake penalty as a WAD fraction (0.02e18 = 2%)
+
 
 ```solidity
 uint256 public constant MIN_PENALTY_PERCENTAGE = 0.02e18
@@ -87,6 +99,8 @@ uint256 public constant MIN_PENALTY_PERCENTAGE = 0.02e18
 
 
 ### MAX_PENALTY_PERCENTAGE
+Maximum early-unstake penalty as a WAD fraction (0.2e18 = 20%)
+
 
 ```solidity
 uint256 public constant MAX_PENALTY_PERCENTAGE = 0.2e18
@@ -94,6 +108,8 @@ uint256 public constant MAX_PENALTY_PERCENTAGE = 0.2e18
 
 
 ### FIXED_PENALTY_PERIOD
+Remaining-lockup threshold (in seconds) below which the fixed minimum penalty applies
+
 
 ```solidity
 uint256 public constant FIXED_PENALTY_PERIOD = 110 days
@@ -101,6 +117,8 @@ uint256 public constant FIXED_PENALTY_PERIOD = 110 days
 
 
 ### WEIGHTED_STAKE_BASE
+Base coefficient (WAD, 60.18 fixed-point) for the weighted-stake multiplier
+
 
 ```solidity
 uint256 public constant WEIGHTED_STAKE_BASE = Constants.WAD
@@ -108,6 +126,8 @@ uint256 public constant WEIGHTED_STAKE_BASE = Constants.WAD
 
 
 ### WEIGHTED_STAKE_COEFFICIENT
+Quadratic coefficient applied to lockup time in the weighted-stake multiplier (60.18 fixed-point)
+
 
 ```solidity
 uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 700
@@ -115,6 +135,8 @@ uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 700
 
 
 ### NO_LOCKUP_INDEX
+Stake-array index reserved for the aggregated no-lockup position
+
 
 ```solidity
 uint256 public constant NO_LOCKUP_INDEX = 0
@@ -122,6 +144,8 @@ uint256 public constant NO_LOCKUP_INDEX = 0
 
 
 ### BUCKET_SHORT_TERM_MIN
+Minimum lockup (in seconds) classified into the ShortTerm bucket
+
 
 ```solidity
 uint256 public constant BUCKET_SHORT_TERM_MIN = 1
@@ -129,6 +153,8 @@ uint256 public constant BUCKET_SHORT_TERM_MIN = 1
 
 
 ### BUCKET_SHORT_TERM_MAX
+Inclusive upper bound (in seconds) of the ShortTerm bucket (14 days)
+
 
 ```solidity
 uint256 public constant BUCKET_SHORT_TERM_MAX = 14 days
@@ -136,6 +162,8 @@ uint256 public constant BUCKET_SHORT_TERM_MAX = 14 days
 
 
 ### BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX
+Inclusive upper bound (in seconds) of the TwoWeeksToThreeMonths bucket (90 days)
+
 
 ```solidity
 uint256 public constant BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX = 90 days
@@ -143,6 +171,8 @@ uint256 public constant BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX = 90 days
 
 
 ### BUCKET_THREE_TO_SIX_MAX
+Inclusive upper bound (in seconds) of the ThreeToSixMonths bucket (180 days)
+
 
 ```solidity
 uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days
@@ -150,6 +180,8 @@ uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days
 
 
 ### BUCKET_SIX_TO_TWELVE_MAX
+Inclusive upper bound (in seconds) of the SixToTwelveMonths bucket (365 days)
+
 
 ```solidity
 uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days
@@ -157,6 +189,8 @@ uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days
 
 
 ### BUCKET_ONE_TO_TWO_MAX
+Inclusive upper bound (in seconds) of the OneToTwoYears bucket (2 years)
+
 
 ```solidity
 uint256 public constant BUCKET_ONE_TO_TWO_MAX = 2 * 365 days
@@ -164,6 +198,8 @@ uint256 public constant BUCKET_ONE_TO_TWO_MAX = 2 * 365 days
 
 
 ### BUCKET_TWO_TO_THREE_MAX
+Inclusive upper bound (in seconds) of the TwoToThreeYears bucket (3 years)
+
 
 ```solidity
 uint256 public constant BUCKET_TWO_TO_THREE_MAX = MAX_LOCKUP_PERIOD
@@ -171,6 +207,8 @@ uint256 public constant BUCKET_TWO_TO_THREE_MAX = MAX_LOCKUP_PERIOD
 
 
 ### stakesByOwner
+Returns the stake position of an owner at a given array index
+
 
 ```solidity
 mapping(address owner => UserStake[] stakes) public stakesByOwner
@@ -178,6 +216,8 @@ mapping(address owner => UserStake[] stakes) public stakesByOwner
 
 
 ### weightedBalances
+Returns the total weighted (reward-bearing) balance for an owner
+
 
 ```solidity
 mapping(address owner => uint256 weightedBalance) public weightedBalances
@@ -185,6 +225,8 @@ mapping(address owner => uint256 weightedBalance) public weightedBalances
 
 
 ### bucketData
+Returns the per-bucket accounting data (cap and currently staked total) for a bucket
+
 
 ```solidity
 mapping(Bucket bucketId => BucketData bucketData) public bucketData
@@ -192,6 +234,8 @@ mapping(Bucket bucketId => BucketData bucketData) public bucketData
 
 
 ### isAuthorized
+Returns whether a caller is authorized to stake/unstake on behalf of an owner
+
 
 ```solidity
 mapping(address owner => mapping(address authorizedCaller => bool isAuthorized)) public isAuthorized
@@ -199,6 +243,8 @@ mapping(address owner => mapping(address authorizedCaller => bool isAuthorized))
 
 
 ### penaltyEnabled
+Whether the early-unstake penalty is currently applied
+
 
 ```solidity
 bool public penaltyEnabled = true
@@ -578,6 +624,10 @@ function calculateWeightedStake(uint256 _amount, uint256 _lockupPeriod) public p
 
 ### earned
 
+Calculate the earned reward for an account and a specific reward token
+
+Calculated as: (balance * (rewardPerToken - userRewardPerTokenPaid)) / WAD + rewards
+
 
 ```solidity
 function earned(
@@ -589,11 +639,28 @@ function earned(
     override(StakingRewardsManagerBase, IStakingRewardsManagerBase)
     returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The address of the account|
+|`rewardToken`|`address`|The address of the reward token|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The amount of reward tokens earned (not WAD-scaled)|
+
 
 ### getRewardFor
 
 Claims rewards for a specific account and specific reward token
 
+Authorization: the caller MUST be on the receiver-managed authorization list.
+The receiver adds/removes callers via `setAuthorization(caller, isAuthorized)`.
+If the caller is not authorized by `_receiver`, the call reverts with
+`Staking_NotAuthorized(caller, _receiver)`.
 
 
 ```solidity
@@ -634,33 +701,70 @@ function getRewardFor(address account) public override(ISummerStaking, StakingRe
 
 ### stakeOnBehalfOf
 
+Stake tokens for an account on behalf of another account
+
 
 ```solidity
 function stakeOnBehalfOf(address, uint256) external pure override(IStakingRewardsManagerBase);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`||
+|`<none>`|`uint256`||
+
 
 ### unstakeAndWithdrawOnBehalfOf
+
+Unstake staked tokens on behalf of another account
 
 
 ```solidity
 function unstakeAndWithdrawOnBehalfOf(address, uint256, bool) external pure override(IStakingRewardsManagerBase);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`||
+|`<none>`|`uint256`||
+|`<none>`|`bool`||
+
 
 ### stake
+
+Stake tokens for an account
 
 
 ```solidity
 function stake(uint256) external virtual override(StakingRewardsManagerBase, IStakingRewardsManagerBase);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`||
+
 
 ### unstake
+
+Unstake staked tokens
 
 
 ```solidity
 function unstake(uint256) external virtual override(StakingRewardsManagerBase, IStakingRewardsManagerBase);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`||
+
 
 ### exit
+
+Withdraw all staked tokens and claim rewards
 
 
 ```solidity

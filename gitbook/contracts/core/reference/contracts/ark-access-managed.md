@@ -74,6 +74,8 @@ modifier onlyAuthorizedToBoard(address commander) ;
 
 ### _revertIfNotAuthorizedToBoard
 
+Reverts unless the caller is the commander itself, the Raft, or an active Ark of the commander
+
 
 ```solidity
 function _revertIfNotAuthorizedToBoard(address commander) internal view;
@@ -104,6 +106,8 @@ modifier onlyRaft() ;
 ```
 
 ### _revertIfNotRaft
+
+Reverts unless the caller is the Raft contract
 
 
 ```solidity

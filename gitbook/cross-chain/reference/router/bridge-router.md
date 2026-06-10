@@ -172,10 +172,18 @@ function _validateSendMessageParams(BridgeTypes.ExecuteSendMessageParams calldat
 
 ### _validateOriginator
 
+Validates that the originator of the request matches the sender
+
 
 ```solidity
 function _validateOriginator(address originator) internal view;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`originator`|`address`|The originator address to validate|
+
 
 ### _validateAdapterSupportsOperation
 
@@ -276,7 +284,7 @@ function executeTransferAssets(
 |Name|Type|Description|
 |----|----|-----------|
 |`params`|`BridgeTypes.ExecuteTransferParams`|Struct containing all parameters for the transfer execution.|
-|`options`|`BridgeTypes.BridgeOptions`||
+|`options`|`BridgeTypes.BridgeOptions`|Struct containing bridge options including adapter choice and parameters.|
 
 **Returns**
 
@@ -313,7 +321,7 @@ function executeReadState(
 |Name|Type|Description|
 |----|----|-----------|
 |`params`|`BridgeTypes.ExecuteReadStateParams`|Struct containing all parameters for the state read execution.|
-|`options`|`BridgeTypes.BridgeOptions`||
+|`options`|`BridgeTypes.BridgeOptions`|Struct containing bridge options including adapter choice and parameters.|
 
 **Returns**
 
@@ -349,7 +357,7 @@ function executeSendMessage(
 |Name|Type|Description|
 |----|----|-----------|
 |`params`|`BridgeTypes.ExecuteSendMessageParams`|Struct containing all parameters for the message send execution.|
-|`options`|`BridgeTypes.BridgeOptions`||
+|`options`|`BridgeTypes.BridgeOptions`|Struct containing bridge options including adapter choice and parameters.|
 
 **Returns**
 
@@ -534,13 +542,20 @@ function recoverAssets(address token, address recipient, uint256 amount) externa
 
 ### supportsInterface
 
-Returns true if this contract implements the interface defined by
-`interfaceId`. See the corresponding
-https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]
-to learn more about how these ids are created.
-This function call must use less than 30 000 gas.
+Checks if the contract supports a given interface ID
 
 
 ```solidity
 function supportsInterface(bytes4 interfaceId) external pure returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`interfaceId`|`bytes4`|The interface ID to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the contract supports the interface, false otherwise|

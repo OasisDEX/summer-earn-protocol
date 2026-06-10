@@ -75,7 +75,9 @@ function totalAssets() public view override returns (uint256 assets);
 
 Internal function to get the total assets that are withdrawable
 
-CompoundV3Ark is always withdrawable
+Returns the full balance when withdrawals are enabled on the Comet
+market, but returns 0 while comet.isWithdrawPaused() is true (the
+Comet pause guardian can pause withdrawals).
 
 
 ```solidity

@@ -30,3 +30,14 @@ Returns the sum of `account`'s balances across every token id of this contract.
 ```solidity
 function balanceOfAll(address account) external view returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`account`|`address`|The account whose aggregate balance is queried|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|The total balance across all token ids|

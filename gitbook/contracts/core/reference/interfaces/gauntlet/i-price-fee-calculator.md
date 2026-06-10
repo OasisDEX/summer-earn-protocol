@@ -320,109 +320,158 @@ function isVaultPaused(address vault) external view returns (bool);
 
 ### getVaultState
 
+Returns the full price and accrual state for a vault
+
 
 ```solidity
 function getVaultState(address vault) external view returns (VaultPriceState memory, VaultAccruals memory);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`vault`|`address`|Address of the vault|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`VaultPriceState`|The vault's price state|
+|`<none>`|`VaultAccruals`|The vault's fee accrual state|
+
 
 ## Errors
 ### Aera__StalePrice
+Thrown when the stored price is older than the maximum allowed age
+
 
 ```solidity
 error Aera__StalePrice();
 ```
 
 ### Aera__TimestampMustBeAfterLastUpdate
+Thrown when the supplied timestamp is not after the last update timestamp
+
 
 ```solidity
 error Aera__TimestampMustBeAfterLastUpdate();
 ```
 
 ### Aera__TimestampCantBeInFuture
+Thrown when the supplied timestamp is in the future
+
 
 ```solidity
 error Aera__TimestampCantBeInFuture();
 ```
 
 ### Aera__ZeroAddressOracleRegistry
+Thrown when the oracle registry address is the zero address
+
 
 ```solidity
 error Aera__ZeroAddressOracleRegistry();
 ```
 
 ### Aera__InvalidMaxPriceToleranceRatio
+Thrown when the maximum price tolerance ratio is invalid
+
 
 ```solidity
 error Aera__InvalidMaxPriceToleranceRatio();
 ```
 
 ### Aera__InvalidMinPriceToleranceRatio
+Thrown when the minimum price tolerance ratio is invalid
+
 
 ```solidity
 error Aera__InvalidMinPriceToleranceRatio();
 ```
 
 ### Aera__InvalidMaxPriceAge
+Thrown when the maximum price age is invalid
+
 
 ```solidity
 error Aera__InvalidMaxPriceAge();
 ```
 
 ### Aera__InvalidMaxUpdateDelayDays
+Thrown when the maximum update delay in days is invalid
+
 
 ```solidity
 error Aera__InvalidMaxUpdateDelayDays();
 ```
 
 ### Aera__ThresholdNotSet
+Thrown when vault thresholds have not been configured
+
 
 ```solidity
 error Aera__ThresholdNotSet();
 ```
 
 ### Aera__VaultPaused
+Thrown when the vault is paused
+
 
 ```solidity
 error Aera__VaultPaused();
 ```
 
 ### Aera__VaultNotPaused
+Thrown when the vault is not paused but the action requires it to be
+
 
 ```solidity
 error Aera__VaultNotPaused();
 ```
 
 ### Aera__UnitPriceMismatch
+Thrown when the supplied unit price does not match the last update
+
 
 ```solidity
 error Aera__UnitPriceMismatch();
 ```
 
 ### Aera__TimestampMismatch
+Thrown when the supplied timestamp does not match the last update
+
 
 ```solidity
 error Aera__TimestampMismatch();
 ```
 
 ### Aera__VaultAlreadyInitialized
+Thrown when initializing a vault that is already initialized
+
 
 ```solidity
 error Aera__VaultAlreadyInitialized();
 ```
 
 ### Aera__VaultNotInitialized
+Thrown when acting on a vault that has not been initialized
+
 
 ```solidity
 error Aera__VaultNotInitialized();
 ```
 
 ### Aera__InvalidPrice
+Thrown when the supplied price is invalid
+
 
 ```solidity
 error Aera__InvalidPrice();
 ```
 
 ### Aera__CurrentPriceAboveHighestPrice
+Thrown when the current price exceeds the recorded highest price
+
 
 ```solidity
 error Aera__CurrentPriceAboveHighestPrice();

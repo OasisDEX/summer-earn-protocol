@@ -8,6 +8,9 @@ description: >-
 # IRewarder
 [Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/interfaces/stargate/IRewarder.sol)
 
+**Title:**
+IRewarder
+
 A rewarder is connected to the staking contract and distributes rewards whenever the staking contract
 updates the rewarder.
 
@@ -24,6 +27,16 @@ The rewarder logic must keep this in mind!
 ```solidity
 function onUpdate(IERC20 token, address user, uint256 oldStake, uint256 oldSupply, uint256 newStake) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`IERC20`|The staking token whose pool is being updated|
+|`user`|`address`|The user whose stake changed|
+|`oldStake`|`uint256`|The user's stake before the update|
+|`oldSupply`|`uint256`|The pool's total supply before the update|
+|`newStake`|`uint256`|The user's stake after the update|
+
 
 ### connect
 
@@ -35,6 +48,12 @@ reconfiguration.
 ```solidity
 function connect(IERC20 stakingToken) external;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`stakingToken`|`IERC20`|The staking token the rewarder is being connected to|
+
 
 ## Events
 ### RewarderConnected

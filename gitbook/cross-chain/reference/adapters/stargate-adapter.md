@@ -319,7 +319,7 @@ This method delegates to estimateTransferFee or estimateMessageFee based on oper
 
 ```solidity
 function estimateFee(
-    uint16 dstChainId,
+    uint16 destinationChainId,
     address asset,
     uint256 amount,
     BridgeTypes.BridgeOptions calldata options,
@@ -327,14 +327,14 @@ function estimateFee(
 )
     public
     view
-    onlyTrustedDestination(dstChainId)
+    onlyTrustedDestination(destinationChainId)
     returns (uint256 nativeFee, uint256 tokenFee);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`dstChainId`|`uint16`||
+|`destinationChainId`|`uint16`|ID of the destination chain|
 |`asset`|`address`|Address of the asset to transfer (address(0) for non-asset operations)|
 |`amount`|`uint256`|Amount of the asset to transfer (0 for non-asset operations)|
 |`options`|`BridgeTypes.BridgeOptions`|Bridge options including adapter selection and parameters|
@@ -468,6 +468,18 @@ Get the LayerZero Endpoint ID for a given chain
 ```solidity
 function getEndpointId(uint16 chainId) external view returns (uint32);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`chainId`|`uint16`|The chain ID to query|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint32`|The LayerZero Endpoint ID for the chain|
+
 
 ### manualRecovery
 

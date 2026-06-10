@@ -30,6 +30,8 @@ address public immutable solver
 
 
 ### factory
+The address of the factory contract that deployed this bond
+
 
 ```solidity
 address public immutable factory
@@ -70,6 +72,8 @@ modifier onlySolver() ;
 ```
 
 ### onlyFactory
+
+Modifier that restricts access to only the factory contract
 
 
 ```solidity
@@ -159,44 +163,88 @@ function hasSufficientBond(uint256 requiredAmount) external view returns (bool);
 
 ## Events
 ### BondAdded
+Emitted when a solver adds tokens to their bond
+
 
 ```solidity
 event BondAdded(address indexed solver, uint256 amount, uint256 totalBonded);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+|`amount`|`uint256`|Amount of tokens added|
+|`totalBonded`|`uint256`|Total amount of tokens now bonded|
+
 ### BondRemoved
+Emitted when a solver removes tokens from their bond
+
 
 ```solidity
 event BondRemoved(address indexed solver, uint256 amount, uint256 totalBonded);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver|
+|`amount`|`uint256`|Amount of tokens removed|
+|`totalBonded`|`uint256`|Total amount of tokens now bonded|
+
 ### BondSlashed
+Emitted when the bond is slashed
+
 
 ```solidity
 event BondSlashed(address indexed solver, uint256 slashAmount, uint256 remainingBond);
 ```
 
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`solver`|`address`|Address of the solver whose bond was slashed|
+|`slashAmount`|`uint256`|Amount of tokens slashed|
+|`remainingBond`|`uint256`|Remaining amount of tokens bonded|
+
 ## Errors
 ### SolverBond__UnauthorizedCaller
+Thrown when the caller is not authorized to perform the operation
+
 
 ```solidity
 error SolverBond__UnauthorizedCaller();
 ```
 
 ### SolverBond__InvalidAmount
+Thrown when the specified token amount is invalid (e.g. zero)
+
 
 ```solidity
 error SolverBond__InvalidAmount();
 ```
 
 ### SolverBond__InsufficientBond
+Thrown when the solver has an insufficient bond balance for the operation
+
 
 ```solidity
 error SolverBond__InsufficientBond();
 ```
 
 ### SolverBond__InvalidAddress
+Thrown when an input address parameters is invalid (e.g. zero address)
+
 
 ```solidity
 error SolverBond__InvalidAddress(string message);
 ```
+
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`message`|`string`|Reason describing why the address is invalid|

@@ -151,6 +151,12 @@ tracks them in `pendingWithdrawalShares`.
 ```solidity
 function requestWithdrawal(uint256 amount) public override onlyKeeper onlyNotFrozen;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The base-asset amount to redeem|
+
 
 ### emergencyClearPendingDeposit
 
@@ -164,6 +170,12 @@ as valid for `amount` of the pending queue when the keeper path is deadlocked
 ```solidity
 function emergencyClearPendingDeposit(uint256 amount) external onlyGovernor;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`amount`|`uint256`|The pending-deposit asset amount to clear (must be <= pendingDepositAssets)|
+
 
 ### sweep
 
@@ -191,6 +203,13 @@ Freezes the Ark, locking the total assets value.
 ```solidity
 function setArkFrozen(bool _isArkFrozen, uint256 frozenTotalAssets) external onlyKeeper;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_isArkFrozen`|`bool`|Whether to freeze (true) or unfreeze (false) the Ark|
+|`frozenTotalAssets`|`uint256`|The total-assets value to lock while frozen; pass type(uint256).max to snapshot the current totalAssets()|
+
 
 ### _board
 

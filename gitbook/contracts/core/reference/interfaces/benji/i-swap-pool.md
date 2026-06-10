@@ -91,6 +91,20 @@ enforces trader authorization, the trader is on the allow-list).
 ```solidity
 function isTraderAllowed(address trader, address tokenA, address tokenB) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`trader`|`address`|The trader to check|
+|`tokenA`|`address`|One token of the pair|
+|`tokenB`|`address`|The other token of the pair|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the trader is allowed to swap the pair|
+
 
 ### unsupportedTokens
 
@@ -101,6 +115,18 @@ owner-mutable kill-switch independent of pair authorization.
 ```solidity
 function unsupportedTokens(address token) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`address`|The token to check|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the token is flagged unsupported|
+
 
 ### isTokenPairAuthorized
 
@@ -110,6 +136,19 @@ Whether the `tokenA`/`tokenB` pair is authorized for swapping.
 ```solidity
 function isTokenPairAuthorized(address tokenA, address tokenB) external view returns (bool);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`tokenA`|`address`|One token of the pair|
+|`tokenB`|`address`|The other token of the pair|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if the pair is authorized|
+
 
 ### paused
 

@@ -233,12 +233,16 @@ function _harvest(bytes calldata)
 
 ## Errors
 ### InvalidGatewayAddress
+Thrown when the supplied InfiniFi Gateway address is the zero address
+
 
 ```solidity
 error InvalidGatewayAddress();
 ```
 
 ### InvalidSiUSDAddress
+Thrown when the supplied siUSD vault address is the zero address
+
 
 ```solidity
 error InvalidSiUSDAddress();
