@@ -46,6 +46,9 @@
 
 ## Smart Contracts
 
+* [Architecture Overview](contracts/architecture.md)
+* [Ark Catalog](contracts/ark-catalog.md)
+
 * [Core Contracts](contracts/core/reference/README.md)
   * [AdmiralsQuarters](contracts/core/reference/contracts/admirals-quarters.md)
   * [AdmiralsQuartersWhitelist](contracts/core/reference/contracts/admirals-quarters-whitelist.md)
@@ -1406,6 +1409,19 @@
   * [Variable: UserDataSchema](sdk/reference/@summerfi/sdk-common/variables/UserDataSchema.md)
   * [Variable: WalletDataSchema](sdk/reference/@summerfi/sdk-common/variables/WalletDataSchema.md)
 
+## APIs & Data
+
+* [HTTP APIs Overview](apis/README.md)
+* [Rates & APY](apis/rates-and-apy.md)
+* [Portfolio](apis/portfolio.md)
+* [Triggers](apis/triggers.md)
+* [External / Partner APIs](apis/external.md)
+* [Subgraphs Overview](data/README.md)
+  * [Protocol Subgraph](data/protocol-subgraph.md)
+  * [Rates Subgraph](data/rates-subgraph.md)
+  * [Governance Subgraph](data/governance-subgraph.md)
+  * [DCA Subgraph](data/dca-subgraph.md)
+
 ## Security & Audits
 
 * [Overview](security/README.md)
@@ -1413,3 +1429,11 @@
 * [Privileged Operations & Timelocks](security/privileged-operations.md)
 * [Upgradeability & Immutability](security/upgradeability.md)
 * [External Dependencies & Trust Assumptions](security/trust-assumptions.md)
+
+## Internal
+
+* [Repo Map & Onboarding](internal/README.md)
+* [Development Environment](internal/dev-environment.md)
+* [Deployment System](internal/deployment.md)
+* [Operations: Keepers & Bots](internal/operations.md)
+* [Databases](internal/databases.md)
