@@ -9,10 +9,12 @@ export const InstitutionNetworkDeployedContractsSchema = z
     gov: z
       .object({
         protocolAccessManager: AddressObj.optional(),
-        // The two RwaTimelock instances deployed per institution. `governorTimelock` is the
-        // sole GOVERNOR_ROLE holder; `curatorTimelock` holds CURATOR_ROLE on each fleet.
+        // The three RwaTimelock instances deployed per institution. `governorTimelock` is the
+        // sole GOVERNOR_ROLE holder; `curatorTimelock` holds CURATOR_ROLE on each fleet;
+        // `treasuryTimelock` acts as the institution treasury address.
         governorTimelock: AddressObj.optional(),
         curatorTimelock: AddressObj.optional(),
+        treasuryTimelock: AddressObj.optional(),
       })
       .partial()
       .optional(),
@@ -41,19 +43,14 @@ export const InstitutionFleetEntrySchema = z.object({
 /**
  * Per-institution timelock configuration.
  *
- * Two RwaTimelock instances are ALWAYS deployed per institution: a Governor timelock (sole
- * GOVERNOR_ROLE holder) and a Curator timelock (CURATOR_ROLE on each fleet). This block does not
- * toggle whether the timelocks exist — it only sets each one's delay (in seconds):
+ * Three RwaTimelock instances are ALWAYS deployed per institution: a Governor timelock (sole
+ * GOVERNOR_ROLE holder), a Curator timelock (CURATOR_ROLE on each fleet), and a Treasury timelock
+ * (used as the institution's treasury address). This block does not toggle whether the timelocks
+ * exist — it only sets each one's delay (in seconds):
  *
  *   - `0`   → that timelock executes immediately (schedule + execute can happen in the same block),
  *             so it imposes no waiting period while keeping the schedule→execute flow uniform.
  *   - `> 0` → that timelock enforces a mandatory wait of N seconds between schedule and execute.
- *
- * The four "modes" map onto delay pairs:
- *   none      → { governorDelay: 0, curatorDelay: 0 }
- *   governor  → { governorDelay: >0, curatorDelay: 0 }
- *   curator   → { governorDelay: 0, curatorDelay: >0 }
- *   both      → { governorDelay: >0, curatorDelay: >0 }
  *
  * This block is MANDATORY for every configured network entry — there is no implicit default.
  */
@@ -66,6 +63,7 @@ export const MAX_TIMELOCK_DELAY_SECONDS = 365 * 24 * 60 * 60 // 31_536_000
 export const TimelockConfigSchema = z.object({
   governorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
   curatorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+  treasuryDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
 })
 
 export type TimelockConfig = z.infer<typeof TimelockConfigSchema>
@@ -83,9 +81,9 @@ export const InstitutionNetworkSchema = z.object({
   guardian: z.array(AddressSchema).optional(),
   superKeeper: AddressSchema.optional(),
   whitelistManagers: z.array(AddressSchema).optional(),
-  // Per-network timelock delays. MANDATORY: both RwaTimelock instances are always deployed, so
-  // every configured network entry MUST declare its delays. Use { governorDelay: 0, curatorDelay: 0 }
-  // to EXPLICITLY opt out of any delay ("none" mode) — there is no silent default.
+  // Per-network timelock delays. MANDATORY: all three RwaTimelock instances are always deployed, so
+  // every configured network entry MUST declare its delays. Use { governorDelay: 0, curatorDelay: 0,
+  // treasuryDelay: 0 } to EXPLICITLY opt out of any delay ("none" mode) — there is no silent default.
   timelock: TimelockConfigSchema,
 })
 

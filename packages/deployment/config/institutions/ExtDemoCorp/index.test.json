@@ -39,7 +39,8 @@
     ],
     "timelock": {
       "governorDelay": 0,
-      "curatorDelay": 0
+      "curatorDelay": 0,
+      "treasuryDelay": 0
     }
   },
   "mainnet": {
@@ -91,7 +92,8 @@
     ],
     "timelock": {
       "governorDelay": 0,
-      "curatorDelay": 0
+      "curatorDelay": 0,
+      "treasuryDelay": 0
     }
   }
 }
