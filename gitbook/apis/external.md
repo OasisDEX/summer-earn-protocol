@@ -191,7 +191,7 @@ Finds DeFi positions that are eligible for migration to the Summer.fi Earn proto
 |---|---|---|---|
 | `address` | address | yes | Wallet to inspect for migratable positions |
 | `chainId` | number | no | If provided, `customRpcUrl` must also be provided |
-| `customRpcUrl` | URL | no | Custom RPC endpoint; must accompany `chainId` |
+| `customRpcUrl` | string | no | Custom RPC endpoint; must accompany `chainId` (both-or-neither) |
 
 ### Response `200`
 

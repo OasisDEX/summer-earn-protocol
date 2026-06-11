@@ -212,7 +212,7 @@ Computes the net APY for a position on a supported lending protocol. Rates are f
 | Parameter | Type | Description |
 |---|---|---|
 | `chainId` | number | Numeric chain ID |
-| `protocol` | string | Protocol identifier (`aave3`, `aave_v3`, `aave_v2`, `spark`, `morphoblue`, `ajna`) |
+| `protocol` | string | `ProtocolId` value: `aave-v3` (or alias `aave3`), `aave-v2`, `spark`, `morphoblue`, `ajna`, `maker` |
 
 ### Query parameters — Aave / Spark positions
 

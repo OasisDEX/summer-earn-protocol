@@ -77,59 +77,58 @@ Validates a trigger configuration, simulates the resulting position, and returns
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `chainId` | number | yes | Numeric chain ID |
-| `protocol` | string | yes | Protocol identifier (`aave3`, `aave_v3`, `spark`, `morphoblue`) |
-| `trigger` | string | yes | Trigger type (see supported combinations below) |
+| `protocol` | string | yes | Protocol identifier — `aave-v3` (or the legacy alias `aave3`), `spark`, `morphoblue` |
+| `trigger` | string | yes | Trigger type (see supported values below) |
 
-### Supported protocol / trigger combinations
+### Supported trigger values
+
+The `trigger` path segment is one of the `SupportedTriggers` values (hyphenated, lowercase):
 
 | Protocol | Supported triggers |
 |---|---|
-| `aave3` / `aave_v3` | `AutoBuy`, `AutoSell`, `DmaStopLoss`, `DmaTrailingStopLoss`, `DmaPartialTakeProfit` |
-| `spark` (mainnet only) | `AutoBuy`, `AutoSell`, `DmaStopLoss`, `DmaTrailingStopLoss`, `DmaPartialTakeProfit` |
-| `morphoblue` (mainnet only) | `AutoBuy`, `AutoSell`, `DmaStopLoss`, `DmaTrailingStopLoss`, `DmaPartialTakeProfit` |
+| `aave-v3` / `aave3` | `auto-buy`, `auto-sell`, `dma-stop-loss`, `dma-trailing-stop-loss`, `dma-partial-take-profit` |
+| `spark` (mainnet only) | `auto-buy`, `auto-sell`, `dma-stop-loss`, `dma-trailing-stop-loss`, `dma-partial-take-profit` |
+| `morphoblue` (mainnet only) | `auto-buy`, `auto-sell`, `dma-stop-loss`, `dma-trailing-stop-loss`, `dma-partial-take-profit` |
 
 ### Request body
 
-The body schema depends on the `{protocol}/{trigger}` combination. All schemas share common fields:
+The body is a **nested** object whose `triggerData` shape depends on the
+`{protocol}/{trigger}` combination. All combinations share the same envelope:
 
-**AutoBuy / AutoSell (Aave example)**
+| Field | Type | Description |
+|---|---|---|
+| `dpm` | address | The user's DPM (proxy / smart-account) address |
+| `triggerData` | object | Trigger-specific parameters (varies per trigger; see below) |
+| `position` | object | Position addresses `{ collateral, debt }` |
+| `rpc` | string (optional) | Optional custom RPC URL |
+| `action` | string | One of the `SupportedTriggers` values (e.g. `auto-buy`) |
 
-```json
-{
-  "executionLtv": 0.55,
-  "targetLtv": 0.60,
-  "maxBuyPrice": 3500.00,
-  "minSellPrice": 2500.00,
-  "account": "0x...",
-  "poolId": "...",
-  "debtAddress": "0x...",
-  "collateralAddress": "0x..."
-}
-```
-
-**Stop-loss / Trailing stop-loss**
+**Auto-buy (Aave) example** — `triggerData` for `auto-buy` uses LTVs scaled to
+basis points (`executionLTV`/`targetLTV`), not decimals:
 
 ```json
 {
-  "executionLtv": 0.75,
-  "account": "0x...",
-  "poolId": "..."
+  "dpm": "0x...",
+  "triggerData": {
+    "executionLTV": "5500",
+    "targetLTV": "6000",
+    "maxBuyPrice": "3500000000",
+    "useMaxBuyPrice": true,
+    "maxBaseFee": "300"
+  },
+  "position": {
+    "collateral": "0x...",
+    "debt": "0x..."
+  },
+  "rpc": "https://...",
+  "action": "auto-buy"
 }
 ```
 
-**Partial take-profit**
-
-```json
-{
-  "executionLtv": 0.50,
-  "targetLtv": 0.45,
-  "minProfitUsd": 500,
-  "account": "0x...",
-  "poolId": "..."
-}
-```
-
-> The exact Zod schemas live in `setup-trigger-function/src/types/validators/`. Refer to the source for the full field-level validation rules.
+> Other triggers (auto-sell, stop-loss, trailing stop-loss, partial take-profit)
+> keep the same envelope but a different `triggerData` shape. The authoritative
+> per-trigger Zod schemas live in `setup-trigger-function/src/types/validators/`
+> — refer to them for exact field-level rules.
 
 ### Request headers
 
@@ -162,7 +161,7 @@ The body schema depends on the `{protocol}/{trigger}` combination. All schemas s
 {
   "message": "Validation Errors",
   "errors": [
-    { "message": "...", "code": "too-low-ltv-to-setup-auto-buy", "path": ["executionLtv"] }
+    { "message": "...", "code": "too-low-ltv-to-setup-auto-buy", "path": ["triggerData", "executionLTV"] }
   ],
   "warnings": []
 }
