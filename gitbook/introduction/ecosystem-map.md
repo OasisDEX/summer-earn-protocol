@@ -46,7 +46,7 @@ flowchart TB
 - **Cross-chain** — the `chain-bridge` package moves assets and messages between chains. See [Cross-Chain](../cross-chain/overview.md).
 
 ### Off-chain
-- **SDK** (`@summer_fi/sdk-client`) — the supported way to read protocol state and build transactions. See [SDK](../sdk/overview.md).
+- **SDK** (`@summer_fi/sdk-client`) — the supported way to read protocol state and build transactions. Documented in the **SDK** section of this docs site.
 - **Keepers/bots** — trigger rebalances, harvests, and bridge execution.
 - **Subgraphs & HTTP APIs** — index protocol events and expose rates/portfolio/APY data.
 

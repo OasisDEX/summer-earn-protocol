@@ -30,30 +30,12 @@
 * [Vesting](governance/vesting.md)
 * [SIP Process](governance/sip-process.md)
 
-## SDK
-
-* [Overview & Installation](sdk/overview.md)
-* [Quickstart](sdk/quickstart.md)
-* [Guides](sdk/guides/vaults-and-rates.md)
-  * [Vaults & Rates](sdk/guides/vaults-and-rates.md)
-  * [Deposits](sdk/guides/deposits.md)
-  * [Cross-Chain Deposits](sdk/guides/cross-chain-deposits.md)
-  * [Withdrawals & Switching](sdk/guides/withdrawals.md)
-  * [Positions & History](sdk/guides/positions.md)
-  * [Rewards & Claims](sdk/guides/rewards.md)
-  * [Intent Swaps (CoW)](sdk/guides/intent-swaps.md)
-* [Changelog](sdk/changelog.md)
-
 ## Smart Contracts
 
 * [Architecture Overview](contracts/architecture.md)
 * [Ark Catalog](contracts/ark-catalog.md)
 
 <!-- @generated:contracts -->
-
-## SDK API Reference
-
-<!-- @generated:sdk-reference -->
 
 ## APIs & Data
 

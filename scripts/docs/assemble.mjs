@@ -88,36 +88,8 @@ function writeReferenceIndexes() {
   }
 }
 
-/** Scan the delivered TypeDoc markdown tree into SUMMARY entries. */
-function sdkEntries() {
-  const base = path.join(GITBOOK, CONFIG.sdkReferenceDir)
-  if (!fs.existsSync(base)) return ['<!-- SDK reference not delivered yet -->']
-  const lines = []
-  const relOf = (f) => path.relative(GITBOOK, f).split(path.sep).join('/')
-  // depth only deepens under an emitted parent page; dirs without README
-  // (e.g. the @summerfi/ scope dir, kind dirs) must not create indent jumps
-  // that would break GitBook's SUMMARY parser
-  const walk = (dir, depth) => {
-    const entries = fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
-    const readme = entries.find((e) => e.isFile() && e.name === 'README.md')
-    let childDepth = depth
-    if (readme && dir !== base) {
-      const f = path.join(dir, readme.name)
-      lines.push(`${'  '.repeat(depth)}* [${pageTitle(f)}](${relOf(f)})`)
-      childDepth = depth + 1
-    }
-    for (const e of entries) {
-      const full = path.join(dir, e.name)
-      if (e.isDirectory()) {
-        walk(full, childDepth)
-      } else if (e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md') {
-        lines.push(`${'  '.repeat(childDepth)}* [${pageTitle(full)}](${relOf(full)})`)
-      }
-    }
-  }
-  walk(base, 0)
-  return lines.length ? lines : ['<!-- SDK reference not delivered yet -->']
-}
+// The SDK reference is published from the summerfi-monorepo's own GitBook
+// space (Site-with-tabs model); it is no longer delivered into this repo.
 
 function main() {
   if (!summaryOnly) {
@@ -137,9 +109,7 @@ function main() {
   }
 
   const template = fs.readFileSync(path.join(HERE, 'summary.template.md'), 'utf8')
-  const summary = template
-    .replace('<!-- @generated:contracts -->', contractEntries().join('\n'))
-    .replace('<!-- @generated:sdk-reference -->', sdkEntries().join('\n'))
+  const summary = template.replace('<!-- @generated:contracts -->', contractEntries().join('\n'))
   fs.writeFileSync(path.join(GITBOOK, 'SUMMARY.md'), summary)
   console.log('SUMMARY.md rendered')
 }
