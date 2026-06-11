@@ -11,16 +11,6 @@
       "out": "governance/reference"
     },
     {
-      "package": "chain-bridge",
-      "section": "Chain Bridge",
-      "out": "cross-chain/reference"
-    },
-    {
-      "package": "intent-system",
-      "section": "Intent System",
-      "out": "contracts/intent-system/reference"
-    },
-    {
       "package": "dutch-auction",
       "section": "Dutch Auction",
       "out": "contracts/dutch-auction/reference"

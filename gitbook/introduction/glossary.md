@@ -46,9 +46,6 @@ A registry/coordination contract that tracks FleetCommanders.
 ### DCA (Dollar-Cost Averaging)
 A stateless strategy system (`DCAStrategyManager`) that periodically moves value between two Fleets on a schedule. Strategies are authorized by the hash of their configuration.
 
-### Intent / Solver Bond
-An intent expresses a desired yield outcome; bonded solvers compete to fulfill it. Solver bonds (deployed by keepers) are slashable collateral backing solver commitments.
-
 ### SUMR
 The protocol governance token: an ERC-20 with on-chain voting power (with decay) and LayerZero OFT cross-chain transfer support.
 
@@ -58,10 +55,5 @@ SUMR voting power decays over time toward zero after a decay-free window unless 
 ### SIP (Summer Improvement Proposal)
 The governance proposal process by which SUMR holders change protocol parameters and contracts.
 
-### BridgeRouter
-The live cross-chain entry point in the `chain-bridge` package: it coordinates inbound/outbound transfers and messages through registered bridge adapters (LayerZero, Stargate), validated by the CrossChainRegistry.
-
-### CrossChainRegistry
-The contract that records trusted cross-chain endpoints/executors and validates cross-chain operations.
-
-> **Deprecated:** `CrossChainArk` and `FleetProxy` were earlier cross-chain components and are no longer part of the live system (retained only as `legacy/*.sol.old`). The current cross-chain path is the `chain-bridge` package.
+### Hub chain
+The chain (Ethereum mainnet) where SUMR delegation and governance voting resolve; the SUMR token moves to other chains as a LayerZero OFT.

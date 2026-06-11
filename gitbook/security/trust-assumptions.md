@@ -1,31 +1,24 @@
 ---
-description: External dependencies of the Summer.fi Earn Protocol and the trust and failure assumptions each one imposes — bridging, messaging, intent swaps, rewards, oracles, and the underlying Ark venues.
+description: External dependencies of the Summer.fi Earn Protocol and the trust and failure assumptions each one imposes — messaging, rewards, oracles, and the underlying Ark venues.
 ---
 
 # Trust Assumptions
 
 The protocol composes with several external systems. Each adds capability and a corresponding trust assumption and failure mode. The integrations below are confirmed by source references under `packages/*/src`; the operational risk characterisation of each third party is the reviewer's to weigh.
 
-## LayerZero (cross-chain messaging and governance)
+## LayerZero (cross-chain governance messaging)
 
-Used by `LayerZeroAdapter` (`packages/chain-bridge/src/adapters/`) as the messaging transport behind `BridgeRouter`, and by the cross-chain governance path (`SummerGovernorV2`, `ISummerGovernorV2`, `ISummerToken`) for relaying finalized proposals from the hub chain to satellite chains.
+Used by the cross-chain governance path (`SummerGovernorV2`, `ISummerGovernorV2`, `ISummerToken`) for relaying finalized proposals from the hub chain to satellite chains, and as the OFT transport for the SUMR token.
 
-- **Trust assumption.** LayerZero's endpoints, configured DVNs/libraries and executors deliver messages faithfully and exactly once. The protocol controls which remote contracts are trusted via `CrossChainRegistry` (adapter peers, relationships, executors) and the adapter's read DVN/library configuration — all governor-gated.
-- **Failure mode.** A compromised or buggy DVN/executor set could deliver forged or replayed messages, or censor delivery. Censorship of governance relays would stall satellite-chain execution but not corrupt hub-chain voting. The registry is the mitigation: only registered peers/executors are honoured.
+- **Trust assumption.** LayerZero's endpoints, configured DVNs/libraries and executors deliver messages faithfully and exactly once.
+- **Failure mode.** A compromised or buggy DVN/executor set could deliver forged or replayed messages, or censor delivery. Censorship of governance relays would stall satellite-chain execution but not corrupt hub-chain voting; only configured peers are honoured.
 
-## Stargate (asset bridging)
+## Stargate (StargateV2PoolArk)
 
-Used by `StargateAdapter` (`packages/chain-bridge/src/adapters/`) and by `StargateV2PoolArk` plus the Stargate interfaces under `core-contracts/src/interfaces/stargate/` for moving the underlying asset across chains.
+Used by `StargateV2PoolArk` plus the Stargate interfaces under `core-contracts/src/interfaces/stargate/`, which deposits the underlying asset into a Stargate V2 pool as a yield venue.
 
-- **Trust assumption.** Stargate pools/routers hold and release bridged assets correctly and remain solvent.
-- **Failure mode.** A Stargate pool exploit, depeg, or liquidity shortfall could strand or lose in-flight bridged assets. The bridge supports manual recovery (`StargateAdapter.manualRecovery`, `BridgeRouter.recoverAssets`) but these are governor-gated and do not protect against loss at the bridge itself.
-
-## CoW Protocol / intent swaps
-
-The intent system (`packages/intent-system/src/contracts/IntentHandler.sol`, with `Escrow`, `SolverBond`, `IntentBondFactory`) executes swaps via off-chain solvers that settle intents. Solvers post bonds and are gated by keeper-controlled escrow management.
-
-- **Trust assumption.** Solvers settle intents at or better than the constraints encoded in the intent; bonding and solver-escrow management disincentivise misbehaviour.
-- **Failure mode.** A misbehaving solver could settle at unfavourable prices within the allowed bounds, or fail to settle (denial of service). Slippage bounds and solver bonds are the in-protocol mitigations.
+- **Trust assumption.** Stargate pools/routers hold and release assets correctly and remain solvent.
+- **Failure mode.** A Stargate pool exploit, depeg, or liquidity shortfall could strand or lose the Ark's deposited assets, like any other Ark venue dependency.
 
 ## Merkl and other reward distributors
 

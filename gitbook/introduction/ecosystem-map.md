@@ -24,7 +24,6 @@ flowchart TB
     tip[Tipper / TipJar]
     raft[Raft -> BuyAndBurn]
     gov[SummerGovernor + SUMR]
-    bridge[chain-bridge<br/>BridgeRouter + adapters]
   end
 
   user --> sdk --> aq --> fc
@@ -34,7 +33,6 @@ flowchart TB
   arks --> raft
   fc --> tip --> raft
   gov -. parameters / caps .-> fc
-  bridge <-. cross-chain transfers .-> fc
   subgraphs -. index events .- fc
   sdk --> apis
 ```
@@ -43,11 +41,10 @@ flowchart TB
 - **Fleets & Arks** — `FleetCommander` vaults allocate deposits across `Ark` adapters; `BufferArk` holds instant liquidity. See [Protocol Concepts](../concepts/fleets-and-arks.md).
 - **Fees & buy-and-burn** — `Tipper`/`TipJar` accrue protocol tips; `Raft` collects Ark rewards; `BuyAndBurn` converts and burns SUMR.
 - **Governance** — `SummerGovernor` + the `SUMR` token govern the protocol cross-chain. See [Governance](../governance/overview.md).
-- **Cross-chain** — the `chain-bridge` package moves assets and messages between chains. See [Cross-Chain](../cross-chain/overview.md).
 
 ### Off-chain
 - **SDK** (`@summer_fi/sdk-client`) — the supported way to read protocol state and build transactions. Documented in the **SDK** section of this docs site.
-- **Keepers/bots** — trigger rebalances, harvests, and bridge execution.
+- **Keepers/bots** — trigger rebalances and harvests.
 - **Subgraphs & HTTP APIs** — index protocol events and expose rates/portfolio/APY data.
 
 ### Two repositories

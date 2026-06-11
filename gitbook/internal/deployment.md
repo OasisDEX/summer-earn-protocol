@@ -167,27 +167,7 @@ Files with a `.bummer.json` suffix are staging/test variants used internally.
 
 The `ArkType` enum currently has **36 members**. The following are a representative selection — see `packages/deployment/types/config-types.ts` for the complete list:
 
-`AaveV3Ark`, `CompoundV3Ark`, `ERC4626Ark`, `MorphoVaultArk`, `SkyUsdsPsm3Ark`, `SparkArk`, `CrossChainArk`, `MorphoArk`, `PendleLPArk`, `PendlePTArk`, `SkyUsdsArk`, `MoonwellArk`, `SyrupArk`, `SkyRewardsArk`, `SiloArk`, `SiloArkV2`, `OriginETHArk`, `ArmArk`, `FluidLiteArk`, `AeraArk`, `StargateV2PoolArk`, `SiUSDArk`, `FluidFTokenArk`, `PsmLiteERC4626Ark`, `Psm3ERC4626Ark`, `HyperlendArk`, `HypurrArk`, `WisdomTreeArk`, `MorphoV2VaultArk`, `MapleInstitutionalArk`, `UpshiftArk`, `OriginUSDArk`, `SuperstateArk`, …
-
-## Cross-chain deployment
-
-Cross-chain fleet deployments involve deploying a `FleetProxy` on the destination chain and a `CrossChainArk` on the source chain. Coordination state is tracked in `config/cross-chain/<fleetName>.json` (created at deploy time by the scripts — these files are not committed to the repo).
-
-```typescript
-// Save after deploying FleetProxy on destination
-saveCrossChainConfig('MyFleet', {
-  chainId: 42161,
-  protocol: 'summerfi',
-  fleetProxyAddress: '0x…',
-  sourceChainId: 1,
-})
-
-// Load for subsequent script runs
-const config = loadCrossChainConfig('MyFleet')
-const proto = findProtocolConfig(config, 42161, 'summerfi')
-```
-
-The on-chain `CrossChainRegistry` contract (in `packages/chain-bridge`) stores the runtime relationship separately from these deployment coordination files.
+`AaveV3Ark`, `CompoundV3Ark`, `ERC4626Ark`, `MorphoVaultArk`, `SkyUsdsPsm3Ark`, `SparkArk`, `MorphoArk`, `PendleLPArk`, `PendlePTArk`, `SkyUsdsArk`, `MoonwellArk`, `SyrupArk`, `SkyRewardsArk`, `SiloArk`, `SiloArkV2`, `OriginETHArk`, `ArmArk`, `FluidLiteArk`, `AeraArk`, `StargateV2PoolArk`, `SiUSDArk`, `FluidFTokenArk`, `PsmLiteERC4626Ark`, `Psm3ERC4626Ark`, `HyperlendArk`, `HypurrArk`, `WisdomTreeArk`, `MorphoV2VaultArk`, `MapleInstitutionalArk`, `UpshiftArk`, `OriginUSDArk`, `SuperstateArk`, …
 
 ## Governance proposals
 

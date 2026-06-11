@@ -47,7 +47,6 @@ The governor is the broadest authority. Beyond granting/revoking every role (see
 
 - **Fleet lifecycle**: add Arks, set fleet token transferability, force-rebalance, set tip rate, set minimum pause time (`FleetCommander`, `FleetCommanderConfigProvider*`); enlist/decommission Fleets (`HarborCommand`).
 - **Protocol wiring**: set treasury, tipjar, raft, rewards-manager factory (`ConfigurationManager*`).
-- **Cross-chain**: register/remove bridge adapters, recover router assets, unpause the router (`BridgeRouter`); register relationships/executors/peers, set router and default gas limits (`CrossChainRegistry`); endpoint mapping, read DVN/library configuration, supported assets, manual recovery (`LayerZeroAdapter`, `StargateAdapter`).
 - **Tokenomics**: decay rate, decay-free window, decay factor (`SummerToken`); staking/vesting administration and rescues (`StakedSummerToken`, `SummerStaking`, `SummerVestingWalletsEscrow`); rewards duration / reward-token management / redeemer roots (`StakingRewardsManagerBase`, `SummerRewardsRedeemer`).
 - **Ark emergency/config**: emergency sweeps, oracle/slippage configuration, emergency-clear of pending deposits (`BaseSuperstateArk`, `BasePendleArk`, `WisdomTreeArk`, and others).
 
@@ -59,9 +58,12 @@ Keepers (or super-keepers) perform routine maintenance, none of which can move u
 - **Async/custodial Ark lifecycle**: request and claim withdrawals, swap-withdraw, sweep across the async Arks (Origin, Maple, Syrup, Aera, Arm, WisdomTree, Superstate, Fluid, Upshift, …).
 - **Rounds vault**: advance, retry and settle rounds (`RoundsVaultBase`).
 - **TipJar**: shake / shake-multiple tip streams; `shakeAll` is guardian-gated.
-- **Intents**: create/settle intents and manage solver escrows (`IntentHandler`).
 
 The super-keeper additionally has the privileged Raft harvest path (`Raft._harvest`, `onlySuperKeeper`).
+
+> **Scope note.** The repository also contains systems that are not yet live
+> (`chain-bridge`, `intent-system`); their privileged surfaces are excluded
+> from these docs until launch.
 
 ## Curator operations
 
@@ -85,7 +87,6 @@ The expiry mechanism is deliberate: `setGuardianExpiration` (governor-only) requ
 | --- | --- | --- | --- |
 | `FleetCommander` / `FleetCommanderDao` | `onlyGuardianOrGovernor` | `onlyGuardianOrGovernor` | Unpause blocked until `pauseStartTime + minimumPauseTime`; `minimumPauseTime >= MINIMUM_PAUSE_TIME_SECONDS` (2 days) |
 | `FleetCommanderWhitelist` | `onlyGovernor` (`pause`) | `onlyGovernor` (`unpause`) | Same minimum-pause-time floor via `FleetCommanderPausable` |
-| `BridgeRouter` | `onlyGuardianOrGovernor` | `onlyGovernor` | Unpause is governor-only |
 | `TipJar` | `onlyGovernor` (`pause`); `onlyGuardian` (`shakeAll` emergency) | — | — |
 | `StakedSummerToken` | `onlyGuardian` (`pause`) | — | — |
 

@@ -79,7 +79,7 @@ Fee accrual is built into the vault via `Tipper` and its [`FlexibleTipper`](core
 
 ## Dependencies on sibling packages
 
-Core contracts do not implement their own auth or wiring. **access-contracts** supplies `ProtocolAccessManager` and the `ProtocolAccessManaged` mixin, defining the role set (`GOVERNOR_ROLE`, `SUPER_KEEPER_ROLE`, `GUARDIAN_ROLE`, `ADMIRALS_QUARTERS_ROLE`, plus per-contract `CURATOR_ROLE` / `KEEPER_ROLE` / `COMMANDER_ROLE`) that every gated function checks. **config-contracts** supplies `ConfigurationManager` (and the `ConfigurationManaged` mixin), the single registry holding the canonical `raft`, `tipJar`, `treasury`, `harborCommand`, and `fleetCommanderRewardsManagerFactory` addresses that fleets and Arks read. **chain-bridge** (`CrossChainRegistry`, `CrossChainConfigManaged`) tracks cross-chain relationships, and **gov-contracts** holds the `SUMR` token, staking, and governance that ultimately controls those roles.
+Core contracts do not implement their own auth or wiring. **access-contracts** supplies `ProtocolAccessManager` and the `ProtocolAccessManaged` mixin, defining the role set (`GOVERNOR_ROLE`, `SUPER_KEEPER_ROLE`, `GUARDIAN_ROLE`, `ADMIRALS_QUARTERS_ROLE`, plus per-contract `CURATOR_ROLE` / `KEEPER_ROLE` / `COMMANDER_ROLE`) that every gated function checks. **config-contracts** supplies `ConfigurationManager` (and the `ConfigurationManaged` mixin), the single registry holding the canonical `raft`, `tipJar`, `treasury`, `harborCommand`, and `fleetCommanderRewardsManagerFactory` addresses that fleets and Arks read. **gov-contracts** holds the `SUMR` token, staking, and governance that ultimately controls those roles.
 
 ## Trust and permission boundaries
 

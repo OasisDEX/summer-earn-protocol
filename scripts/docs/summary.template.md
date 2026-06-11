@@ -14,13 +14,6 @@
 * [Rebalancing & Keepers](concepts/rebalancing.md)
 * [Fees, Tips & Buy-and-Burn](concepts/fees-and-tips.md)
 * [DCA Strategies](concepts/dca.md)
-* [Intents & Solver Bonds](concepts/intents.md)
-
-## Cross-Chain
-
-* [Overview](cross-chain/overview.md)
-* [Bridge Router & Adapters](cross-chain/bridge-router-and-adapters.md)
-* [Registry & Security](cross-chain/registry-and-security.md)
 
 ## Governance & Tokenomics
 

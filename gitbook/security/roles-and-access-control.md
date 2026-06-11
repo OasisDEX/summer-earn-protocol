@@ -52,9 +52,6 @@ The highest-privilege role. Checked by `_revertIfNotGovernor` against the global
 | Add/remove Arks, set fleet token transferability, force-rebalance, set tip rate, set minimum pause time | `FleetCommander`, `FleetCommanderConfigProvider(Dao/Whitelist)` |
 | Enlist/decommission Fleets | `HarborCommand` |
 | Configure protocol singletons (treasury, tipjar, raft, rewards-manager factory) | `ConfigurationManager`(`Whitelist`) |
-| Register/remove bridge adapters, unpause and recover assets on the router | `BridgeRouter` |
-| Register relationships/executors/peers, set router & gas limits | `CrossChainRegistry` |
-| Configure adapters (endpoint mapping, read DVNs/libraries, supported assets, manual recovery) | `LayerZeroAdapter`, `StargateAdapter` |
 | Decay/tokenomics parameters (decay rate, decay-free window, decay factor) | `SummerToken` |
 | Staking & vesting admin (staking modules, lockup caps, penalty toggle, rescue, vesting factory management) | `StakedSummerToken`, `SummerStaking`, `SummerVestingWalletsEscrow` |
 | Rewards admin (reward duration, remove reward token, rescue, redeemer roots / emergency withdraw) | `StakingRewardsManagerBase`, `SummerRewardsRedeemer` |
@@ -79,7 +76,6 @@ Contract-scoped routine maintenance. Checked by `_revertIfNotKeeper`, which pass
 | Advance rounds, retry/settle rounds | `RoundsVaultBase` |
 | Shake / shake-multiple tip streams | `TipJar` |
 | Whitelist the Merkl operator on an Ark | `Ark` |
-| Intent operations (create/settle intents, manage solver escrows, withdraw) | `IntentHandler`, `IntentBondFactory` |
 
 ### Curator — `onlyCurator(fleetAddress)`
 
@@ -113,9 +109,8 @@ Shared pause authority. Checked by `_revertIfNotGuardianOrGovernor` (passes for 
 | --- | --- |
 | Pause a Fleet | `FleetCommander`(`Dao`/`Whitelist`).`pause` |
 | Unpause a Fleet (subject to minimum-pause-time) | `FleetCommander`(`Dao`).`unpause` |
-| Pause the bridge router | `BridgeRouter.pause` |
 
-> Note the asymmetry on the bridge: `BridgeRouter.pause` is guardian-or-governor, but `BridgeRouter.unpause` is **governor-only** (`onlyGovernor`). On the Fleet, both pause and unpause are guardian-or-governor, but unpause additionally enforces the 2-day minimum pause time. See [Privileged Operations](privileged-operations.md#pause-surfaces).
+> On the Fleet, both pause and unpause are guardian-or-governor, but unpause additionally enforces the 2-day minimum pause time. See [Privileged Operations](privileged-operations.md#pause-surfaces).
 
 ### Decay Controller — `onlyDecayController`
 

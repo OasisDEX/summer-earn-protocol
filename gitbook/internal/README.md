@@ -25,7 +25,7 @@ This is the primary protocol repository. It contains all Solidity contracts, the
 | `config-contracts` | ConfigurationManager for on-chain parameter storage |
 | `rewards-contracts` | RewardsManager and RewardsRedeemer contracts |
 | `dutch-auction` | DutchAuction library and AuctionManagerBase |
-| `chain-bridge` | CrossChainRegistry and LayerZero bridge adapters |
+| `chain-bridge` | Cross-chain bridge system (not yet live; excluded from public docs) |
 | `deployment` | Hardhat Ignition modules + interactive deploy scripts + fleet config JSONs |
 | `ark-rebalancer` | Python keeper: polls Ark rates and calls `FleetCommander.rebalance` |
 | `oracle-cli` | TypeScript CLI for deploying and operating RWA oracles (WisdomTree) |
