@@ -10,6 +10,9 @@
         },
         "curatorTimelock": {
           "address": "0xd690821D4f3972b656B8eB91e1364d475D996633"
+        },
+        "treasuryTimelock": {
+          "address": "0xCeb7F01D731c95012f43f35E4b891cf403a2aeEb"
         }
       },
       "core": {
@@ -65,7 +68,8 @@
     ],
     "timelock": {
       "governorDelay": 0,
-      "curatorDelay": 0
+      "curatorDelay": 0,
+      "treasuryDelay": 0
     }
   }
 }

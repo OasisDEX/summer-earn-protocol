@@ -8,13 +8,15 @@ const dedupeAddresses = (addrs: string[]): ViemAddress[] =>
   Array.from(new Set(addrs.map((a) => a.toLowerCase()))).map((a) => getAddress(a))
 
 /**
- * Proposer sets for the two institution timelocks, derived from governance. The curator set falls
- * back to the governor set when no curators are configured (mirrors the deploy script). These are
- * the accounts that MUST be able to schedule operations once the deployer has renounced.
+ * Proposer sets for the three institution timelocks, derived from governance. The curator set falls
+ * back to the governor set when no curators are configured (mirrors the deploy script). The treasury
+ * set defaults to the governor set. These are the accounts that MUST be able to schedule operations
+ * once the deployer has renounced.
  */
 export function computeTimelockProposers(governance: InstitutionGovernance): {
   governorProposers: ViemAddress[]
   curatorProposers: ViemAddress[]
+  treasuryProposers: ViemAddress[]
 } {
   const governorProposers = dedupeAddresses(governance.governor as string[])
   const curatorProposers = dedupeAddresses(
@@ -22,7 +24,9 @@ export function computeTimelockProposers(governance: InstitutionGovernance): {
       ? (governance.curators as string[])
       : (governance.governor as string[]),
   )
-  return { governorProposers, curatorProposers }
+  // Treasury timelock proposers default to the governor set
+  const treasuryProposers = dedupeAddresses(governance.governor as string[])
+  return { governorProposers, curatorProposers, treasuryProposers }
 }
 
 /**
