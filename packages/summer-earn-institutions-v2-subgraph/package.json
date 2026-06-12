@@ -29,7 +29,7 @@
     "deploy:hyperliquid": "bash -c 'source ../../.env && pnpm build:hyperliquid && goldsky subgraph deploy summer-institutions-v2-hyperliquid/$npm_package_version --path .'",
     "deploy:all": "pnpm run deploy:base && pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:sonic && pnpm run deploy:hyperliquid",
     "deploy:base-staging": "bash -c 'source ../../.env && pnpm build:base-staging && goldsky subgraph deploy summer-institutions-v2-base-staging/$npm_package_version --path .'",
-    "deploy:mainnet-staging": "bash -c 'source ../../.env && pnpm build:mainnet-staging && goldsky subgraph deploy summer-institutions-v2-mainnet-staging/$npm_package_version --path .'",
+    "deploy:mainnet-staging": "bash -c 'source ../../.env && pnpm build:mainnet-staging && goldsky subgraph deploy summer-institutions-v2-staging/$npm_package_version --path .'",
     "deploy:arbitrum-staging": "bash -c 'source ../../.env && pnpm build:arbitrum-staging && goldsky subgraph deploy summer-institutions-v2-arbitrum-staging/$npm_package_version --path .'",
     "deploy:sonic-staging": "bash -c 'source ../../.env && pnpm build:sonic-staging && goldsky subgraph deploy summer-institutions-v2-sonic-staging/$npm_package_version --path .'",
     "deploy:hyperliquid-staging": "bash -c 'source ../../.env && pnpm build:hyperliquid-staging && goldsky subgraph deploy summer-institutions-v2-hyperliquid-staging/$npm_package_version --path .'",
