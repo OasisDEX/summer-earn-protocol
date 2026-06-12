@@ -16,13 +16,16 @@ RwaTimelock
 
 Thin, behaviour-preserving wrapper over OpenZeppelin's battle-tested
 {TimelockController}, used to gate governance of the institutional RWA stack.
-Two instances are deployed per institution (same code, different config):
+Three instances are deployed per institution (same code, different config):
 - the "Governor timelock": granted `GOVERNOR_ROLE` on the institution's
 `ProtocolAccessManager` and made its *sole* governor. Every governor-gated action
 (HarborCommand enlist/decommission, RoundsVault emergency controls, role grants, ...)
 flows through it.
 - the "Curator timelock": granted the per-fleet `CURATOR_ROLE` on each FleetCommander.
 Curation actions flow through it.
+- the "Treasury timelock": registered as the institution's `treasury` in its
+`ConfigurationManager`, so protocol fees accrue to it and fund management is
+time-gated by its own proposer set.
 
 Delay semantics — the timelock is ALWAYS present; its `minDelay` decides the cadence:
 - `minDelay == 0`: an operation can be scheduled and executed in the same block, i.e. it
@@ -31,12 +34,13 @@ whether or not a real delay is enforced — callers never need a separate "no ti
 code path.
 - `minDelay > 0`: the operation can only be executed once `minDelay` seconds have elapsed
 since it was scheduled, enforcing a mandatory review window for that role's actions.
-Per institution the two instances are configured independently: e.g. a non-zero governor
+Per institution the instances are configured independently: e.g. a non-zero governor
 delay with a zero curator delay enforces a waiting period on governance but lets curation
 execute immediately, and vice-versa.
 
 Executors are expected to be set to the zero address (open execution) so that, once an
-operation is ready, anyone may execute it; proposers are the institution's governor set.
+operation is ready, anyone may execute it; each instance has its own proposer set so
+governor, curator and treasury authority can be segregated.
 No logic is overridden here — the named wrapper exists for deployment / subgraph clarity
 and as a future extension point.
 

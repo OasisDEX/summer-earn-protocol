@@ -34,12 +34,13 @@ Cancellation rules enforced by the overridden `cancel(bytes32 id)`:
 
 ### RwaTimelock
 
-`RwaTimelock` is a behaviour-preserving wrapper over `TimelockController` (no logic overridden) used for the institutional RWA stack. Per its NatSpec, two instances are deployed per institution from the same code:
+`RwaTimelock` is a behaviour-preserving wrapper over `TimelockController` (no logic overridden) used for the institutional RWA stack. Three instances are deployed per institution from the same code:
 
 - A **governor timelock** granted `GOVERNOR_ROLE` and made the institution's sole governor; every governor-gated action (HarborCommand enlist/decommission, RoundsVault emergency controls, role grants) flows through it.
 - A **curator timelock** granted the per-fleet `CURATOR_ROLE` on each FleetCommander.
+- A **treasury timelock** registered as the institution's `treasury` in its `ConfigurationManager`, so protocol fees accrue to it and fund management is time-gated.
 
-Delay semantics: the timelock is always present. With `minDelay == 0` an operation can be scheduled and executed in the same block (immediate execution); with `minDelay > 0` a mandatory review window applies. The two instances are configured independently per institution. Executors are expected to be `address(0)` (open execution — anyone may execute a ready operation); proposers are the institution's governor set. Setting `admin = address(0)` yields a fully self-administered timelock (recommended) so role changes must themselves go through the timelock.
+Delay semantics: the timelock is always present. With `minDelay == 0` an operation can be scheduled and executed in the same block (immediate execution); with `minDelay > 0` a mandatory review window applies. The instances are configured independently per institution. Executors are expected to be `address(0)` (open execution — anyone may execute a ready operation); each instance has its own proposer set, segregating governor, curator and treasury authority (the curator and treasury sets default to the governor set when not configured separately). Setting `admin = address(0)` yields a fully self-administered timelock (recommended) so role changes must themselves go through the timelock.
 
 ## Governor operations
 
