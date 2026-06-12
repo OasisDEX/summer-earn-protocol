@@ -4,6 +4,8 @@ export const AddressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/)
 
 const AddressObj = z.object({ address: AddressSchema })
 
+// Strict: an unknown key here would otherwise be silently stripped on the next index write —
+// i.e. a recorded deployment address could vanish. New contracts MUST be added to this schema.
 export const InstitutionNetworkDeployedContractsSchema = z
   .object({
     gov: z
@@ -17,6 +19,7 @@ export const InstitutionNetworkDeployedContractsSchema = z
         treasuryTimelock: AddressObj.optional(),
       })
       .partial()
+      .strict()
       .optional(),
     core: z
       .object({
@@ -28,17 +31,21 @@ export const InstitutionNetworkDeployedContractsSchema = z
         raft: AddressObj.optional(),
       })
       .partial()
+      .strict()
       .optional(),
   })
   .partial()
+  .strict()
 
-export const InstitutionFleetEntrySchema = z.object({
-  fleetCommander: AddressSchema,
-  bufferArk: AddressSchema,
-  arks: z.array(AddressSchema),
-  roundsVaultInput: AddressSchema.optional(),
-  roundsVaultOutput: AddressSchema.optional(),
-})
+export const InstitutionFleetEntrySchema = z
+  .object({
+    fleetCommander: AddressSchema,
+    bufferArk: AddressSchema,
+    arks: z.array(AddressSchema),
+    roundsVaultInput: AddressSchema.optional(),
+    roundsVaultOutput: AddressSchema.optional(),
+  })
+  .strict()
 
 /**
  * Per-institution timelock configuration.
@@ -60,36 +67,45 @@ export const InstitutionFleetEntrySchema = z.object({
 // longer than any realistic governance review window while still rejecting absurd values.
 export const MAX_TIMELOCK_DELAY_SECONDS = 365 * 24 * 60 * 60 // 31_536_000
 
-export const TimelockConfigSchema = z.object({
-  governorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
-  curatorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
-  treasuryDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
-})
+export const TimelockConfigSchema = z
+  .object({
+    governorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+    curatorDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+    treasuryDelay: z.number().int().nonnegative().max(MAX_TIMELOCK_DELAY_SECONDS),
+  })
+  .strict()
 
 export type TimelockConfig = z.infer<typeof TimelockConfigSchema>
 
-export const InstitutionNetworkSchema = z.object({
-  deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
-  fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
-  // Per-network governance fields
-  treasury: AddressSchema.optional(),
-  governor: z.array(AddressSchema).optional(),
-  // Proposers of the curator timelock — the institution's curators. Kept separate from
-  // `governor` so the two roles can be segregated (different signer sets). When omitted, the
-  // curator timelock falls back to the governor set.
-  curators: z.array(AddressSchema).optional(),
-  guardian: z.array(AddressSchema).optional(),
-  superKeeper: AddressSchema.optional(),
-  whitelistManagers: z.array(AddressSchema).optional(),
-  // Per-network timelock delays. MANDATORY: all three RwaTimelock instances are always deployed, so
-  // every configured network entry MUST declare its delays. Use { governorDelay: 0, curatorDelay: 0,
-  // treasuryDelay: 0 } to EXPLICITLY opt out of any delay ("none" mode) — there is no silent default.
-  timelock: TimelockConfigSchema,
-})
+// Strict (rejects unknown keys): every write re-parses through this schema, so a non-strict
+// object would silently strip unrecognized fields from the file instead of failing loudly.
+export const InstitutionNetworkSchema = z
+  .object({
+    deployedContracts: InstitutionNetworkDeployedContractsSchema.optional(),
+    fleets: z.record(z.string(), InstitutionFleetEntrySchema).optional(),
+    // Per-network governance fields. NOTE: there is intentionally no `treasury` field — the
+    // institution treasury is ALWAYS the deployed TreasuryTimelock (wired into ConfigurationManager
+    // at deploy time), never a configured address.
+    governor: z.array(AddressSchema).optional(),
+    // Proposers of the curator timelock — the institution's curators. Kept separate from
+    // `governor` so the two roles can be segregated (different signer sets). When omitted, the
+    // curator timelock falls back to the governor set.
+    curators: z.array(AddressSchema).optional(),
+    guardian: z.array(AddressSchema).optional(),
+    superKeeper: AddressSchema.optional(),
+    whitelistManagers: z.array(AddressSchema).optional(),
+    // Per-network timelock delays. MANDATORY: all three RwaTimelock instances are always deployed, so
+    // every configured network entry MUST declare its delays. Use { governorDelay: 0, curatorDelay: 0,
+    // treasuryDelay: 0 } to EXPLICITLY opt out of any delay ("none" mode) — there is no silent default.
+    timelock: TimelockConfigSchema,
+  })
+  .strict()
 
-// Governance fields structure (used for validating per-network governance)
+// Governance fields structure (used for validating per-network governance). The institution
+// treasury is not configurable: ConfigurationManager.treasury is set to the TreasuryTimelock
+// deployed alongside the institution (see ignition/modules/institution-whitelist.ts), so no
+// `treasury` field exists here.
 export const InstitutionGovernanceSchema = z.object({
-  treasury: AddressSchema,
   governor: z.array(AddressSchema),
   // Optional curator proposer set; defaults to empty (callers fall back to `governor`). Optional
   // so existing institution configs that predate this field still validate.

@@ -37,7 +37,6 @@
         ]
       }
     },
-    "treasury": "0x0f0fA89471259433b6955827226f19999D93c568",
     "governor": [
       "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
       "0x0f0fA89471259433b6955827226f19999D93c568"
@@ -103,7 +102,6 @@
         "roundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67"
       }
     },
-    "treasury": "0x0f0fA89471259433b6955827226f19999D93c568",
     "governor": [
       "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
       "0x0f0fA89471259433b6955827226f19999D93c568"
