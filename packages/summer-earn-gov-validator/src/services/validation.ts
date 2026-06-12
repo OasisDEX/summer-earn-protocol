@@ -3,6 +3,7 @@ import { decodeFunctionData, formatUnits, Hex, keccak256, toFunctionSelector } f
 import { COMBINED_ABI } from '../config/abis/combined'
 import deployedArbitrum from '../config/deployed/arbitrum.json'
 import deployedBase from '../config/deployed/base.json'
+import deployedHyperliquid from '../config/deployed/hyperliquid.json'
 import deployedMainnet from '../config/deployed/mainnet.json'
 import deployedSonic from '../config/deployed/sonic.json'
 import config from '../config/index.json'
@@ -12,6 +13,7 @@ export enum SupportedNetworks {
   BASE = 'base',
   ARBITRUM = 'arbitrum',
   SONIC = 'sonic',
+  HYPERLIQUID = 'hyperliquid',
 }
 
 // Define the dstEidToChainIdMap manually since we can't import it
@@ -20,10 +22,11 @@ const dstEidToChainIdMap: Record<string, string> = {
   '30110': SupportedNetworks.ARBITRUM, // Arbitrum
   '30184': SupportedNetworks.BASE, // Base
   '30332': SupportedNetworks.SONIC, // Sonic
+  '30367': SupportedNetworks.HYPERLIQUID, // HyperLiquid
 }
 
 // Define DstId type
-type DstId = '30101' | '30110' | '30184' | '30332'
+type DstId = '30101' | '30110' | '30184' | '30332' | '30367'
 
 // Role constants
 export const PROPOSER_ROLE = keccak256(new TextEncoder().encode('PROPOSER_ROLE'))
@@ -91,6 +94,7 @@ const deployedAddressesByNetwork: Record<SupportedNetworks, Record<string, strin
   [SupportedNetworks.BASE]: deployedBase,
   [SupportedNetworks.ARBITRUM]: deployedArbitrum,
   [SupportedNetworks.SONIC]: deployedSonic,
+  [SupportedNetworks.HYPERLIQUID]: deployedHyperliquid,
 }
 
 interface ValidationResult {
