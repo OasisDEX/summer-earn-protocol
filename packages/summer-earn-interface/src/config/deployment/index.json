@@ -643,6 +643,12 @@
         },
         "daoTipJar": {
           "address": "0xEb24bE9427F8Bccd1E995608e7f30cCa99B6a121"
+        },
+        "institutionalVaultRegistryV2": {
+          "address": "0xb2f4Ce82e974Ad9A6391B4eB3D1266054a0aD9a4"
+        },
+        "roundsVaultRegistry": {
+          "address": "0x4F9990717bCB34BbE1efE7D609A9463dB052E014"
         }
       }
     },

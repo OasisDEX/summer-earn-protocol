@@ -254,5 +254,21 @@
   "staging_Orthodox_FleetWhitelist_Orthodox_Summerfi_Strategic_Allocation#FleetCommanderWhitelist": "0x35aE5392cc355686606658d18dff9b9109390E13",
   "staging_Orthodox_RoundsVaultInput_Orthodox_Summerfi_Strategic_Allocation#RoundsVaultInput": "0x50D9275348C4C5BB2Bf928473118A63ee95dc467",
   "staging_Orthodox_RoundsVaultOutput_Orthodox_Summerfi_Strategic_Allocation#RoundsVaultOutput": "0x7bCFE1371BE235528196Fa0d7e639DB97dDB0Fe6",
-  "staging_Orthodox_Summerfi_Strategic_Allocation_SkyUsds_usdc_1#SkyUsdsArk": "0x5E09B3f6502b089ca19abB7025a3434F157a15E0"
+  "staging_Orthodox_Summerfi_Strategic_Allocation_SkyUsds_usdc_1#SkyUsdsArk": "0x5E09B3f6502b089ca19abB7025a3434F157a15E0",
+  "InstitutionRegistryV2#InstitutionalVaultRegistry": "0xb2f4Ce82e974Ad9A6391B4eB3D1266054a0aD9a4",
+  "RoundsVaultRegistry#RoundsVaultRegistry": "0x4F9990717bCB34BbE1efE7D609A9463dB052E014",
+  "InstitutionWhitelist_Avantgarde#CuratorTimelock": "0xadd75388AcE5b57321b2090F5481f2a8F2a681Dd",
+  "InstitutionWhitelist_Avantgarde#DutchAuctionLibrary": "0xAd3f123CD561C42e31DFd97dED5164363fa3Fd2c",
+  "InstitutionWhitelist_Avantgarde#GovernorTimelock": "0x25c538Af61e9D3B5AFC7862f7ec9FFbf96323873",
+  "InstitutionWhitelist_Avantgarde#ProtocolAccessManagerV2": "0x26cE19153DB119BDF2bCF299503f7D419d4a6d4f",
+  "InstitutionWhitelist_Avantgarde#TreasuryTimelock": "0x420E610eeFF3a611997bd290572e1E1EF21683CD",
+  "InstitutionWhitelist_Avantgarde#ConfigurationManagerWhitelist": "0x81C4910248351360Db75B3650Fd7527b08DbBcb1",
+  "InstitutionWhitelist_Avantgarde#HarborCommand": "0x330Fb246Edb7d961ED232B5a68558A68Df513206",
+  "InstitutionWhitelist_Avantgarde#Raft": "0x97E0D1282162E2d7ABd50FF2E08b769DB20E5E69",
+  "InstitutionWhitelist_Avantgarde#AdmiralsQuartersWhitelist": "0x2F6220A53a6C08254146646C4b2807647a79127a",
+  "InstitutionWhitelist_Avantgarde#TipJar": "0x0799385e9d77Fe0A7F459976ccd97f96cBAC547B",
+  "Avantgarde_FleetWhitelist_Avantgarde_Summerfi_Strategic_RWA_Allocation#FleetCommanderCacheLib": "0xaB48C050647c826471c7D0EEe4192d427B6D67Db",
+  "Avantgarde_FleetWhitelist_Avantgarde_Summerfi_Strategic_RWA_Allocation#FleetCommanderWhitelist": "0xbafDA316a19fc4A824e14A1EF86f2c57055Df9ec",
+  "Avantgarde_RoundsVaultInput_Avantgarde_Summerfi_Strategic_RWA_Allocation#RoundsVaultInput": "0x9322249c4BD4C06f8da62A096ff25bB4c0255a80",
+  "Avantgarde_RoundsVaultOutput_Avantgarde_Summerfi_Strategic_RWA_Allocation#RoundsVaultOutput": "0x8b916d68fDdED0B446EB2FA6D72322D3F1c77BeD"
 }
