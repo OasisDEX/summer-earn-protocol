@@ -2,6 +2,7 @@ import type { Chain, Transport } from 'viem'
 import { fallback, http } from 'viem'
 import { arbitrum, base, hyperliquid, mainnet, sonic } from 'wagmi/chains'
 
+import type { AppEnvironment } from '@/config/appEnvironment'
 import { getInstitutionsV2SubgraphUrlOverride } from '@/config/env'
 import type { ChainId } from '@/types/chain'
 
@@ -63,19 +64,35 @@ export const CHAIN_BLOCK_EXPLORERS: Record<ChainId, string> = {
   [hyperliquid.id]: hyperliquid.blockExplorers.default.url,
 }
 
-// Staging Goldsky proxy (Oasis app convention mirrored from
-// summer-earn-interface's CHAIN_INSTITUTIONS_SUBGRAPH_URLS — same hostname,
-// `-v2` slug suffix). Override per-chain via NEXT_PUBLIC_INSTITUTIONS_V2_SUBGRAPH_URL_*.
-const DEFAULT_INSTITUTIONS_V2_URLS: Record<ChainId, string> = {
-  [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-base',
-  [mainnet.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2',
-  [arbitrum.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-arbitrum',
-  [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-sonic',
-  [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-hyperliquid',
+// Goldsky proxy (Oasis app convention mirrored from summer-earn-interface's
+// CHAIN_INSTITUTIONS_SUBGRAPH_URLS — same hostname, `-v2` slug suffix).
+// Staging deployments are separate subgraphs with a `-staging` slug suffix.
+// NEXT_PUBLIC_INSTITUTIONS_V2_SUBGRAPH_URL_* overrides the PRODUCTION url
+// per-chain; staging always uses the built-in staging slugs.
+const DEFAULT_INSTITUTIONS_V2_URLS: Record<AppEnvironment, Record<ChainId, string>> = {
+  production: {
+    [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-base',
+    [mainnet.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2',
+    [arbitrum.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-arbitrum',
+    [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-sonic',
+    [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-hyperliquid',
+  },
+  staging: {
+    [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-base-staging',
+    [mainnet.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-staging',
+    [arbitrum.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-arbitrum-staging',
+    [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-sonic-staging',
+    [hyperliquid.id]:
+      'https://subgraph.staging.oasisapp.dev/summer-institutions-v2-hyperliquid-staging',
+  },
 }
 
-export function getInstitutionsV2SubgraphUrl(chainId: ChainId): string {
-  return getInstitutionsV2SubgraphUrlOverride(chainId) ?? DEFAULT_INSTITUTIONS_V2_URLS[chainId]
+export function getInstitutionsV2SubgraphUrl(chainId: ChainId, env: AppEnvironment): string {
+  if (env === 'production') {
+    const override = getInstitutionsV2SubgraphUrlOverride(chainId)
+    if (override) return override
+  }
+  return DEFAULT_INSTITUTIONS_V2_URLS[env][chainId]
 }
 
 export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {

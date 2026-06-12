@@ -63,7 +63,7 @@ const config: HardhatUserConfig = {
     ],
   },
   ignition: {
-    blockPollingInterval: 1_000,
+    blockPollingInterval: 12_000,
     requiredConfirmations: 1,
   },
   solidity: {

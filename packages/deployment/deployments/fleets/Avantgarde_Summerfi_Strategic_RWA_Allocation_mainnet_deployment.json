@@ -1,0 +1,20 @@
+{
+  "fleetName": "Avantgarde_Summerfi_Strategic_RWA_Allocation",
+  "isBummer": false,
+  "fleetSymbol": "AVGSUMsra",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0xbafDA316a19fc4A824e14A1EF86f2c57055Df9ec",
+  "bufferArkAddress": "0x05903f725285ea778f1DbDad0C8d11876A979Ef5",
+  "network": "mainnet",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "details": {
+    "name": "Avantgarde_Summerfi_Strategic_RWA_Allocation",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
+}

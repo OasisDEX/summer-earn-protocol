@@ -1,0 +1,11 @@
+{
+  "network": "hyperevm",
+  "registry-address": "0x0000000000000000000000000000000000000000",
+  "registry-start-block": 0,
+  "interval-handler-block-interval": 600,
+  "enable-grafting": false,
+  "grafting-base": "",
+  "grafting-block": "",
+  "rounds-vault-registry-address": "0x0000000000000000000000000000000000000000",
+  "rounds-vault-registry-start-block": 0
+}

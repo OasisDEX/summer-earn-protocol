@@ -1,0 +1,66 @@
+{
+  "mainnet": {
+    "deployedContracts": {
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0xc098248Ec73DF55c0fb3f9bEfcF62eE4C45097D1"
+        },
+        "governorTimelock": {
+          "address": "0x3C8be759Ff177390BF038104a5A1ED7C498f562A"
+        },
+        "curatorTimelock": {
+          "address": "0xd02aC5CAdf26E2E9d6326a51Db5Fe150e9198419"
+        },
+        "treasuryTimelock": {
+          "address": "0x20aF9545eBb320c80C5736880bAA7a244a75868f"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f"
+        },
+        "configurationManager": {
+          "address": "0x9d0eBe533D1BEaE6AF0b86AdA16926f9D69e4257"
+        },
+        "harborCommand": {
+          "address": "0x4357889A5A88005133b46e4174feA13266Fb4a7D"
+        },
+        "admiralsQuarters": {
+          "address": "0xc5c96cA7607eCe902092F4080B844AA0Bb5C1Ff4"
+        },
+        "raft": {
+          "address": "0x0f77bb8d65e5238E63e496D94049E4e4C953F704"
+        }
+      }
+    },
+    "fleets": {
+      "Orthodox_Summerfi_Strategic_Allocation": {
+        "fleetCommander": "0x35aE5392cc355686606658d18dff9b9109390E13",
+        "bufferArk": "0x051c51593EBFfd1797aAcBdB3FABFe6839EA7E40",
+        "arks": [
+          "0x5E09B3f6502b089ca19abB7025a3434F157a15E0"
+        ],
+        "roundsVaultInput": "0x50D9275348C4C5BB2Bf928473118A63ee95dc467",
+        "roundsVaultOutput": "0x7bCFE1371BE235528196Fa0d7e639DB97dDB0Fe6"
+      }
+    },
+    "governor": [
+      "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"
+    ],
+    "curators": [
+      "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"
+    ],
+    "guardian": [
+      "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"
+    ],
+    "superKeeper": "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc",
+    "whitelistManagers": [
+      "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"
+    ],
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0,
+      "treasuryDelay": 0
+    }
+  }
+}

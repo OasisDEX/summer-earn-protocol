@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 
 import 'server-only'
 
+import type { AppEnvironment } from '@/config/appEnvironment'
 import {
   getInstitutionBySlug,
   type Institution,
@@ -23,18 +24,21 @@ interface VaultResponse {
   vault: SubgraphVault | null
 }
 
-export async function loadInstitution(slug: string): Promise<LoadedInstitution | null> {
+export async function loadInstitution(
+  env: AppEnvironment,
+  slug: string,
+): Promise<LoadedInstitution | null> {
   'use cache'
   cacheLife({ stale: 30, revalidate: 60, expire: 300 })
-  cacheTag(`institution:${slug}`)
+  cacheTag(`institution:${env}:${slug}`)
 
-  const institution = getInstitutionBySlug(slug)
+  const institution = getInstitutionBySlug(env, slug)
   if (!institution) return null
 
   const enriched: LoadedInstitutionFleet[] = await Promise.all(
     institution.fleets.map(async (fleet) => {
       try {
-        const data = await gqlFetch<VaultResponse>(institution.chainId, FLEET_DETAIL, {
+        const data = await gqlFetch<VaultResponse>(institution.chainId, env, FLEET_DETAIL, {
           id: fleet.fleetCommander.toLowerCase(),
         })
         return { ...fleet, vault: data.vault ?? null }

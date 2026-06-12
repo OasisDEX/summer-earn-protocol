@@ -13,6 +13,7 @@ const CHAIN_NAMES = {
   146: 'sonic',
   42161: 'arbitrum',
   8453: 'base',
+  999: 'hyperliquid',
 }
 
 // Source paths

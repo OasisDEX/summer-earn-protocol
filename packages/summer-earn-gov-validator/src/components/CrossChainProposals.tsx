@@ -34,6 +34,7 @@ const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
   '8453': 'base',
   '42161': 'arbitrum',
   '146': 'sonic',
+  '999': 'hyperliquid',
 }
 
 // Helper function to calculate effective proposal status

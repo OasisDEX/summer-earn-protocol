@@ -69,9 +69,8 @@ async function main() {
   // Read and validate governance + timelock config up front — before any on-chain state changes
   // or contract deployments — so a misconfiguration fails fast and leaves nothing half-wired.
   const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
-  const treasury = governance.treasury
 
-  // Timelock delays (both timelocks are always deployed; delays may be 0 = immediate).
+  // Timelock delays (all three timelocks are always deployed; delays may be 0 = immediate).
   const timelockConfig = readInstitutionTimelockConfig(
     institutionId,
     useBummerConfig,
@@ -79,7 +78,9 @@ async function main() {
   )
   console.log(
     kleur.blue('Timelock delays (seconds):'),
-    kleur.cyan(`governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}`),
+    kleur.cyan(
+      `governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}, treasury=${timelockConfig.treasuryDelay}`,
+    ),
   )
 
   // Proposers for each timelock are segregated: the governor timelock is proposed to by the
@@ -95,6 +96,7 @@ async function main() {
   const curatorTimelockProposers = dedupeAddresses(
     governance.curators.length > 0 ? governance.curators : governance.governor,
   )
+  const treasuryTimelockProposers = dedupeAddresses(governance.governor)
   // Fail fast if either timelock would have no proposers. A proposer-less timelock can never
   // schedule operations and would be permanently stuck.
   if (governorTimelockProposers.length === 0) {
@@ -107,6 +109,12 @@ async function main() {
     throw new Error(
       `No curator timelock proposers for institution "${institutionId}" on network "${hre.network.name}". ` +
         `Configure "curators" (or "governor" as fallback) in the institution index before deploying.`,
+    )
+  }
+  if (treasuryTimelockProposers.length === 0) {
+    throw new Error(
+      `No treasury timelock proposers for institution "${institutionId}" on network "${hre.network.name}". ` +
+        `Configure "governor" in the institution index before deploying.`,
     )
   }
 
@@ -163,8 +171,11 @@ async function main() {
     const recordedGovernorTimelock =
       institutionConfig.deployedContracts.gov.governorTimelock?.address
     const recordedCuratorTimelock = institutionConfig.deployedContracts.gov.curatorTimelock?.address
+    const recordedTreasuryTimelock =
+      institutionConfig.deployedContracts.gov.treasuryTimelock?.address
     let governorTimelockAddress = recordedGovernorTimelock
     let curatorTimelockAddress = recordedCuratorTimelock
+    let treasuryTimelockAddress = recordedTreasuryTimelock
 
     if (!governorTimelockAddress) {
       const tl = await hre.viem.deployContract('RwaTimelock' as string, [
@@ -205,17 +216,37 @@ async function main() {
         publicClient,
       )
     }
+    if (!treasuryTimelockAddress) {
+      const tl = await hre.viem.deployContract('RwaTimelock' as string, [
+        BigInt(timelockConfig.treasuryDelay),
+        treasuryTimelockProposers,
+        [ADDRESS_ZERO],
+        ADDRESS_ZERO,
+      ])
+      treasuryTimelockAddress = getAddress(tl.address)
+      console.log(kleur.green(`Deployed treasury timelock ${treasuryTimelockAddress}`))
+    } else {
+      await assertTimelockUsable(
+        'treasury timelock',
+        getAddress(treasuryTimelockAddress),
+        timelockConfig.treasuryDelay,
+        treasuryTimelockProposers,
+        publicClient,
+      )
+    }
 
     // Persist the timelock addresses if we deployed either (merge with the existing PAM so the
     // recorded gov block is not wiped).
     if (
       governorTimelockAddress !== recordedGovernorTimelock ||
-      curatorTimelockAddress !== recordedCuratorTimelock
+      curatorTimelockAddress !== recordedCuratorTimelock ||
+      treasuryTimelockAddress !== recordedTreasuryTimelock
     ) {
       updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
         protocolAccessManager: { address: existingPamAddress },
         governorTimelock: { address: governorTimelockAddress },
         curatorTimelock: { address: curatorTimelockAddress },
+        treasuryTimelock: { address: treasuryTimelockAddress },
       })
       console.log(kleur.green().bold('Institution index updated with timelock addresses.'))
     } else {
@@ -256,21 +287,23 @@ async function main() {
       [moduleName]: {
         swapProvider: swapProvider,
         weth: wethAddress,
-        treasury: treasury as ViemAddress,
         governorDelay: timelockConfig.governorDelay,
         curatorDelay: timelockConfig.curatorDelay,
+        treasuryDelay: timelockConfig.treasuryDelay,
         governorTimelockProposers: governorTimelockProposers,
         curatorTimelockProposers: curatorTimelockProposers,
+        treasuryTimelockProposers: treasuryTimelockProposers,
       },
     },
   })
   console.log(kleur.green().bold('Institution contracts deployed. Writing institution index...'))
 
-  // gov: protocolAccessManagerV2 + the two RwaTimelock instances for the whitelist flow
+  // gov: protocolAccessManagerV2 + the three RwaTimelock instances for the whitelist flow
   updateInstitutionDeployedContracts(institutionId, useBummerConfig, hre.network.name, 'gov', {
     protocolAccessManager: { address: deployed.protocolAccessManager.address },
     governorTimelock: { address: deployed.governorTimelock.address },
     curatorTimelock: { address: deployed.curatorTimelock.address },
+    treasuryTimelock: { address: deployed.treasuryTimelock.address },
   })
 
   // core subset
