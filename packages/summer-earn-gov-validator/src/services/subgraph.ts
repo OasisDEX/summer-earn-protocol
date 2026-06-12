@@ -20,6 +20,9 @@ const SUBGRAPH_ENDPOINTS = {
   mainnet:
     process.env.NEXT_PUBLIC_MAINNET_SUBGRAPH_URL ||
     'https://subgraph.staging.oasisapp.dev/summer-protocol-gov',
+  hyperliquid:
+    process.env.NEXT_PUBLIC_HYPERLIQUID_SUBGRAPH_URL ||
+    'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-hyperliquid',
 }
 
 const SATELLITE_SUBGRAPH_ENDPOINTS = Object.fromEntries(
