@@ -59,12 +59,4 @@ interface ICrossChainReceiver is IERC165 {
         external
         view
         returns (BridgeTypes.OperationType[] memory supportedTypes);
-
-    /**
-     * @notice Returns true if this contract implements the interface defined by `interfaceId`.
-     * @dev See ERC-165. Implementations must return true for ICrossChainReceiver and IERC165 selectors.
-     * @param interfaceId The ERC-165 interface identifier to query.
-     * @return bool True if the interface is supported.
-     */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

@@ -262,12 +262,4 @@ interface IBridgeRouter is IERC165 {
         address recipient,
         uint256 amount
     ) external;
-
-    /**
-     * @notice Returns true if this contract implements the interface defined by `interfaceId`.
-     * @dev See ERC-165. Implementations should check their own interface plus the parent IERC165.
-     * @param interfaceId The ERC-165 interface identifier to query.
-     * @return bool True if the interface is supported.
-     */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
