@@ -139,8 +139,43 @@ const STAGING_INSTITUTIONS: Institution[] = [
   },
 ]
 
-// No production registry deployment yet — populate once index.json exists.
-const PRODUCTION_INSTITUTIONS: Institution[] = []
+const PRODUCTION_INSTITUTIONS: Institution[] = [
+  {
+    // Ignition deployment `InstitutionWhitelist_Avantgarde` (Ethereum mainnet,
+    // registry 0xb2f4Ce82e974Ad9A6391B4eB3D1266054a0aD9a4). Mirrors
+    // packages/deployment/config/institutions/Avantgarde/index.json.
+    slug: 'avantgarde',
+    displayName: 'Avantgarde',
+    chainId: String(mainnet.id) as ChainId,
+    protocolAccessManager: '0x26cE19153DB119BDF2bCF299503f7D419d4a6d4f',
+    governorTimelock: '0x25c538Af61e9D3B5AFC7862f7ec9FFbf96323873',
+    curatorTimelock: '0xadd75388AcE5b57321b2090F5481f2a8F2a681Dd',
+    treasuryTimelock: '0x420E610eeFF3a611997bd290572e1E1EF21683CD',
+    timelock: { governorDelay: 0, curatorDelay: 0 },
+    configurationManager: '0x81C4910248351360Db75B3650Fd7527b08DbBcb1',
+    harborCommand: '0x330Fb246Edb7d961ED232B5a68558A68Df513206',
+    admiralsQuarters: '0x2F6220A53a6C08254146646C4b2807647a79127a',
+    raft: '0x97E0D1282162E2d7ABd50FF2E08b769DB20E5E69',
+    tipJar: '0x0799385e9d77Fe0A7F459976ccd97f96cBAC547B',
+    treasury: '0x420E610eeFF3a611997bd290572e1E1EF21683CD',
+    governors: ['0x85f9b7408afE6CEb5E46223451f5d4b832B522dc'],
+    curators: ['0x85f9b7408afE6CEb5E46223451f5d4b832B522dc'],
+    guardians: ['0x85f9b7408afE6CEb5E46223451f5d4b832B522dc'],
+    superKeeper: '0x85f9b7408afE6CEb5E46223451f5d4b832B522dc',
+    whitelistManagers: ['0x85f9b7408afE6CEb5E46223451f5d4b832B522dc'],
+    fleets: [
+      {
+        key: 'Avantgarde_Summerfi_Strategic_RWA_Allocation',
+        label: 'Avantgarde Summerfi Strategic RWA Allocation',
+        fleetCommander: '0xbafDA316a19fc4A824e14A1EF86f2c57055Df9ec',
+        bufferArk: '0x05903f725285ea778f1DbDad0C8d11876A979Ef5',
+        arks: [],
+        roundsVaultInput: '0x9322249c4BD4C06f8da62A096ff25bB4c0255a80',
+        roundsVaultOutput: '0x8b916d68fDdED0B446EB2FA6D72322D3F1c77BeD',
+      },
+    ],
+  },
+]
 
 export const INSTITUTIONS_BY_ENV: Record<AppEnvironment, Institution[]> = {
   production: PRODUCTION_INSTITUTIONS,
