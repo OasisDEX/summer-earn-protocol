@@ -1,3 +1,4 @@
+import type { AppEnvironment } from '@/config/appEnvironment'
 import { getInstitutionsV2SubgraphUrl } from '@/config/chains'
 import { time } from '@/lib/perf'
 import type { ChainId } from '@/types/chain'
@@ -14,11 +15,12 @@ function operationName(query: string): string {
 
 export async function gqlFetch<T>(
   chainId: ChainId,
+  env: AppEnvironment,
   query: string,
   variables: Record<string, unknown> = {},
 ): Promise<T> {
-  const url = getInstitutionsV2SubgraphUrl(chainId)
-  const label = `subgraph:${operationName(query)}`
+  const url = getInstitutionsV2SubgraphUrl(chainId, env)
+  const label = `subgraph:${env}:${operationName(query)}`
 
   return time(label, async () => {
     const response = await fetch(url, {

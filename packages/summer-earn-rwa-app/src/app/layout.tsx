@@ -1,8 +1,7 @@
-'use cache'
-
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
+import { AppEnvironmentBoundary } from '@/components/env/AppEnvironmentBoundary'
 import { Sidebar } from '@/components/shell/Sidebar'
 import { SidebarSkeleton } from '@/components/shell/SidebarSkeleton'
 
@@ -31,11 +30,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="bg-glow" aria-hidden />
           <div className="bg-grid" aria-hidden />
           <div className="app">
+            {/* The environment cookie read makes this subtree dynamic — the
+                boundary must stay inside Suspense for PPR. */}
             <Suspense fallback={<SidebarSkeleton />}>
-              <Sidebar />
+              <AppEnvironmentBoundary>
+                <Sidebar />
+              </AppEnvironmentBoundary>
             </Suspense>
             <main>
-              <Suspense fallback={null}>{children}</Suspense>
+              <Suspense fallback={null}>
+                <AppEnvironmentBoundary>{children}</AppEnvironmentBoundary>
+              </Suspense>
             </main>
           </div>
         </Providers>

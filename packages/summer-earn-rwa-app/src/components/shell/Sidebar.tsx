@@ -6,7 +6,9 @@ import { formatUnits } from 'viem'
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { base } from 'wagmi/chains'
 
-import { INSTITUTIONS } from '@/config/institutions'
+import { useAppEnvironment } from '@/components/env/AppEnvironmentProvider'
+import { EnvironmentSwitch } from '@/components/shell/EnvironmentSwitch'
+import { getInstitutions } from '@/config/institutions'
 import { useMounted } from '@/hooks/useMounted'
 import { shortAddress } from '@/lib/format'
 
@@ -26,6 +28,8 @@ const NAV: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname() ?? '/'
+  const env = useAppEnvironment()
+  const institutions = getInstitutions(env)
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
   const balance = useBalance({ address, chainId: base.id })
@@ -51,6 +55,14 @@ export function Sidebar() {
           />
         </span>
         summer.fi rwa
+        {env === 'staging' && (
+          <span
+            className="rounded-pill px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em]"
+            style={{ background: 'rgba(255,180,0,0.15)', color: '#ffb400' }}
+          >
+            staging
+          </span>
+        )}
       </div>
 
       <nav className="flex flex-col gap-0.5">
@@ -75,12 +87,12 @@ export function Sidebar() {
           )
         })}
 
-        {INSTITUTIONS.length > 0 && (
+        {institutions.length > 0 && (
           <>
             <div className="px-3 pb-1 pt-4 text-[11px] uppercase tracking-[0.08em] text-[var(--text-4)]">
               Organizations
             </div>
-            {INSTITUTIONS.map((inst) => {
+            {institutions.map((inst) => {
               const href = `/institutions/${inst.slug}`
               const active = pathname.startsWith(href)
               return (
@@ -102,7 +114,11 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="mt-auto rounded-lg border border-[var(--border-faint)] bg-[var(--surface)] p-3.5 text-sm">
+      <div className="mt-auto">
+        <EnvironmentSwitch />
+      </div>
+
+      <div className="rounded-lg border border-[var(--border-faint)] bg-[var(--surface)] p-3.5 text-sm">
         {mounted && isConnected && address ? (
           <>
             <div className="flex items-center gap-2 font-mono text-xs text-[var(--text-2)]">

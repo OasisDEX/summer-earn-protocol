@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
 
+import { useAppEnvironment } from '@/components/env/AppEnvironmentProvider'
 import { gqlFetch } from '@/lib/subgraph/client'
 import { ACCOUNT_RECEIPTS } from '@/lib/subgraph/queries/receipts'
 import type { SubgraphReceipt } from '@/lib/subgraph/types'
@@ -21,6 +22,7 @@ interface UseUserReceiptsProps {
 }
 
 export function useUserReceipts({ chainId, roundsVaultAddress, owner }: UseUserReceiptsProps) {
+  const env = useAppEnvironment()
   const { address } = useAccount()
   const account = (owner ?? address)?.toLowerCase()
 
@@ -30,11 +32,11 @@ export function useUserReceipts({ chainId, roundsVaultAddress, owner }: UseUserR
   // fetch until staleTime/refetchInterval fires (visible as a ~20s wait
   // before any data appears).
   const query = useQuery({
-    queryKey: ['user-receipts', chainId, account, roundsVaultAddress],
+    queryKey: ['user-receipts', env, chainId, account, roundsVaultAddress],
     enabled: !!account,
     queryFn: async () => {
       if (!account) return [] as SubgraphReceipt[]
-      const data = await gqlFetch<AccountResponse>(chainId, ACCOUNT_RECEIPTS, { account })
+      const data = await gqlFetch<AccountResponse>(chainId, env, ACCOUNT_RECEIPTS, { account })
       const rows = data.account?.roundsVaultReceipts ?? []
       if (!roundsVaultAddress) return rows
       const v = roundsVaultAddress.toLowerCase()
