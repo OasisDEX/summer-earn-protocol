@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 import '@nomicfoundation/hardhat-verify'
 import 'hardhat-contract-sizer'
-import './plugins/multiSourceCompile'
+// import './plugins/multiSourceCompile'
 
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -63,7 +63,7 @@ const config: HardhatUserConfig = {
     ],
   },
   ignition: {
-    blockPollingInterval: 1_000,
+    blockPollingInterval: 12_000,
     requiredConfirmations: 1,
   },
   solidity: {

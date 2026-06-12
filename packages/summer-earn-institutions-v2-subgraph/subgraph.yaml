@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: InstitutionalVaultRegistry
-    network: base
+    network: mainnet
     source:
       abi: InstitutionalVaultRegistry
-      address: "0x3C6203f22cf5DF38638EF65c5F212f102c5FD985"
-      startBlock: 46465265
+      address: "0xCf1Db43b728d0387D3Ed22B16a38A457d9028aeC"
+      startBlock: 25300141
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -69,11 +69,11 @@ dataSources:
       file: ./src/mappings/institutionalVaultRegistry.ts
   - kind: ethereum/contract
     name: RoundsVaultRegistry
-    network: base
+    network: mainnet
     source:
       abi: RoundsVaultRegistry
-      address: "0xEfCac87eb68757b02c334095145bB15B8139Bee0"
-      startBlock: 46465666
+      address: "0xcA3c859a961Bc9b0D4fc010f9f77a5959875a61E"
+      startBlock: 25300162
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -130,7 +130,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -222,7 +222,7 @@ templates:
 
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: mainnet
     source:
       abi: Ark
     mapping:
@@ -291,7 +291,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: mainnet
     source:
       abi: HarborCommand
     mapping:
@@ -347,7 +347,7 @@ templates:
       file: ./src/mappings/harborCommand.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
-    network: base
+    network: mainnet
     source:
       abi: ProtocolAccessManager
     mapping:
@@ -407,7 +407,7 @@ templates:
       file: ./src/mappings/accessManagement.ts
   - kind: ethereum/contract
     name: AdmiralsQuarters
-    network: base
+    network: mainnet
     source:
       abi: AdmiralsQuarters
     mapping:
@@ -455,7 +455,7 @@ templates:
       file: ./src/mappings/accessManagement.ts
   - kind: ethereum/contract
     name: RoundsVaultInputTemplate
-    network: base
+    network: mainnet
     source:
       abi: RoundsVaultInput
     mapping:
@@ -502,7 +502,7 @@ templates:
       file: ./src/mappings/roundsVaultInput.ts
   - kind: ethereum/contract
     name: RoundsVaultOutputTemplate
-    network: base
+    network: mainnet
     source:
       abi: RoundsVaultOutput
     mapping:

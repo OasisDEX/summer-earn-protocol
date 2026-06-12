@@ -1,0 +1,10 @@
+{
+  "mainnet": {
+    "governor": ["0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"],
+    "curators": ["0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"],
+    "guardian": ["0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"],
+    "superKeeper": "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc",
+    "whitelistManagers": ["0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"],
+    "timelock": { "governorDelay": 0, "curatorDelay": 0, "treasuryDelay": 0 }
+  }
+}
