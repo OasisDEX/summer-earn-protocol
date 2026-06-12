@@ -3,6 +3,7 @@ import { decodeFunctionData, formatUnits, Hex, keccak256, toFunctionSelector } f
 import { COMBINED_ABI } from '../config/abis/combined'
 import deployedArbitrum from '../config/deployed/arbitrum.json'
 import deployedBase from '../config/deployed/base.json'
+import deployedHyperliquid from '../config/deployed/hyperliquid.json'
 import deployedMainnet from '../config/deployed/mainnet.json'
 import deployedSonic from '../config/deployed/sonic.json'
 import config from '../config/index.json'
@@ -93,9 +94,7 @@ const deployedAddressesByNetwork: Record<SupportedNetworks, Record<string, strin
   [SupportedNetworks.BASE]: deployedBase,
   [SupportedNetworks.ARBITRUM]: deployedArbitrum,
   [SupportedNetworks.SONIC]: deployedSonic,
-  // No standalone deployed-addresses file for HyperLiquid yet; contract names
-  // resolve via the index.json `hyperliquid` section in addresToContractName.
-  [SupportedNetworks.HYPERLIQUID]: {},
+  [SupportedNetworks.HYPERLIQUID]: deployedHyperliquid,
 }
 
 interface ValidationResult {
