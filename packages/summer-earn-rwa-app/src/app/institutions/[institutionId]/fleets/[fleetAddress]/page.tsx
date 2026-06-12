@@ -5,6 +5,7 @@ import { ConnectButton } from '@/components/ConnectButton'
 import { FleetDetailBody } from '@/components/fleet/FleetDetailBody'
 import { Topbar } from '@/components/shell/Topbar'
 import { getInstitutionBySlug } from '@/config/institutions'
+import { getAppEnvironment } from '@/lib/server/appEnvironment'
 import { loadFleet } from '@/lib/server/loadFleet'
 import { loadRoundsVault } from '@/lib/server/loadRoundsVault'
 
@@ -14,7 +15,8 @@ interface PageProps {
 
 export default async function FleetPage({ params }: PageProps) {
   const { institutionId, fleetAddress } = await params
-  const inst = getInstitutionBySlug(institutionId)
+  const env = await getAppEnvironment()
+  const inst = getInstitutionBySlug(env, institutionId)
   if (!inst) notFound()
   const fleet = inst.fleets.find(
     (f) => f.fleetCommander.toLowerCase() === fleetAddress.toLowerCase(),
@@ -22,12 +24,12 @@ export default async function FleetPage({ params }: PageProps) {
   if (!fleet) notFound()
 
   const [loaded, inputRv, outputRv] = await Promise.all([
-    loadFleet(inst.chainId, fleet.fleetCommander),
+    loadFleet(env, inst.chainId, fleet.fleetCommander),
     fleet.roundsVaultInput
-      ? loadRoundsVault(inst.chainId, fleet.roundsVaultInput)
+      ? loadRoundsVault(env, inst.chainId, fleet.roundsVaultInput)
       : Promise.resolve(null),
     fleet.roundsVaultOutput
-      ? loadRoundsVault(inst.chainId, fleet.roundsVaultOutput)
+      ? loadRoundsVault(env, inst.chainId, fleet.roundsVaultOutput)
       : Promise.resolve(null),
   ])
 

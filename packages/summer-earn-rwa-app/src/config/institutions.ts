@@ -1,11 +1,13 @@
-// Static directory of institutions + their fleets + rounds-vaults.
+// Static directory of institutions + their fleets + rounds-vaults, keyed by
+// app environment (production and staging are different contract deployments).
 // Mirrors packages/deployment/config/institutions/<name>/index.test.json
 // (and the production index.json once that exists). Addresses are inlined to
 // avoid coupling Next bundling to the deployment workspace package; refresh
 // these by hand when the registry is redeployed.
 
-import { base } from 'wagmi/chains'
+import { base, mainnet } from 'wagmi/chains'
 
+import type { AppEnvironment } from '@/config/appEnvironment'
 import type { ChainId } from '@/types/chain'
 
 export interface InstitutionFleet {
@@ -35,6 +37,8 @@ export interface Institution {
   governorTimelock?: `0x${string}`
   /** Curator timelock — holds CURATOR_ROLE on each fleet. */
   curatorTimelock?: `0x${string}`
+  /** Treasury timelock — controls the treasury address when present. */
+  treasuryTimelock?: `0x${string}`
   /** Timelock delays in seconds (0 = immediate execution). */
   timelock?: { governorDelay: number; curatorDelay: number }
   configurationManager: `0x${string}`
@@ -53,7 +57,7 @@ export interface Institution {
   fleets: InstitutionFleet[]
 }
 
-export const INSTITUTIONS: Institution[] = [
+const STAGING_INSTITUTIONS: Institution[] = [
   {
     slug: 'extdemocorp-v2',
     displayName: 'ExtDemoCorp v2',
@@ -96,24 +100,77 @@ export const INSTITUTIONS: Institution[] = [
       },
     ],
   },
+  {
+    // Ignition deployment `staging_InstitutionWhitelist_Orthodox` (Ethereum
+    // mainnet). Roles/bufferArk/treasury read back from chain at block
+    // ~25300784; delays via getMinDelay() on each timelock.
+    slug: 'orthodox',
+    displayName: 'Orthodox',
+    chainId: String(mainnet.id) as ChainId,
+    protocolAccessManager: '0xc098248Ec73DF55c0fb3f9bEfcF62eE4C45097D1',
+    governorTimelock: '0x3C8be759Ff177390BF038104a5A1ED7C498f562A',
+    curatorTimelock: '0xd02aC5CAdf26E2E9d6326a51Db5Fe150e9198419',
+    treasuryTimelock: '0x20aF9545eBb320c80C5736880bAA7a244a75868f',
+    timelock: { governorDelay: 0, curatorDelay: 0 },
+    configurationManager: '0x9d0eBe533D1BEaE6AF0b86AdA16926f9D69e4257',
+    harborCommand: '0x4357889A5A88005133b46e4174feA13266Fb4a7D',
+    admiralsQuarters: '0xc5c96cA7607eCe902092F4080B844AA0Bb5C1Ff4',
+    raft: '0x0f77bb8d65e5238E63e496D94049E4e4C953F704',
+    tipJar: '0xCDa1586aDA05330e46075Ed8c58B9f6E8DCf7A7f',
+    treasury: '0x20aF9545eBb320c80C5736880bAA7a244a75868f',
+    governors: ['0x0f0fA89471259433b6955827226f19999D93c568'],
+    guardians: ['0x85f9b7408aFE6CeB5E46223451f5d4b832B522dc'],
+    superKeeper: '0x85f9b7408aFE6CeB5E46223451f5d4b832B522dc',
+    whitelistManagers: [
+      '0x0f0fA89471259433b6955827226f19999D93c568',
+      '0x85f9b7408aFE6CeB5E46223451f5d4b832B522dc',
+    ],
+    fleets: [
+      {
+        key: 'Orthodox_Summerfi_Strategic_Allocation',
+        label: 'Orthodox Summerfi Strategic Allocation',
+        fleetCommander: '0x35aE5392cc355686606658d18dff9b9109390E13',
+        bufferArk: '0x051c51593EBFfd1797aAcBdB3FABFe6839EA7E40',
+        arks: ['0x5E09B3f6502b089ca19abB7025a3434F157a15E0'],
+        roundsVaultInput: '0x50D9275348C4C5BB2Bf928473118A63ee95dc467',
+        roundsVaultOutput: '0x7bCFE1371BE235528196Fa0d7e639DB97dDB0Fe6',
+      },
+    ],
+  },
 ]
 
-export function getInstitutionBySlug(slug: string): Institution | undefined {
-  return INSTITUTIONS.find((i) => i.slug === slug)
+// No production registry deployment yet — populate once index.json exists.
+const PRODUCTION_INSTITUTIONS: Institution[] = []
+
+export const INSTITUTIONS_BY_ENV: Record<AppEnvironment, Institution[]> = {
+  production: PRODUCTION_INSTITUTIONS,
+  staging: STAGING_INSTITUTIONS,
+}
+
+export function getInstitutions(env: AppEnvironment): Institution[] {
+  return INSTITUTIONS_BY_ENV[env]
+}
+
+export function getInstitutionBySlug(env: AppEnvironment, slug: string): Institution | undefined {
+  return getInstitutions(env).find((i) => i.slug === slug)
 }
 
 export function findInstitutionByFleet(
+  env: AppEnvironment,
   fleetAddress: string,
 ): { institution: Institution; fleet: InstitutionFleet } | undefined {
   const fa = fleetAddress.toLowerCase()
-  for (const institution of INSTITUTIONS) {
+  for (const institution of getInstitutions(env)) {
     const fleet = institution.fleets.find((f) => f.fleetCommander.toLowerCase() === fa)
     if (fleet) return { institution, fleet }
   }
   return undefined
 }
 
-export function findFleetByRoundsVault(roundsVaultAddress: string):
+export function findFleetByRoundsVault(
+  env: AppEnvironment,
+  roundsVaultAddress: string,
+):
   | {
       institution: Institution
       fleet: InstitutionFleet
@@ -121,7 +178,7 @@ export function findFleetByRoundsVault(roundsVaultAddress: string):
     }
   | undefined {
   const ra = roundsVaultAddress.toLowerCase()
-  for (const institution of INSTITUTIONS) {
+  for (const institution of getInstitutions(env)) {
     for (const fleet of institution.fleets) {
       if (fleet.roundsVaultInput?.toLowerCase() === ra) {
         return { institution, fleet, flavor: 'input' }

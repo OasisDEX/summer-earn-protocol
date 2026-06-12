@@ -1,14 +1,16 @@
-'use cache'
-
 import Link from 'next/link'
 
 import { ConnectButton } from '@/components/ConnectButton'
 import { Topbar } from '@/components/shell/Topbar'
 import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/Pill'
-import { INSTITUTIONS } from '@/config/institutions'
+import { getInstitutions } from '@/config/institutions'
+import { getAppEnvironment } from '@/lib/server/appEnvironment'
 
 export default async function InstitutionsPage() {
+  const env = await getAppEnvironment()
+  const institutions = getInstitutions(env)
+
   return (
     <>
       <Topbar crumbs={[{ label: 'Institutions' }]} actions={<ConnectButton />} />
@@ -18,8 +20,15 @@ export default async function InstitutionsPage() {
           Institutional rounds-vault fleets indexed by the v2 subgraph.
         </p>
 
+        {institutions.length === 0 && (
+          <Card className="mt-8 text-sm text-[var(--text-3)]">
+            No institutions deployed in {env} yet. Switch the environment in the sidebar to browse
+            another deployment.
+          </Card>
+        )}
+
         <div className="mt-8 grid gap-4">
-          {INSTITUTIONS.map((inst) => (
+          {institutions.map((inst) => (
             <Link key={inst.slug} href={`/institutions/${inst.slug}`} className="block">
               <Card className="transition hover:border-[var(--border-strong)]">
                 <div className="flex items-center justify-between gap-4">

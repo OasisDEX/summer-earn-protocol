@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 
 import 'server-only'
 
+import type { AppEnvironment } from '@/config/appEnvironment'
 import { gqlFetch } from '@/lib/subgraph/client'
 import { ACCOUNT_RECEIPTS } from '@/lib/subgraph/queries/receipts'
 import type { SubgraphReceipt } from '@/lib/subgraph/types'
@@ -12,15 +13,16 @@ interface AccountResponse {
 }
 
 export async function loadAccountReceipts(
+  env: AppEnvironment,
   chainId: ChainId,
   account: string,
 ): Promise<SubgraphReceipt[]> {
   'use cache'
   cacheLife({ stale: 10, revalidate: 30, expire: 300 })
-  cacheTag(`account:${chainId}:${account.toLowerCase()}`)
+  cacheTag(`account:${env}:${chainId}:${account.toLowerCase()}`)
 
   try {
-    const data = await gqlFetch<AccountResponse>(chainId, ACCOUNT_RECEIPTS, {
+    const data = await gqlFetch<AccountResponse>(chainId, env, ACCOUNT_RECEIPTS, {
       account: account.toLowerCase(),
     })
     return data.account?.roundsVaultReceipts ?? []
