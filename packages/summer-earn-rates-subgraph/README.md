@@ -1,85 +1,94 @@
 # Summer Earn Rates Subgraph
 
-This subgraph indexes and tracks earn rates for various DeFi protocols across multiple networks.
+This subgraph indexes earn rates (APR/APY) and TVL for DeFi protocols across mainnet, Arbitrum,
+Optimism, Base, Sonic, and HyperLiquid. It is deployed via Goldsky and queried by the Summer.fi
+frontend and backend to show yield data for each fleet.
 
-## Configuration
+## Key source files
 
-The subgraph can be configured for different networks. Configuration files are located in the `config` directory.
+- `src/config/protocolConfig.ts` — `ProtocolConfig` class with one `init<Network>()` method per
+  chain (e.g. `initMainnet()`, `initArbitrum()`, `initBase()`, `initSonic()`, `initHyperLiquid()`).
+  Every tracked protocol/product is registered here.
+- `src/products/` — 22 `Product` subclasses (e.g. `AaveV3Product`, `HypurrProduct`,
+  `SecuritizeDailyAccrualProduct`). Each implements `getRate`, `getRewardsRates`, and `getTvl`.
+- `src/constants/addresses.ts` — token/contract addresses, branched on `dataSource.network()` using
+  graph-node slugs (`arbitrum-one`, `sonic-mainnet`, `hyperliquid` or `hyperevm`). Throws
+  `Unsupported network` for unknown slugs.
+- `src/utils/chainId.ts` — `getChainIdByNetworkName` maps graph-node slugs to chain IDs. Unknown
+  slugs throw and break product IDs.
+- `config/<network>.json` — per-network entry point address, start block, block interval, and
+  grafting fields (`grafting-base`, `grafting-block`, `enable-grafting`).
 
+## Build and deploy commands
 
+All commands are network-scoped. There is no bare `build` or `deploy` script.
 
-### Network Configuration
+```bash
+# Generate AssemblyScript types from the schema and ABIs
+pnpm codegen
 
-To configure the subgraph for a specific network, edit the corresponding JSON file in the `config` directory. For example, for Arbitrum:
+# Build for a specific network (runs mustache + codegen + graph build)
+pnpm build:mainnet
+pnpm build:arbitrum
+pnpm build:base
+pnpm build:optimism
+pnpm build:sonic
+pnpm build:hyperliquid
 
-```json
-{
-  "network": "arbitrum-one",
-  "entry_point_address": "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3",
-  "entry_point_start_block": 263570533,
-  "interval-handler-block-interval": 2400
-}
+# Deploy to Goldsky (requires GOLDSKY_TOKEN in ../../.env)
+pnpm deploy:mainnet
+pnpm deploy:arbitrum
+pnpm deploy:base
+pnpm deploy:optimism
+pnpm deploy:sonic
+pnpm deploy:hyperliquid
 
+# Deploy mainnet + sonic + arbitrum in sequence
+pnpm deploy:all
 ```
 
-where:
-- `network` is the network name
-- `entry_point_address` is the address of the entry point
-- `entry_point_start_block` is the first indexed block
-- `interval-handler-block-interval` is the block interval of the interval handler 0 arbitrum one block is 250ms, hence 2400 blocks is 10 minutes
+Each `prepare:<network>` script renders `subgraph.template.yaml` through Mustache using
+`config/<network>.json` to produce `subgraph.yaml`. Bump `version` in `package.json` before
+deploying; Goldsky uses `$npm_package_version` as the deployment tag.
 
-### Protocol Configuration
+## Adding a new protocol/pool
 
-Protocols and their products are configured in `src/config/protocolConfig.ts`. To add or modify protocols:
+1. Add any new token addresses to `src/constants/addresses.ts` under the correct
+   `dataSource.network()` branch.
+2. If no existing `Product` subclass fits, create one under `src/products/` extending `Product`.
+3. Register a `Protocol` instance (with one or more product instances) inside the appropriate
+   `init<Network>()` method in `src/config/protocolConfig.ts`.
+4. The product ID is `${groupName}-${tokenAddress}-${poolAddress}-${chainId}` (built in `Product`
+   constructor). It must match the ID format used by `summer-earn-protocol-subgraph` or rate
+   correlation will silently miss.
+5. Set `grafting-base` and `grafting-block` in `config/<network>.json` to avoid a full resync, then
+   redeploy.
 
-1. Open `src/config/protocolConfig.ts`
-2. Find the appropriate network initialization method (e.g., `initArbitrum()` for Arbitrum)
-3. Add or modify the protocol and product instances as needed
+## Cross-package connections
 
-Example:
-```typescript
-private initArbitrum(): Protocol[] {
-    return [
-        new Protocol('AaveV3', [
-            new AaveV3Product(
-            getOrCreateToken(addresses.USDC),
-            Address.fromString('0x794a61358D6845594F94dc1DB02A252b5b4814aD'),
-            BigInt.fromI32(7740843),
-            'AaveV3',
-            ),
-            // Add more products here
-        ]),
-        // Add more protocols here
-    ]
-}
-```
+**Consumes:**
 
-## Development
+- No TypeScript packages from this monorepo are imported at runtime. The subgraph is
+  AssemblyScript/The Graph only.
 
-1. Install dependencies:
-   ```
-   pnpm install
-   ```
+**Consumed by:**
 
-2. Generate types:
-   ```
-   pnpm codegen
-   ```
+- `packages/summer-earn-protocol-subgraph` — correlates its `Ark` entities to rate data by
+  constructing the same product ID string (`protocol-asset-pool-chainId`). If the ID built here
+  diverges from the one built there, the join silently returns no rate data.
+- Backend and frontend packages query the deployed Goldsky endpoints directly by URL; no TypeScript
+  exports are shared.
 
-3. Build the subgraph:
-   ```
-   pnpm build
-   ```
+**Agent gotchas:**
 
-4. Deploy the subgraph:
-   ```
-   pnpm deploy
-   ```
+- `src/config/protocolConfig.ts`, `src/constants/addresses.ts`, and `src/utils/chainId.ts` are all
+  hand-maintained and must be updated together when adding a chain or product.
+- Graph-node network slugs differ from repo chain names: use `arbitrum-one` (not `arbitrum`),
+  `sonic-mainnet` (not `sonic`), and either `hyperliquid` or `hyperevm` for HyperLiquid.
+- `grafting-base` (Qm hash) and `grafting-block` in each `config/<network>.json` become stale after
+  a redeployment that changes the schema or data sources; refresh them or set
+  `enable-grafting: false` to force a full resync.
 
-## Contributing
+## Documentation
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+GitBook: [Rates Subgraph](../../gitbook/data/rates-subgraph.md)
