@@ -1,45 +1,57 @@
 # Summer Earn Oracle Dashboard
 
-A Next.js monitoring interface for the Summer Earn RWA Oracle system.
+A Next.js 16 (App Router) monitoring interface for the Summer Earn RWA Oracle system. It polls
+`RwaOracle` and `OracleRegistry` contracts across five chains (mainnet, Base, Arbitrum, Sonic,
+Hyperliquid) via viem multicall, fetches off-chain NAV from the WisdomTree public API, and displays
+staleness/deviation health status per ticker. A separate `/test-yield` route shows `TestYieldToken`
+state sourced from `yield-deployments.json`. Deployed via Vercel.
 
-## Features
+## Key exports / types
 
-- **Real-time Monitoring**: Automatically refreshes oracle data every 60 seconds.
-- **On-Chain vs Off-Chain Comparison**: Compares live contract data with source APIs (WisdomTree).
-- **Health Indicators**: Visually flags stale or mismatched oracles.
-- **Cross-Chain Discovery**: Automatically switches registry context based on the detected network.
+- `fetchOracleStats(network)` — main data-fetching function in `lib/oracle-data.ts`; returns
+  `TickerStats[]`
+- `TickerStats` — per-oracle data shape: `ticker`, `onChainPrice`, `nonce`, `signers`,
+  `oracleStatus` (`healthy | warning | stale`), `history`
+- `NetworkType` — `'base' | 'arbitrum' | 'mainnet' | 'sonic' | 'hyperliquid'`
+- `RWA_ORACLE_ABI` / `ORACLE_REGISTRY_ABI` — hand-maintained in `lib/constants.ts` (not imported
+  from a shared package)
 
-## Getting Started
+## Commands
 
-1. **Install Dependencies**:
-   ```bash
-   pnpm install
-   ```
+```bash
+pnpm dev          # next dev
+pnpm build        # next build
+pnpm start        # next start
+pnpm lint         # eslint
+pnpm format       # prettier --check
+pnpm format:fix   # prettier --write
+```
 
-2. **Configure Network**:
-   The dashboard uses `lib/deployments.json` to find the `OracleRegistry` for each network. Ensure this file is synced with the latest deployments from the CLI package.
+There are no test scripts in `package.json`.
 
-3. **Run Locally**:
-   ```bash
-   pnpm dev
-   ```
+## Cross-package connections
 
-4. **Build for Production**:
-   ```bash
-   pnpm build
-   ```
+**Consumes:**
 
-## Technical Architecture
+- `oracle-cli/src/deployments.json` — hand-copied into `lib/deployments.json`. No sync script exists
+  in either package. Every oracle deployment requires a manual copy; the file is Zod-parsed at
+  module load (`lib/oracle-data.ts` line 64), so a malformed copy crashes the app at boot.
+- `oracle-cli/src/yield-deployments.json` — hand-copied into `lib/yield-deployments.json` for the
+  `/test-yield` route. Same manual-copy requirement.
+- `config/chains.ts` — hand-maintained RPC fallback lists for all five chains; adding a sixth chain
+  requires a new entry here plus copying the updated deployment files.
 
-- **Framework**: Next.js 16 (App Router)
-- **Styling**: Tailwind CSS
-- **Blockchain Interaction**: `viem`
-- **Icons**: Lucide React
+**Consumed by:** none (leaf application).
 
-## Data Fetching Logic
+**Agent gotchas:**
 
-The dashboard performs the following for each tracked ticker:
-1. Resolves the `RwaOracle` address via the network-specific `OracleRegistry`.
-2. Fetches `latestRoundData()` from the contract.
-3. Fetches the latest NAV from the WisdomTree public API.
-4. Calculates deviation and freshness to determine the "Health" status.
+- After any oracle deployment, copy both `deployments.json` and `yield-deployments.json` from
+  `oracle-cli/src/` into `lib/` manually — there is no automation.
+- Adding a new chain requires: (1) a new `CHAIN_RPC_URLS` entry in `config/chains.ts`, (2) updated
+  copies of both deployment JSON files, and (3) a new `NetworkType` case in `lib/oracle-data.ts`.
+
+## GitBook reference
+
+RWA Oracle contracts (interfaces and implementations) are documented under
+[contracts/oracles/reference](../../gitbook/contracts/oracles/reference/README.md). There is no
+dedicated oracle-dashboard page in `gitbook/SUMMARY.md`.
