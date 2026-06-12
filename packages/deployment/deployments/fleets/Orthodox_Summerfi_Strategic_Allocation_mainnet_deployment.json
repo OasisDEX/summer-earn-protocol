@@ -1,0 +1,20 @@
+{
+  "fleetName": "Orthodox_Summerfi_Strategic_Allocation",
+  "isBummer": true,
+  "fleetSymbol": "ORTSUMsaa",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x35aE5392cc355686606658d18dff9b9109390E13",
+  "bufferArkAddress": "0x051c51593EBFfd1797aAcBdB3FABFe6839EA7E40",
+  "network": "mainnet",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "details": {
+    "name": "Orthodox_Summerfi_Strategic_Allocation",
+    "chainId": 1,
+    "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
+}

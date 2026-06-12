@@ -237,5 +237,22 @@
   "staging_extDemo_USDC_mainnet_WisdomTree_WTSIX_usdc_1#WisdomTreeArk": "0xEEc23130C702c1bDBC20743673D9E13D851e6F04",
   "AdmiralsQuartersModule_20260410T141537361#AdmiralsQuarters": "0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0",
   "AdmiralsQuartersModule_20260422T081512059#AdmiralsQuarters": "0x09124a25756223Eb7A523A0377cc83Dc8D22e1bE",
-  "LazyVault_HigherRisk_USDC_OriginUSD_usdc_1_gov#OriginUSDArk": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab"
+  "LazyVault_HigherRisk_USDC_OriginUSD_usdc_1_gov#OriginUSDArk": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+  "staging_InstitutionRegistryV2#InstitutionalVaultRegistry": "0xCf1Db43b728d0387D3Ed22B16a38A457d9028aeC",
+  "staging_RoundsVaultRegistry#RoundsVaultRegistry": "0xcA3c859a961Bc9b0D4fc010f9f77a5959875a61E",
+  "staging_InstitutionWhitelist_Orthodox#CuratorTimelock": "0xd02aC5CAdf26E2E9d6326a51Db5Fe150e9198419",
+  "staging_InstitutionWhitelist_Orthodox#DutchAuctionLibrary": "0x2E7063A9Bf036c0281cBEa4dc1aa04729a9c42d4",
+  "staging_InstitutionWhitelist_Orthodox#GovernorTimelock": "0x3C8be759Ff177390BF038104a5A1ED7C498f562A",
+  "staging_InstitutionWhitelist_Orthodox#ProtocolAccessManagerV2": "0xc098248Ec73DF55c0fb3f9bEfcF62eE4C45097D1",
+  "staging_InstitutionWhitelist_Orthodox#TreasuryTimelock": "0x20aF9545eBb320c80C5736880bAA7a244a75868f",
+  "staging_InstitutionWhitelist_Orthodox#ConfigurationManagerWhitelist": "0x9d0eBe533D1BEaE6AF0b86AdA16926f9D69e4257",
+  "staging_InstitutionWhitelist_Orthodox#HarborCommand": "0x4357889A5A88005133b46e4174feA13266Fb4a7D",
+  "staging_InstitutionWhitelist_Orthodox#AdmiralsQuartersWhitelist": "0xc5c96cA7607eCe902092F4080B844AA0Bb5C1Ff4",
+  "staging_InstitutionWhitelist_Orthodox#Raft": "0x0f77bb8d65e5238E63e496D94049E4e4C953F704",
+  "staging_InstitutionWhitelist_Orthodox#TipJar": "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f",
+  "staging_Orthodox_FleetWhitelist_Orthodox_Summerfi_Strategic_Allocation#FleetCommanderCacheLib": "0x797157ab7418b103dc913373A8878F0431A21cDa",
+  "staging_Orthodox_FleetWhitelist_Orthodox_Summerfi_Strategic_Allocation#FleetCommanderWhitelist": "0x35aE5392cc355686606658d18dff9b9109390E13",
+  "staging_Orthodox_RoundsVaultInput_Orthodox_Summerfi_Strategic_Allocation#RoundsVaultInput": "0x50D9275348C4C5BB2Bf928473118A63ee95dc467",
+  "staging_Orthodox_RoundsVaultOutput_Orthodox_Summerfi_Strategic_Allocation#RoundsVaultOutput": "0x7bCFE1371BE235528196Fa0d7e639DB97dDB0Fe6",
+  "staging_Orthodox_Summerfi_Strategic_Allocation_SkyUsds_usdc_1#SkyUsdsArk": "0x5E09B3f6502b089ca19abB7025a3434F157a15E0"
 }
