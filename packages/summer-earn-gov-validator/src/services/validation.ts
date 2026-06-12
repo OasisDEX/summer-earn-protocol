@@ -579,6 +579,12 @@ export const isCrossChainExecution = (target: string, calldata: string): boolean
     }
 
     const normalizedTarget = target.toLowerCase()
+    // Networks without a deployed governor use the zero address as a placeholder in the config
+    // (e.g. monad/hyperliquid) — never treat it as a known governor.
+    const zeroAddress = '0x0000000000000000000000000000000000000000'
+    if (normalizedTarget === zeroAddress) {
+      return false
+    }
     for (const network of Object.values(SupportedNetworks)) {
       const networkConfig = typedConfig[network]
       const govGovernor = networkConfig.deployedContracts?.gov?.summerGovernor?.address
