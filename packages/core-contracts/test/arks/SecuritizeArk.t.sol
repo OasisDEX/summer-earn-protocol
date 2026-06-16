@@ -796,4 +796,269 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
             Percentage.wrap(PERCENTAGE_FACTOR * 6) // 6% > 5% max
         );
     }
+
+    /* --------------------- additional coverage (gaps) -------------------- */
+
+    Percentage internal constant HALF = Percentage.wrap(PERCENTAGE_FACTOR / 2); // 0.5%
+
+    /// @dev Wraps arbitrary inner call data into a board payload destined for `onRamp`, so the
+    ///      `_decodeSubscribe` length/shape edges can be exercised independently of the selector.
+    function _payloadRawInner(
+        address onRamp,
+        bytes memory inner
+    ) internal pure returns (bytes memory) {
+        ISecuritizeOnRamp.ExecutePreApprovedTransaction
+            memory txData = ISecuritizeOnRamp.ExecutePreApprovedTransaction({
+                senderInvestor: "investor-1",
+                destination: onRamp,
+                data: inner,
+                nonce: 0
+            });
+        return abi.encode(bytes(""), txData);
+    }
+
+    /* constructor guards (zero-address + slippage bounds) */
+
+    function test_Constructor_RevertsZeroCustodian() public {
+        vm.expectRevert(ISecuritizeArkErrors.InvalidTargetWallet.selector);
+        new SecuritizeArk(
+            address(0),
+            address(vbill),
+            address(oracle),
+            HALF,
+            HALF,
+            params
+        );
+    }
+
+    function test_Constructor_RevertsZeroOracle() public {
+        vm.expectRevert(ISecuritizeArkErrors.InvalidOracleAddress.selector);
+        new SecuritizeArk(
+            custodian,
+            address(vbill),
+            address(0),
+            HALF,
+            HALF,
+            params
+        );
+    }
+
+    function test_Constructor_RevertsZeroShareToken() public {
+        vm.expectRevert(ISecuritizeArkErrors.InvalidShareTokenAddress.selector);
+        new SecuritizeArk(
+            custodian,
+            address(0),
+            address(oracle),
+            HALF,
+            HALF,
+            params
+        );
+    }
+
+    function test_Constructor_RevertsExcessiveSweepSlippage() public {
+        Percentage bad = Percentage.wrap(PERCENTAGE_FACTOR); // 1% > 0.5% max
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISecuritizeArkErrors.InvalidSweepSlippage.selector,
+                bad,
+                HALF
+            )
+        );
+        new SecuritizeArk(
+            custodian,
+            address(vbill),
+            address(oracle),
+            bad,
+            Percentage.wrap(0),
+            params
+        );
+    }
+
+    function test_Constructor_RevertsExcessiveDepositSlippage() public {
+        Percentage bad = Percentage.wrap(PERCENTAGE_FACTOR); // 1% > 0.5% max
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISecuritizeArkErrors.InvalidDepositSlippage.selector,
+                bad,
+                HALF
+            )
+        );
+        new SecuritizeArk(
+            custodian,
+            address(vbill),
+            address(oracle),
+            Percentage.wrap(0),
+            bad,
+            params
+        );
+    }
+
+    /* slippage setters (keeper-gated, bounded) */
+
+    function test_SetSweepSlippage() public {
+        Percentage n = Percentage.wrap(PERCENTAGE_FACTOR / 4);
+        vm.prank(keeper);
+        ark.setSweepSlippage(n);
+        assertEq(Percentage.unwrap(ark.sweepSlippage()), PERCENTAGE_FACTOR / 4);
+    }
+
+    function test_SetSweepSlippage_OnlyKeeper() public {
+        vm.prank(makeAddr("rando"));
+        vm.expectRevert();
+        ark.setSweepSlippage(Percentage.wrap(1));
+    }
+
+    function test_SetSweepSlippage_RevertsAboveMax() public {
+        Percentage bad = Percentage.wrap(PERCENTAGE_FACTOR);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISecuritizeArkErrors.InvalidSweepSlippage.selector,
+                bad,
+                HALF // == MAX_SWEEP_SLIPPAGE
+            )
+        );
+        ark.setSweepSlippage(bad);
+    }
+
+    function test_SetDepositSlippage() public {
+        Percentage n = Percentage.wrap(PERCENTAGE_FACTOR / 4);
+        vm.prank(keeper);
+        ark.setDepositSlippage(n);
+        assertEq(
+            Percentage.unwrap(ark.depositSlippage()),
+            PERCENTAGE_FACTOR / 4
+        );
+    }
+
+    function test_SetDepositSlippage_OnlyKeeper() public {
+        vm.prank(makeAddr("rando"));
+        vm.expectRevert();
+        ark.setDepositSlippage(Percentage.wrap(1));
+    }
+
+    function test_SetDepositSlippage_RevertsAboveMax() public {
+        Percentage bad = Percentage.wrap(PERCENTAGE_FACTOR);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISecuritizeArkErrors.InvalidDepositSlippage.selector,
+                bad,
+                HALF // == MAX_DEPOSIT_SLIPPAGE
+            )
+        );
+        ark.setDepositSlippage(bad);
+    }
+
+    function test_SetCustodianWallet_RevertsZero() public {
+        vm.prank(governor);
+        vm.expectRevert(ISecuritizeArkErrors.InvalidTargetWallet.selector);
+        ark.setCustodianWallet(address(0));
+    }
+
+    /* freeze semantics (snapshot vs live NAV) */
+
+    function test_SetArkFrozen_OnlyKeeper() public {
+        vm.prank(makeAddr("rando"));
+        vm.expectRevert();
+        ark.setArkFrozen(true, 0);
+    }
+
+    function test_SetArkFrozen_SnapshotMaxUint() public {
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+        assertEq(ark.totalAssets(), amount);
+
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max); // snapshot live totalAssets
+
+        oracle.setAnswer(PAR_NAV * 2); // live NAV doubles, but snapshot is held
+        assertEq(ark.totalAssets(), amount, "frozen snapshot held");
+
+        vm.prank(keeper);
+        ark.setArkFrozen(false, 0);
+        assertEq(ark.totalAssets(), amount * 2, "live NAV resumes after unfreeze");
+    }
+
+    function test_SetArkFrozen_CustomValue() public {
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+
+        uint256 custom = 1337 * 1e6;
+        vm.prank(keeper);
+        ark.setArkFrozen(true, custom);
+        assertEq(ark.totalAssets(), custom, "custom frozen value reported");
+    }
+
+    /* onlyNotFrozen gates + emergency escape hatch */
+
+    function test_RequestWithdrawal_RevertsWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+        vm.prank(keeper);
+        vm.expectRevert(ISecuritizeArkErrors.ArkIsFrozen.selector);
+        ark.requestWithdrawal(1e6);
+    }
+
+    function test_Sweep_RevertsWhenFrozen() public {
+        vm.prank(keeper);
+        ark.setArkFrozen(true, type(uint256).max);
+        vm.prank(keeper);
+        vm.expectRevert(ISecuritizeArkErrors.ArkIsFrozen.selector);
+        ark.sweep();
+    }
+
+    function test_EmergencySweep_BypassesSlippage() public {
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+        registry.register(custodian, "custodian-investor");
+        vm.prank(keeper);
+        ark.requestWithdrawal(amount);
+
+        // Securitize returns far below the sweepSlippage floor; only the governor hatch clears it.
+        uint256 returned = 500 * 1e6;
+        deal(USDC_ADDRESS, address(ark), returned);
+        _mockCommanderBuffer();
+
+        vm.prank(governor);
+        ark.emergencySweep();
+
+        assertEq(ark.pendingWithdrawalShares(), 0);
+        assertEq(ark.pendingWithdrawalAssets(), 0);
+        assertEq(usdc.balanceOf(address(bufferArk)), returned);
+    }
+
+    /* malformed board payloads (decode edges) */
+
+    function test_Board_RevertsInnerTooShort() public {
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        // inner call data shorter than a 4-byte selector -> _decodeSubscribe reverts
+        vm.expectRevert(
+            ISecuritizeArkErrors.InvalidSubscriptionPayload.selector
+        );
+        ark.board(amount, _payloadRawInner(address(onRampMock), hex"010203"));
+        vm.stopPrank();
+    }
+
+    function test_Board_RevertsMalformedOuterData() public {
+        uint256 amount = 1000 * 1e6;
+        deal(USDC_ADDRESS, commander, amount);
+        vm.startPrank(commander);
+        usdc.forceApprove(address(ark), amount);
+        // data that does not ABI-decode to (bytes, ExecutePreApprovedTransaction)
+        vm.expectRevert();
+        ark.board(amount, hex"deadbeef");
+        vm.stopPrank();
+    }
+
+    /* oracle: negative answer */
+
+    function test_RevertIfOracleNegative() public {
+        oracle.setAnswer(-1);
+        vm.expectRevert(ISecuritizeArkErrors.OraclePriceNotPositive.selector);
+        ark.sharesToAssets(1e6);
+    }
 }
