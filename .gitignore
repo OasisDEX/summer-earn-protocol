@@ -124,6 +124,7 @@ myenv
 .x-ray/
 x-ray/
 docs/superstate/
+docs/securitize/
 
 .next-docs
 .claude

@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/SecuritizeArk.sol";
 import {ISecuritizeArkErrors} from "../../src/errors/arks/ISecuritizeArkErrors.sol";
+import {ISecuritizeArkEvents} from "../../src/events/arks/ISecuritizeArkEvents.sol";
 import {ISecuritizeOnRamp} from "../../src/interfaces/securitize/ISecuritizeOnRamp.sol";
 import "../../src/events/IArkEvents.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
@@ -266,7 +267,12 @@ contract MockOnRamp {
 /*                                   TESTS                                     */
 /* -------------------------------------------------------------------------- */
 
-contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
+contract SecuritizeArkTest is
+    Test,
+    IArkEvents,
+    ISecuritizeArkEvents,
+    ArkTestBaseWhitelist
+{
     using SafeERC20 for IERC20;
 
     SecuritizeArk public ark;
@@ -1026,6 +1032,37 @@ contract SecuritizeArkTest is Test, IArkEvents, ArkTestBaseWhitelist {
         assertEq(ark.pendingWithdrawalShares(), 0);
         assertEq(ark.pendingWithdrawalAssets(), 0);
         assertEq(usdc.balanceOf(address(bufferArk)), returned);
+    }
+
+    /// @dev Finding 3: an `emergencySweep` on a *frozen* ark must clear the freeze and the stale
+    ///      `_frozenTotalAssets` snapshot; otherwise the swept value is double-counted in fleet NAV
+    ///      (here via the stale snapshot + the buffer ark's real balance).
+    function test_EmergencySweep_ClearsFreezeSnapshot() public {
+        uint256 amount = 1000 * 1e6;
+        _board(amount);
+
+        // Live valuation before quarantine; freeze at a deliberately different snapshot.
+        uint256 liveAssets = ark.totalAssets();
+        uint256 frozenSnapshot = liveAssets + 1_000 * 1e6;
+
+        vm.prank(keeper);
+        ark.setArkFrozen(true, frozenSnapshot);
+        assertTrue(ark.isArkFrozen(), "ark frozen for quarantine");
+        assertEq(ark.totalAssets(), frozenSnapshot, "reports frozen snapshot");
+
+        // Rescue the funds out of the troubled ark.
+        deal(USDC_ADDRESS, address(ark), 500 * 1e6);
+        _mockCommanderBuffer();
+
+        vm.expectEmit(true, true, true, true);
+        emit ArkIsFrozenUpdated(false, 0);
+        vm.prank(governor);
+        ark.emergencySweep();
+
+        // Freeze cleared and stale snapshot dropped: NAV falls back to live valuation, so the
+        // swept value is no longer counted both here and in the buffer ark.
+        assertFalse(ark.isArkFrozen(), "freeze cleared after sweep");
+        assertEq(ark.totalAssets(), liveAssets, "stale frozen snapshot no longer reported");
     }
 
     /* malformed board payloads (decode edges) */
