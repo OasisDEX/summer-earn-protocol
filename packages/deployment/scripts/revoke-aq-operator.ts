@@ -55,7 +55,9 @@ async function main() {
   const fleets = (index?.[network]?.fleets ?? {}) as Record<string, { fleetCommander?: string }>
   const fleetNames = Object.keys(fleets).filter((n) => fleets[n]?.fleetCommander)
   if (fleetNames.length === 0) {
-    console.log(kleur.red(`No fleets with a fleetCommander recorded for ${institutionId} on ${network}.`))
+    console.log(
+      kleur.red(`No fleets with a fleetCommander recorded for ${institutionId} on ${network}.`),
+    )
     return
   }
   const { fleetName } = await prompts({
@@ -140,7 +142,9 @@ async function main() {
     console.log(
       kleur
         .yellow()
-        .bold(`Deployer lacks GOVERNOR_ROLE — captured for Safe. Import into the Safe UI: ${written}`),
+        .bold(
+          `Deployer lacks GOVERNOR_ROLE — captured for Safe. Import into the Safe UI: ${written}`,
+        ),
     )
   } else {
     console.log(kleur.green().bold('OPERATOR role revoked on-chain.'))
