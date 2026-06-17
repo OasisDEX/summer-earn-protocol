@@ -100,6 +100,16 @@
         "arks": [],
         "roundsVaultInput": "0xCa24d4deaCD56db3c248fa596eAf5D1ecEb21113",
         "roundsVaultOutput": "0xD1c27c2AC8832E2f53dfd60e3Fe004584158fA67"
+      },
+      "Ext_Demo_StdEng_USDC": {
+        "fleetCommander": "0x44e39D3EB84fa25c2031252Fc229F2a74A3800D4",
+        "bufferArk": "0xdddf73244e5e7b3EFbb66994C1dD2751e0A1b5Cd",
+        "arks": [
+          "0xC09406254941E8136b910F87c9393D6eF2aa5640",
+          "0xA419A6100f69840d3Fa8bcCd706D1ebe73bBae4A"
+        ],
+        "roundsVaultInput": "0xaB52066D933742ec53Cb18152C65C63546E88c7a",
+        "roundsVaultOutput": "0xed98B956B70c20836F6A2825e46A7a090b883d24"
       }
     },
     "governor": [
