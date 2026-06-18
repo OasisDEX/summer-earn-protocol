@@ -77,6 +77,9 @@
         "institutionalVaultRegistry": {
           "address": "0x47926511D8D215A182F3B93c36c94852fb10f5eD"
         },
+        "institutionalVaultRegistryV2": {
+          "address": "0x3C6203f22cf5DF38638EF65c5F212f102c5FD985"
+        },
         "roundsVaultRegistry": {
           "address": "0xE7dcdE48cbF1435b48026a14219F5BC41f4e4015"
         }
