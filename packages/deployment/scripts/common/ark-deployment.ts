@@ -34,6 +34,7 @@ import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
 import { deploySparkArk } from '../arks/deploy-spark-ark'
 import { deployStargateV2PoolArk } from '../arks/deploy-stargatev2-ark'
 import { deploySyrupArk } from '../arks/deploy-syrup-ark'
+import { deploySecuritizeArk } from '../arks/deploy-securitize-ark'
 import { deployUpshiftArk } from '../arks/deploy-upshift-ark'
 import { deployWisdomTreeArk } from '../arks/deploy-wisdom-tree-ark'
 import { deploySuperstateArk } from '../arks/deploy-superstate-ark'
@@ -506,6 +507,43 @@ export async function deployArk(
       const sweepSlippage = wisdomtreeByToken[fundName].sweepSlippage
       const depositSlippage = wisdomtreeByToken[fundName].depositSlippage
       const ark = await deployWisdomTreeArk(config, {
+        ...baseArkParams,
+        fundName: fundName,
+        targetWallet: targetWallet,
+        shareToken: shareToken,
+        oracle: oracle,
+        sweepSlippage: sweepSlippage,
+        depositSlippage: depositSlippage,
+      })
+      deployedArk = ark
+      break
+    }
+    case ArkType.SecuritizeArk: {
+      const fundName = validateString(arkConfig.params.fundName, 'fundName')
+
+      const securitizeByToken = config.protocolSpecific.securitize?.[token]
+      if (!securitizeByToken) {
+        throw new Error(`Securitize config missing for token '${token}'`)
+      }
+
+      const targetWallet = validateConfigAddressEntry(
+        securitizeByToken[fundName],
+        'targetWallet',
+        `Securitize fund '${fundName}' targetWallet`,
+      )
+      const shareToken = validateConfigAddressEntry(
+        securitizeByToken[fundName],
+        'shareToken',
+        `Securitize fund '${fundName}' shareToken`,
+      )
+      const oracle = validateConfigAddressEntry(
+        securitizeByToken[fundName],
+        'oracle',
+        `Securitize fund '${fundName}' oracle`,
+      )
+      const sweepSlippage = securitizeByToken[fundName].sweepSlippage
+      const depositSlippage = securitizeByToken[fundName].depositSlippage
+      const ark = await deploySecuritizeArk(config, {
         ...baseArkParams,
         fundName: fundName,
         targetWallet: targetWallet,
