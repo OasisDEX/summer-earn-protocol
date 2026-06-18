@@ -115,6 +115,8 @@ const STAGING_INSTITUTIONS: Institution[] = [
       '0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA',
       '0x0f0fA89471259433b6955827226f19999D93c568',
     ],
+    guardians: [
+    ],
     superKeeper: '0x0f0fA89471259433b6955827226f19999D93c568',
     whitelistManagers: [
       '0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA',
