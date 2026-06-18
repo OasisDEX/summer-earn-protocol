@@ -62,6 +62,7 @@
     "verify:unichain": "hardhat ignition verify chain-130",
     "verify:optimism": "hardhat ignition verify chain-10",
     "verify:base": "hardhat ignition verify chain-8453",
+    "verify:by-filter": "hardhat run scripts/verify/by-future-filter.ts --network $NETWORK",
     "verify:sonic": "hardhat ignition verify chain-146",
     "verify:hyperliquid": "hardhat ignition verify chain-999",
     "verify:all": "pnpm verify:mainnet && pnpm verify:arbitrum && pnpm verify:base && pnpm verify:sonic && pnpm verify:hyperliquid",

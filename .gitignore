@@ -101,6 +101,7 @@ cache_forge/
 .antigravitycli
 .claude/
 .next-docs
+.resources
 
 SYSTEM_PROMPT.md
 myenv
