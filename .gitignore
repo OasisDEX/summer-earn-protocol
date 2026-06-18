@@ -125,6 +125,8 @@ myenv
 x-ray/
 docs/superstate/
 docs/securitize/
+docs/maple/
+docs/franklin-templeton/
 
 .next-docs
 .claude
