@@ -50,9 +50,13 @@ async function main() {
   ) as Record<string, string>
 
   // Map futureId -> deployment-init state (constructorArgs + linked libraries) from the journal.
-  const states: Record<string, { constructorArgs?: unknown[]; libraries?: Record<string, string> }> =
-    {}
-  for (const line of fs.readFileSync(path.join(deploymentDir, 'journal.jsonl'), 'utf8').split('\n')) {
+  const states: Record<
+    string,
+    { constructorArgs?: unknown[]; libraries?: Record<string, string> }
+  > = {}
+  for (const line of fs
+    .readFileSync(path.join(deploymentDir, 'journal.jsonl'), 'utf8')
+    .split('\n')) {
     const trimmed = line.trim()
     if (!trimmed) continue
     let entry: any
@@ -62,12 +66,17 @@ async function main() {
       continue
     }
     if (entry.futureId && 'constructorArgs' in entry) {
-      states[entry.futureId] = { constructorArgs: entry.constructorArgs, libraries: entry.libraries }
+      states[entry.futureId] = {
+        constructorArgs: entry.constructorArgs,
+        libraries: entry.libraries,
+      }
     }
   }
 
   const filters = process.env.VERIFY_FILTER
-    ? process.env.VERIFY_FILTER.split(',').map((s) => s.trim()).filter(Boolean)
+    ? process.env.VERIFY_FILTER.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     : DEFAULT_FILTERS
 
   const futureIds = Object.keys(addresses).filter((fid) => filters.some((f) => fid.includes(f)))
