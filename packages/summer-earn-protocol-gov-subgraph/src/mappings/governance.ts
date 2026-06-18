@@ -177,7 +177,8 @@ export function handleProposalSentCrossChain(event: ProposalSentCrossChain): voi
     const proposal = getOrCreateProposal(proposalId)
 
     const dstEid = event.params.dstEid.toString()
-    const chainId = dstEidToChainIdMap.get(dstEid)
+    // AssemblyScript Map#get aborts on a missing key, so guard with has()
+    const chainId = dstEidToChainIdMap.has(dstEid) ? dstEidToChainIdMap.get(dstEid) : null
 
     if (chainId) {
       let chains = proposal.chains

@@ -5,6 +5,7 @@ import { ConnectButton } from '@/components/ConnectButton'
 import { InstitutionOverviewBody } from '@/components/institutions/InstitutionOverviewBody'
 import { Topbar } from '@/components/shell/Topbar'
 import { getInstitutionBySlug } from '@/config/institutions'
+import { getAppEnvironment } from '@/lib/server/appEnvironment'
 import { loadInstitution } from '@/lib/server/loadInstitution'
 
 interface PageProps {
@@ -13,9 +14,10 @@ interface PageProps {
 
 export default async function InstitutionPage({ params }: PageProps) {
   const { institutionId } = await params
-  const inst = getInstitutionBySlug(institutionId)
+  const env = await getAppEnvironment()
+  const inst = getInstitutionBySlug(env, institutionId)
   if (!inst) notFound()
-  const loaded = await loadInstitution(institutionId)
+  const loaded = await loadInstitution(env, institutionId)
   if (!loaded) notFound()
 
   return (

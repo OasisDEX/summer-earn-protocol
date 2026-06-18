@@ -10,6 +10,9 @@
         },
         "curatorTimelock": {
           "address": "0xd690821D4f3972b656B8eB91e1364d475D996633"
+        },
+        "treasuryTimelock": {
+          "address": "0xCeb7F01D731c95012f43f35E4b891cf403a2aeEb"
         }
       },
       "core": {
@@ -50,7 +53,6 @@
         "roundsVaultOutput": "0x39B9dd2440Fc4ff138643E3a86A486487F3cfc22"
       }
     },
-    "treasury": "0x0f0fA89471259433b6955827226f19999D93c568",
     "governor": [
       "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA",
       "0x0f0fA89471259433b6955827226f19999D93c568"
@@ -65,7 +67,8 @@
     ],
     "timelock": {
       "governorDelay": 0,
-      "curatorDelay": 0
+      "curatorDelay": 0,
+      "treasuryDelay": 0
     }
   }
 }

@@ -61,6 +61,9 @@ async function main() {
   const curatorTimelock = config.deployedContracts.gov.curatorTimelock?.address as
     | ViemAddress
     | undefined
+  const treasuryTimelock = config.deployedContracts.gov.treasuryTimelock?.address as
+    | ViemAddress
+    | undefined
 
   const timelockConfig = readInstitutionTimelockConfig(
     institutionId,
@@ -69,7 +72,9 @@ async function main() {
   )
   console.log(
     kleur.blue('Timelock delays (seconds):'),
-    kleur.cyan(`governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}`),
+    kleur.cyan(
+      `governor=${timelockConfig.governorDelay}, curator=${timelockConfig.curatorDelay}, treasury=${timelockConfig.treasuryDelay}`,
+    ),
   )
 
   const pam = await hre.viem.getContractAt('ProtocolAccessManagerV2' as string, pamAddress)
@@ -77,10 +82,11 @@ async function main() {
   const [deployerWallet] = await hre.viem.getWalletClients()
   const deployer = getAddress(deployerWallet.account.address)
 
-  // Expected proposer sets for the two timelocks — the accounts that MUST be able to schedule once
+  // Expected proposer sets for the three timelocks — the accounts that MUST be able to schedule once
   // the deployer renounces. Same derivation as the deploy script.
   const governance = readInstitutionGovernance(institutionId, useBummerConfig, hre.network.name)
-  const { governorProposers, curatorProposers } = computeTimelockProposers(governance)
+  const { governorProposers, curatorProposers, treasuryProposers } =
+    computeTimelockProposers(governance)
 
   // 0. Verify the recorded timelock addresses on-chain BEFORE any irreversible role change: each
   //    must have code, report the configured minDelay, AND grant PROPOSER_ROLE to its expected
@@ -103,6 +109,15 @@ async function main() {
       publicClient,
     )
   }
+  if (treasuryTimelock) {
+    await assertTimelockUsable(
+      'treasury timelock',
+      treasuryTimelock,
+      timelockConfig.treasuryDelay,
+      treasuryProposers,
+      publicClient,
+    )
+  }
 
   // 1. Verify the curator timelock holds CURATOR_ROLE on EVERY fleet before changing any role.
   //    The curator timelock is mandatory, and handover must run only after every fleet is deployed
@@ -112,6 +127,13 @@ async function main() {
       `No curator timelock recorded for institution "${institutionId}" on network ` +
         `"${hre.network.name}". Timelocks are mandatory — re-run the institution deploy so the ` +
         `curator timelock is recorded before handover.`,
+    )
+  }
+  if (!treasuryTimelock) {
+    throw new Error(
+      `No treasury timelock recorded for institution "${institutionId}" on network ` +
+        `"${hre.network.name}". Timelocks are mandatory — re-run the institution deploy so the ` +
+        `treasury timelock is recorded before handover.`,
     )
   }
   const index = readInstitutionConfigFile(institutionId, useBummerConfig)

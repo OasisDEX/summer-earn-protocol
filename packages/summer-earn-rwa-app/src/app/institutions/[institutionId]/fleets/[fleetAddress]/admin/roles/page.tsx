@@ -7,6 +7,7 @@ import { RoleManagerPanel } from '@/components/admin/RoleManagerPanel'
 import { ConnectButton } from '@/components/ConnectButton'
 import { Topbar } from '@/components/shell/Topbar'
 import { getInstitutionBySlug } from '@/config/institutions'
+import { getAppEnvironment } from '@/lib/server/appEnvironment'
 import { gqlFetch } from '@/lib/subgraph/client'
 import { INSTITUTION_BY_CONFIGURATION_MANAGER } from '@/lib/subgraph/queries/institutions'
 
@@ -20,7 +21,8 @@ interface InstResp {
 
 export default async function AdminRolesPage({ params }: PageProps) {
   const { institutionId, fleetAddress } = await params
-  const inst = getInstitutionBySlug(institutionId)
+  const env = await getAppEnvironment()
+  const inst = getInstitutionBySlug(env, institutionId)
   if (!inst) notFound()
   const fleet = inst.fleets.find(
     (f) => f.fleetCommander.toLowerCase() === fleetAddress.toLowerCase(),
@@ -32,7 +34,7 @@ export default async function AdminRolesPage({ params }: PageProps) {
   // still works for grant/revoke without it.
   let institutionSubgraphId: string | undefined
   try {
-    const data = await gqlFetch<InstResp>(inst.chainId, INSTITUTION_BY_CONFIGURATION_MANAGER, {
+    const data = await gqlFetch<InstResp>(inst.chainId, env, INSTITUTION_BY_CONFIGURATION_MANAGER, {
       cm: inst.configurationManager.toLowerCase(),
     })
     institutionSubgraphId = data.institutions[0]?.id

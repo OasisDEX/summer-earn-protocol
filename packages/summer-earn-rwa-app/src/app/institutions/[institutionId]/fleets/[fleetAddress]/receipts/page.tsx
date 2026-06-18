@@ -5,6 +5,7 @@ import { ConnectButton } from '@/components/ConnectButton'
 import { ReceiptTable } from '@/components/rounds/ReceiptTable'
 import { Topbar } from '@/components/shell/Topbar'
 import { getInstitutionBySlug } from '@/config/institutions'
+import { getAppEnvironment } from '@/lib/server/appEnvironment'
 
 interface PageProps {
   params: Promise<{ institutionId: string; fleetAddress: string }>
@@ -12,7 +13,8 @@ interface PageProps {
 
 export default async function ReceiptsPage({ params }: PageProps) {
   const { institutionId, fleetAddress } = await params
-  const inst = getInstitutionBySlug(institutionId)
+  const env = await getAppEnvironment()
+  const inst = getInstitutionBySlug(env, institutionId)
   if (!inst) notFound()
   const fleet = inst.fleets.find(
     (f) => f.fleetCommander.toLowerCase() === fleetAddress.toLowerCase(),

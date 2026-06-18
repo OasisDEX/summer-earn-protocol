@@ -71,8 +71,9 @@ export function writeInstitutionIndex(
 }
 
 /**
- * Reads and validates governance fields (treasury, governor[], guardian[]).
- * Throws if any of them are missing or invalid.
+ * Reads and validates governance fields (governor[], guardian[], superKeeper, whitelistManagers[]).
+ * Throws if any of them are missing or invalid. There is no `treasury` field: the institution
+ * treasury is always the TreasuryTimelock deployed alongside the institution.
  */
 export function readInstitutionGovernance(
   institutionId: string,
@@ -81,7 +82,6 @@ export function readInstitutionGovernance(
 ): InstitutionGovernance {
   const content = readInstitutionConfigFile(institutionId, useBummer)
   const net = content[network]
-  const treasury = net?.treasury
   const governor = net?.governor
   const curators = net?.curators
   const guardian = net?.guardian
@@ -91,7 +91,6 @@ export function readInstitutionGovernance(
   // Strong validation using zod schema requiring all fields
   try {
     const parsed = InstitutionGovernanceSchema.parse({
-      treasury,
       governor,
       curators,
       guardian,
@@ -99,7 +98,6 @@ export function readInstitutionGovernance(
       whitelistManagers,
     })
     return {
-      treasury: parsed.treasury as Address,
       governor: parsed.governor as Address[],
       curators: parsed.curators as Address[],
       guardian: parsed.guardian as Address[],
@@ -108,7 +106,7 @@ export function readInstitutionGovernance(
     }
   } catch (e) {
     throw new Error(
-      `Institution governance is missing or invalid for network "${network}". Ensure fields { treasury, governor[], guardian[], superKeeper, whitelistManagers[] } exist under that network in the institution index file for "${institutionId}"`,
+      `Institution governance is missing or invalid for network "${network}". Ensure fields { governor[], guardian[], superKeeper, whitelistManagers[] } exist under that network in the institution index file for "${institutionId}"`,
     )
   }
 }
@@ -116,10 +114,10 @@ export function readInstitutionGovernance(
 /**
  * Reads the per-network timelock delay configuration for an institution.
  *
- * Both RwaTimelock instances are always deployed regardless of this config — it only sets each
+ * All three RwaTimelock instances are always deployed regardless of this config — it only sets each
  * one's delay. Timelocks are MANDATORY: a missing `timelock` block is an error (no silent
- * zero-delay default). Use an explicit { governorDelay: 0, curatorDelay: 0 } to opt out of any
- * delay ("none" mode). See TimelockConfigSchema for the full mapping.
+ * zero-delay default). Use an explicit { governorDelay: 0, curatorDelay: 0, treasuryDelay: 0 } to
+ * opt out of any delay ("none" mode). See TimelockConfigSchema for the full mapping.
  */
 export function readInstitutionTimelockConfig(
   institutionId: string,
@@ -131,9 +129,9 @@ export function readInstitutionTimelockConfig(
   if (!net || !net.timelock) {
     throw new Error(
       `Missing required "timelock" config for institution "${institutionId}" on network "${network}". ` +
-        `Add a "timelock": { "governorDelay": <seconds>, "curatorDelay": <seconds> } block under that ` +
+        `Add a "timelock": { "governorDelay": <seconds>, "curatorDelay": <seconds>, "treasuryDelay": <seconds> } block under that ` +
         `network in the institution index file. Timelocks are mandatory — use ` +
-        `{ "governorDelay": 0, "curatorDelay": 0 } only to explicitly opt out of any delay.`,
+        `{ "governorDelay": 0, "curatorDelay": 0, "treasuryDelay": 0 } only to explicitly opt out of any delay.`,
     )
   }
   return TimelockConfigSchema.parse(net.timelock)
