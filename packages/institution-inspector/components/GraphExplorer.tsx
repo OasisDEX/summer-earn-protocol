@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Background, Controls, MiniMap, ReactFlow, type Node } from '@xyflow/react'
+import { Background, Controls, ReactFlow, type Node } from '@xyflow/react'
 import { ChevronRight, RefreshCw } from 'lucide-react'
 import type { GraphEdge, GraphFile, GraphNode } from '@/lib/graph-schema'
 import { drillTarget, levelOf, selectSubgraph, toReactFlow, type ViewState } from '@/lib/subgraph'
@@ -152,11 +152,10 @@ export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> })
         >
           <Background color="#242629" gap={20} />
           <Controls showInteractive={false} />
-          <MiniMap pannable zoomable className="!bg-surface-container" maskColor="rgba(13,14,16,0.7)" nodeColor="#47484a" />
         </ReactFlow>
 
-        {/* Legend */}
-        <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1 rounded-lg border border-outline-variant bg-surface-container/90 px-3 py-2 text-[10px] text-on-surface-variant backdrop-blur">
+        {/* Legend (top-right, clear of the zoom controls and the dev indicator) */}
+        <div className="absolute right-3 top-14 z-10 flex flex-col gap-1 rounded-lg border border-outline-variant bg-surface-container/90 px-3 py-2 text-[10px] text-on-surface-variant backdrop-blur">
           <LegendRow color="#68fadd" label="verified on-chain" />
           <LegendRow color="#ff716c" label="drift (config ≠ chain)" dashed />
           <LegendRow color="#757578" label="unverified / config-only" dashed />
