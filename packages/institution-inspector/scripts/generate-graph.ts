@@ -24,7 +24,9 @@ export async function generate(
   deploymentRoot = defaultDeploymentRoot(),
 ): Promise<{ written: boolean; nodes: number }> {
   if (!fs.existsSync(deploymentRoot)) {
-    throw new Error(`deployment package not found at ${deploymentRoot} (set DEPLOYMENT_DIR to override)`)
+    throw new Error(
+      `deployment package not found at ${deploymentRoot} (set DEPLOYMENT_DIR to override)`,
+    )
   }
 
   const passA = buildConfigGraph(deploymentRoot, network, env)
@@ -61,14 +63,21 @@ export async function generate(
   const outPath = path.join(outDir, `graph.${network}.${env}.json`)
   fs.writeFileSync(outPath, JSON.stringify(parsed, null, 2) + '\n')
 
-  const onchainNote = withOnchain ? (onchain.fetched ? `on-chain @ ${onchain.blockNumber}` : 'on-chain failed → config-only') : 'config-only'
-  console.log(`✓ ${network}/${env}: ${parsed.nodes.length} nodes, ${parsed.edges.length} edges (${onchainNote})`)
+  const onchainNote = withOnchain
+    ? onchain.fetched
+      ? `on-chain @ ${onchain.blockNumber}`
+      : 'on-chain failed → config-only'
+    : 'config-only'
+  console.log(
+    `✓ ${network}/${env}: ${parsed.nodes.length} nodes, ${parsed.edges.length} edges (${onchainNote})`,
+  )
   return { written: true, nodes: parsed.nodes.length }
 }
 
 function arg(name: string, fallback?: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`)
-  if (i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--')) return process.argv[i + 1]
+  if (i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--'))
+    return process.argv[i + 1]
   return fallback
 }
 const hasFlag = (name: string) => process.argv.includes(`--${name}`)

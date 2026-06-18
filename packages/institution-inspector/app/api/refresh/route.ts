@@ -16,7 +16,8 @@ export async function GET(req: Request) {
   const env = (searchParams.get('env') ?? 'production') as Env
 
   try {
-    const deploymentRoot = process.env.DEPLOYMENT_DIR ?? path.resolve(process.cwd(), '..', 'deployment')
+    const deploymentRoot =
+      process.env.DEPLOYMENT_DIR ?? path.resolve(process.cwd(), '..', 'deployment')
     const passA = buildConfigGraph(deploymentRoot, network, env)
     const onchain = await augmentOnchain({
       network,

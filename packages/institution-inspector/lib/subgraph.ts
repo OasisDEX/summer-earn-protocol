@@ -21,13 +21,17 @@ export function levelOf(view: ViewState): Level {
  * so filtering is prefix-based. Role-holder / timelock nodes are pulled in when they have an
  * edge into the anchor set.
  */
-export function selectSubgraph(graph: GraphFile, view: ViewState): { nodes: GraphNode[]; edges: GraphFile['edges'] } {
+export function selectSubgraph(
+  graph: GraphFile,
+  view: ViewState,
+): { nodes: GraphNode[]; edges: GraphFile['edges'] } {
   const level = levelOf(view)
   const byId = new Map(graph.nodes.map((n) => [n.id, n]))
   const anchor = new Set<string>()
 
   if (level === 'L1') {
-    for (const n of graph.nodes) if (n.type === 'institution' || n.id.startsWith('registry:')) anchor.add(n.id)
+    for (const n of graph.nodes)
+      if (n.type === 'institution' || n.id.startsWith('registry:')) anchor.add(n.id)
   } else if (level === 'L2') {
     const inst = view.inst!
     for (const n of graph.nodes) {

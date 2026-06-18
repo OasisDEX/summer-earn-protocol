@@ -58,7 +58,12 @@ export async function augmentOnchain(input: AugmentInput): Promise<OnchainMeta> 
     const ids = institutions.map((n) => institutionBytes32(n.data.institutionId!))
     const calls = institutions.flatMap((_, i) => [
       { address: regV2, abi: REGISTRY_ABI, functionName: 'exists', args: [ids[i]] } as const,
-      { address: regV2, abi: REGISTRY_ABI, functionName: 'getInstitution', args: [ids[i]] } as const,
+      {
+        address: regV2,
+        abi: REGISTRY_ABI,
+        functionName: 'getInstitution',
+        args: [ids[i]],
+      } as const,
     ])
     const res = await client.multicall({ contracts: calls as any, allowFailure: true })
     institutions.forEach((instNode, i) => {
@@ -67,7 +72,13 @@ export async function augmentOnchain(input: AugmentInput): Promise<OnchainMeta> 
       instNode.data.existsOnChain = exists
       instNode.data.source = 'config+onchain'
       if (exists && regNode) {
-        edges.push({ id: `eonc-reg-${i}`, type: 'system', source: instNode.id, target: regNode.id, data: { verifiedOnChain: true } })
+        edges.push({
+          id: `eonc-reg-${i}`,
+          type: 'system',
+          source: instNode.id,
+          target: regNode.id,
+          data: { verifiedOnChain: true },
+        })
       }
       const wiring = ok(res[i * 2 + 1])
       if (exists && wiring) {
@@ -100,14 +111,20 @@ export async function augmentOnchain(input: AugmentInput): Promise<OnchainMeta> 
     if (!pam || !holder) continue
     // Contract-specific roles (CURATOR_ROLE) target a fleet commander node.
     const targetNode = byId.get(e.target)
-    const contractTarget = targetNode?.type === 'fleetCommander' ? (targetNode.data.address as Address) : undefined
+    const contractTarget =
+      targetNode?.type === 'fleetCommander' ? (targetNode.data.address as Address) : undefined
     const roleHash = resolveRoleHash(e.data!.role!, contractTarget)
     if (!roleHash) continue
     jobs.push({ edge: e, pam, roleHash, holder })
   }
   if (jobs.length > 0) {
     const res = await client.multicall({
-      contracts: jobs.map((j) => ({ address: j.pam, abi: PAM_ABI, functionName: 'hasRole', args: [j.roleHash, j.holder] })) as any,
+      contracts: jobs.map((j) => ({
+        address: j.pam,
+        abi: PAM_ABI,
+        functionName: 'hasRole',
+        args: [j.roleHash, j.holder],
+      })) as any,
       allowFailure: true,
     })
     jobs.forEach((j, i) => {
@@ -121,7 +138,12 @@ export async function augmentOnchain(input: AugmentInput): Promise<OnchainMeta> 
   if (rvReg) {
     const fcNodes = nodes.filter((n) => n.type === 'fleetCommander' && n.data.address)
     const res = await client.multicall({
-      contracts: fcNodes.map((fc) => ({ address: rvReg, abi: ROUNDS_VAULT_REGISTRY_ABI, functionName: 'getPairByTarget', args: [fc.data.address as Address] })) as any,
+      contracts: fcNodes.map((fc) => ({
+        address: rvReg,
+        abi: ROUNDS_VAULT_REGISTRY_ABI,
+        functionName: 'getPairByTarget',
+        args: [fc.data.address as Address],
+      })) as any,
       allowFailure: true,
     })
     fcNodes.forEach((fc, i) => {
@@ -132,7 +154,10 @@ export async function augmentOnchain(input: AugmentInput): Promise<OnchainMeta> 
         ['roundsVaultInput', pair.inputVault],
         ['roundsVaultOutput', pair.outputVault],
       ] as const) {
-        const nid = kind === 'roundsVaultInput' ? nodeId.roundsVaultInput(instId, fleet) : nodeId.roundsVaultOutput(instId, fleet)
+        const nid =
+          kind === 'roundsVaultInput'
+            ? nodeId.roundsVaultInput(instId, fleet)
+            : nodeId.roundsVaultOutput(instId, fleet)
         const n = byId.get(nid)
         if (!n) continue
         n.data.source = 'config+onchain'

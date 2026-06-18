@@ -4,7 +4,13 @@ import { X } from 'lucide-react'
 import type { GraphNode } from '@/lib/graph-schema'
 import { AddressChip } from './AddressChip'
 
-export function NodeDetailDrawer({ node, onClose }: { node: GraphNode | null; onClose: () => void }) {
+export function NodeDetailDrawer({
+  node,
+  onClose,
+}: {
+  node: GraphNode | null
+  onClose: () => void
+}) {
   if (!node) return null
   const d = node.data
   const rows: Array<[string, React.ReactNode]> = []
@@ -40,7 +46,9 @@ export function NodeDetailDrawer({ node, onClose }: { node: GraphNode | null; on
       <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-3 text-sm">
         {d.address && (
           <div className="mb-3">
-            <div className="mb-1 text-[10px] uppercase tracking-wide text-on-surface-variant">Address</div>
+            <div className="mb-1 text-[10px] uppercase tracking-wide text-on-surface-variant">
+              Address
+            </div>
             <AddressChip address={d.address} />
           </div>
         )}
@@ -54,7 +62,9 @@ export function NodeDetailDrawer({ node, onClose }: { node: GraphNode | null; on
         </dl>
         {d.roles && d.roles.length > 0 && (
           <div className="mt-3">
-            <div className="mb-1 text-[10px] uppercase tracking-wide text-on-surface-variant">Roles</div>
+            <div className="mb-1 text-[10px] uppercase tracking-wide text-on-surface-variant">
+              Roles
+            </div>
             {d.roles.map((r, i) => (
               <div key={i} className="text-[11px] text-on-surface-variant">
                 {r.role}: <span className="font-mono">{r.holder}</span>

@@ -32,6 +32,7 @@ export function institutionBytes32(name: string): Hex {
  */
 export function resolveRoleHash(role: string, contractTarget?: Hex): Hex | null {
   if (GLOBAL_ROLES[role]) return GLOBAL_ROLES[role]
-  if (role in CONTRACT_ROLE_ENUM && contractTarget) return generateRole(CONTRACT_ROLE_ENUM[role], contractTarget)
+  if (role in CONTRACT_ROLE_ENUM && contractTarget)
+    return generateRole(CONTRACT_ROLE_ENUM[role], contractTarget)
   return null
 }

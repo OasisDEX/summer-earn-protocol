@@ -13,11 +13,15 @@ const nodeTypes = { inspector: InspectorNode }
 
 // An edge that asserts an on-chain fact (role grant / registry membership) rather than structure.
 const isClaimEdge = (e: GraphEdge) =>
-  e.type === 'hasRole' || e.type === 'governs' || (e.type === 'system' && e.target.startsWith('registry:'))
+  e.type === 'hasRole' ||
+  e.type === 'governs' ||
+  (e.type === 'system' && e.target.startsWith('registry:'))
 
 export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> }) {
   const keys = Object.keys(graphs).sort()
-  const [graphKey, setGraphKey] = useState(keys.includes('base.production') ? 'base.production' : keys[0])
+  const [graphKey, setGraphKey] = useState(
+    keys.includes('base.production') ? 'base.production' : keys[0],
+  )
   const [view, setView] = useState<ViewState>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [verifiedOnly, setVerifiedOnly] = useState(false)
@@ -39,7 +43,9 @@ export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> })
         connected.add(e.target)
       })
       // Drop role/timelock nodes left with no verified connection.
-      nodes = nodes.filter((n) => (n.type !== 'roleHolder' && n.type !== 'timelock') || connected.has(n.id))
+      nodes = nodes.filter(
+        (n) => (n.type !== 'roleHolder' && n.type !== 'timelock') || connected.has(n.id),
+      )
     }
     const { rfNodes, rfEdges } = toReactFlow(nodes, edges)
     return { rfNodes, rfEdges, byId: new Map(nodes.map((n) => [n.id, n])) }
@@ -107,7 +113,11 @@ export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> })
                 {i > 0 && <ChevronRight size={14} className="text-outline" />}
                 <button
                   onClick={c.onClick}
-                  className={i === crumbs.length - 1 ? 'font-semibold text-on-surface' : 'text-primary hover:underline'}
+                  className={
+                    i === crumbs.length - 1
+                      ? 'font-semibold text-on-surface'
+                      : 'text-primary hover:underline'
+                  }
                 >
                   {c.label}
                 </button>
@@ -116,7 +126,11 @@ export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> })
           </nav>
 
           <label className="ml-auto flex items-center gap-1.5 text-xs text-on-surface-variant">
-            <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={verifiedOnly}
+              onChange={(e) => setVerifiedOnly(e.target.checked)}
+            />
             verified only
           </label>
 
@@ -131,7 +145,8 @@ export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> })
           </button>
 
           <span className="text-xs text-on-surface-variant">
-            {level} · {rfNodes.length} nodes · {graph.onchain.fetched ? `verified @ ${graph.onchain.blockNumber}` : 'config-only'}
+            {level} · {rfNodes.length} nodes ·{' '}
+            {graph.onchain.fetched ? `verified @ ${graph.onchain.blockNumber}` : 'config-only'}
           </span>
         </div>
 

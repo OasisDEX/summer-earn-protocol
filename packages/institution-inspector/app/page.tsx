@@ -12,7 +12,9 @@ export default function Page() {
           <h1 className="text-lg font-semibold text-on-surface">No graph data found</h1>
           <p className="mt-2 max-w-md text-sm text-on-surface-variant">
             Generate one first, e.g.{' '}
-            <code className="rounded bg-surface-container px-1 py-0.5">pnpm generate -- --network base --env production</code>
+            <code className="rounded bg-surface-container px-1 py-0.5">
+              pnpm generate -- --network base --env production
+            </code>
           </p>
         </div>
       </main>

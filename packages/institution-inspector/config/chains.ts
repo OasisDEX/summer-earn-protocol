@@ -37,7 +37,8 @@ export const NETWORK_TO_CHAIN_ID: Record<NetworkType, number> = {
 }
 
 const VIEM_CHAINS: Record<NetworkType, Chain> = { base, arbitrum, mainnet, sonic, hyperliquid }
-export const viemChainFor = (network: string): Chain | undefined => VIEM_CHAINS[network as NetworkType]
+export const viemChainFor = (network: string): Chain | undefined =>
+  VIEM_CHAINS[network as NetworkType]
 
 export const CHAIN_ID_TO_EXPLORER: Record<number, string> = {
   [mainnet.id]: 'https://etherscan.io',

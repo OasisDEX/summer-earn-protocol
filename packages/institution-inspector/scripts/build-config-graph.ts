@@ -86,7 +86,12 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
     nodes.set(nodeId.registry('V2'), {
       id: nodeId.registry('V2'),
       type: 'systemContract',
-      data: { label: 'InstitutionalVaultRegistry V2', kind: 'Registry', address: registries.v2, source: 'config' },
+      data: {
+        label: 'InstitutionalVaultRegistry V2',
+        kind: 'Registry',
+        address: registries.v2,
+        source: 'config',
+      },
     })
   }
 
@@ -117,14 +122,22 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
     // System contracts
     if (pam) {
       const id = nodeId.system(inst, 'ProtocolAccessManager')
-      nodes.set(id, { id, type: 'systemContract', data: { label: 'PAM', kind: 'ProtocolAccessManager', address: pam, source: 'config' } })
+      nodes.set(id, {
+        id,
+        type: 'systemContract',
+        data: { label: 'PAM', kind: 'ProtocolAccessManager', address: pam, source: 'config' },
+      })
       addEdge({ type: 'system', source: instNode, target: id })
     }
     for (const [key, kind] of Object.entries(SYSTEM_CORE_KINDS)) {
       const addr = core[key]?.address
       if (!addr) continue
       const id = nodeId.system(inst, kind)
-      nodes.set(id, { id, type: 'systemContract', data: { label: kind, kind, address: addr, source: 'config' } })
+      nodes.set(id, {
+        id,
+        type: 'systemContract',
+        data: { label: kind, kind, address: addr, source: 'config' },
+      })
       addEdge({ type: 'system', source: instNode, target: id })
     }
 
@@ -143,7 +156,13 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
       nodes.set(id, {
         id,
         type: 'timelock',
-        data: { label: kind, kind, address: addr, delaySeconds: typeof delay === 'number' ? delay : undefined, source: 'config' },
+        data: {
+          label: kind,
+          kind,
+          address: addr,
+          delaySeconds: typeof delay === 'number' ? delay : undefined,
+          source: 'config',
+        },
       })
       if (pam) addEdge({ type: 'governs', source: id, target: pamSysId, data: { role } })
     }
@@ -153,9 +172,18 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
       if (!addr || !pam) return
       const id = nodeId.roleHolder(addr)
       if (!nodes.has(id)) {
-        nodes.set(id, { id, type: 'roleHolder', data: { label: `${addr.slice(0, 6)}…${addr.slice(-4)}`, address: addr, source: 'config' } })
+        nodes.set(id, {
+          id,
+          type: 'roleHolder',
+          data: { label: `${addr.slice(0, 6)}…${addr.slice(-4)}`, address: addr, source: 'config' },
+        })
       }
-      addEdge({ type: 'hasRole', source: id, target: pamSysId, data: { role, verifiedOnChain: false } })
+      addEdge({
+        type: 'hasRole',
+        source: id,
+        target: pamSysId,
+        data: { role, verifiedOnChain: false },
+      })
     }
     for (const g of net.governor ?? []) roleHolderEdge(g, 'GOVERNOR_ROLE')
     for (const g of net.guardian ?? []) roleHolderEdge(g, 'GUARDIAN_ROLE')
@@ -171,7 +199,13 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
       nodes.set(fleetNode, {
         id: fleetNode,
         type: 'fleet',
-        data: { label: fleetName, fleetName, asset: fleetAssets[fleetName], arkCount: arks.length, source: 'config' },
+        data: {
+          label: fleetName,
+          fleetName,
+          asset: fleetAssets[fleetName],
+          arkCount: arks.length,
+          source: 'config',
+        },
       })
       addEdge({ type: 'contains', source: instNode, target: fleetNode })
 
@@ -181,29 +215,63 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
         nodes.set(fcId, {
           id: fcId,
           type: 'fleetCommander',
-          data: { label: 'FleetCommander', address: f.fleetCommander, contractName: fcMeta?.contractName, futureId: fcMeta?.futureId, source: 'config' },
+          data: {
+            label: 'FleetCommander',
+            address: f.fleetCommander,
+            contractName: fcMeta?.contractName,
+            futureId: fcMeta?.futureId,
+            source: 'config',
+          },
         })
         addEdge({ type: 'deploys', source: fleetNode, target: fcId })
 
         if (f.bufferArk) {
           const id = nodeId.bufferArk(inst, fleetName)
-          nodes.set(id, { id, type: 'bufferArk', data: { label: 'BufferArk', address: f.bufferArk, contractName: meta(f.bufferArk)?.contractName, source: 'config' } })
+          nodes.set(id, {
+            id,
+            type: 'bufferArk',
+            data: {
+              label: 'BufferArk',
+              address: f.bufferArk,
+              contractName: meta(f.bufferArk)?.contractName,
+              source: 'config',
+            },
+          })
           addEdge({ type: 'buffer', source: fcId, target: id })
         }
         arks.forEach((arkAddr, i) => {
           const id = nodeId.ark(inst, fleetName, i)
           const m = meta(arkAddr)
-          nodes.set(id, { id, type: 'ark', data: { label: m?.contractName ?? 'Ark', address: arkAddr, contractName: m?.contractName, protocol: m?.protocol, futureId: m?.futureId, source: 'config' } })
+          nodes.set(id, {
+            id,
+            type: 'ark',
+            data: {
+              label: m?.contractName ?? 'Ark',
+              address: arkAddr,
+              contractName: m?.contractName,
+              protocol: m?.protocol,
+              futureId: m?.futureId,
+              source: 'config',
+            },
+          })
           addEdge({ type: 'ark', source: fcId, target: id })
         })
         if (f.roundsVaultInput) {
           const id = nodeId.roundsVaultInput(inst, fleetName)
-          nodes.set(id, { id, type: 'roundsVaultInput', data: { label: 'RoundsVaultInput', address: f.roundsVaultInput, source: 'config' } })
+          nodes.set(id, {
+            id,
+            type: 'roundsVaultInput',
+            data: { label: 'RoundsVaultInput', address: f.roundsVaultInput, source: 'config' },
+          })
           addEdge({ type: 'roundsInput', source: fcId, target: id })
         }
         if (f.roundsVaultOutput) {
           const id = nodeId.roundsVaultOutput(inst, fleetName)
-          nodes.set(id, { id, type: 'roundsVaultOutput', data: { label: 'RoundsVaultOutput', address: f.roundsVaultOutput, source: 'config' } })
+          nodes.set(id, {
+            id,
+            type: 'roundsVaultOutput',
+            data: { label: 'RoundsVaultOutput', address: f.roundsVaultOutput, source: 'config' },
+          })
           addEdge({ type: 'roundsOutput', source: fcId, target: id })
         }
 
@@ -212,9 +280,18 @@ export function buildConfigGraph(deploymentRoot: string, network: string, env: E
           if (!c) continue
           const rid = nodeId.roleHolder(c)
           if (!nodes.has(rid)) {
-            nodes.set(rid, { id: rid, type: 'roleHolder', data: { label: `${c.slice(0, 6)}…${c.slice(-4)}`, address: c, source: 'config' } })
+            nodes.set(rid, {
+              id: rid,
+              type: 'roleHolder',
+              data: { label: `${c.slice(0, 6)}…${c.slice(-4)}`, address: c, source: 'config' },
+            })
           }
-          addEdge({ type: 'hasRole', source: rid, target: fcId, data: { role: 'CURATOR_ROLE', verifiedOnChain: false } })
+          addEdge({
+            type: 'hasRole',
+            source: rid,
+            target: fcId,
+            data: { role: 'CURATOR_ROLE', verifiedOnChain: false },
+          })
         }
       }
     }

@@ -27,7 +27,10 @@ export function inferProtocol(contractName?: string): string | undefined {
  * Build a lowercased address -> ContractMeta map for the given chain.
  * Returns an empty map (not an error) when the deployment dir is absent.
  */
-export function loadIgnitionMetadata(deploymentRoot: string, chainId: number): Map<string, ContractMeta> {
+export function loadIgnitionMetadata(
+  deploymentRoot: string,
+  chainId: number,
+): Map<string, ContractMeta> {
   const out = new Map<string, ContractMeta>()
   const dir = path.join(deploymentRoot, 'ignition', 'deployments', `chain-${chainId}`)
   const addrFile = path.join(dir, 'deployed_addresses.json')
@@ -48,7 +51,11 @@ export function loadIgnitionMetadata(deploymentRoot: string, chainId: number): M
       }
     }
     // First writer wins per address; deployed_addresses has unique addresses anyway.
-    out.set(address.toLowerCase(), { futureId, contractName, protocol: inferProtocol(contractName) })
+    out.set(address.toLowerCase(), {
+      futureId,
+      contractName,
+      protocol: inferProtocol(contractName),
+    })
   }
   return out
 }
