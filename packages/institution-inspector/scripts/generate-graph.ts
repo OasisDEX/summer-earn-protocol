@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { GraphFileSchema, type GraphFile } from '../lib/graph-schema'
+import { augmentOnchain } from '../lib/onchain/augment'
 import { buildConfigGraph, type Env } from './build-config-graph'
 
 /**
@@ -33,20 +34,28 @@ async function main() {
   console.log(`Generating graph: network=${network} env=${env} onchain=${withOnchain}`)
   const passA = buildConfigGraph(deploymentRoot, network, env)
 
+  let onchain = { fetched: false } as Awaited<ReturnType<typeof augmentOnchain>>
+  if (withOnchain) {
+    console.log('Running Pass B (on-chain verification)…')
+    onchain = await augmentOnchain({
+      network,
+      nodes: passA.nodes,
+      edges: passA.edges,
+      pamByInstitution: passA.pamByInstitution,
+      registries: passA.registries,
+    })
+    console.log(onchain.fetched ? `  on-chain OK @ block ${onchain.blockNumber}` : '  on-chain skipped/failed; emitting config-only graph')
+  }
+
   const file: GraphFile = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     network,
     chainId: passA.chainId,
     env,
-    onchain: { fetched: false },
+    onchain,
     nodes: passA.nodes,
     edges: passA.edges,
-  }
-
-  if (withOnchain) {
-    // Pass B wires in here (Phase 4). Kept config-only until then.
-    console.warn('--onchain requested but Pass B not implemented yet; emitting config-only graph.')
   }
 
   const parsed = GraphFileSchema.parse(file)

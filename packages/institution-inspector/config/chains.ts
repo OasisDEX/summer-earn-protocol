@@ -1,4 +1,4 @@
-import { mainnet, arbitrum, base, sonic, hyperliquid } from 'viem/chains'
+import { mainnet, arbitrum, base, sonic, hyperliquid, type Chain } from 'viem/chains'
 
 // Public RPC endpoints per chain (fallback transport tries them in order).
 // Copied from oracle-dashboard; trimmed to the primary handful per chain.
@@ -35,6 +35,9 @@ export const NETWORK_TO_CHAIN_ID: Record<NetworkType, number> = {
   sonic: sonic.id,
   hyperliquid: hyperliquid.id,
 }
+
+const VIEM_CHAINS: Record<NetworkType, Chain> = { base, arbitrum, mainnet, sonic, hyperliquid }
+export const viemChainFor = (network: string): Chain | undefined => VIEM_CHAINS[network as NetworkType]
 
 export const CHAIN_ID_TO_EXPLORER: Record<number, string> = {
   [mainnet.id]: 'https://etherscan.io',

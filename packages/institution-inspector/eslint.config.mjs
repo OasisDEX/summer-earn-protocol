@@ -13,9 +13,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "data/**",
   ]),
-  // Generator scripts parse loosely-typed deployment JSON; `any` is pragmatic there.
+  // Generator scripts + on-chain helpers parse loosely-typed JSON / multicall tuples;
+  // `any` is pragmatic there.
   {
-    files: ["scripts/**/*.ts"],
+    files: ["scripts/**/*.ts", "lib/onchain/**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
     },

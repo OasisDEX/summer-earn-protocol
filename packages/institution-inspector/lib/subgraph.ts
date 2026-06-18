@@ -96,14 +96,31 @@ export function toReactFlow(
 
   const rfEdges: Edge[] = edges.map((e) => {
     const isRole = e.type === 'hasRole' || e.type === 'governs'
+    const verified = e.data?.verifiedOnChain
+    // verified -> teal solid; drift (checked & false) -> red dashed+animated;
+    // unchecked -> grey dashed; structural edges -> grey solid.
+    let stroke = '#47484a'
+    let dashed = false
+    let animated = false
+    if (isRole) {
+      if (verified === true) stroke = '#68fadd'
+      else if (verified === false) {
+        stroke = '#ff716c'
+        dashed = true
+        animated = true
+      } else {
+        stroke = '#757578'
+        dashed = true
+      }
+    }
     return {
       id: e.id,
       source: e.source,
       target: e.target,
       label: e.data?.role,
-      animated: isRole && e.data?.verifiedOnChain === false,
-      style: isRole ? { stroke: '#94a3b8', strokeDasharray: e.data?.verifiedOnChain ? undefined : '4 4' } : { stroke: '#cbd5e1' },
-      labelStyle: { fontSize: 10, fill: '#64748b' },
+      animated,
+      style: { stroke, strokeDasharray: dashed ? '4 4' : undefined },
+      labelStyle: { fontSize: 10, fill: '#ababad' },
     }
   })
 

@@ -1,11 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-18T06:37:20.676Z",
+  "generatedAt": "2026-06-18T07:35:57.793Z",
   "network": "base",
   "chainId": 8453,
   "env": "production",
   "onchain": {
-    "fetched": false
+    "fetched": true,
+    "blockNumber": "47489404",
+    "rpcOk": true
   },
   "nodes": [
     {
@@ -503,7 +505,7 @@
       "type": "roundsVaultInput",
       "data": {
         "label": "RoundsVaultInput",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0xaB52066D933742ec53Cb18152C65C63546E88c7a"
       }
     },
@@ -512,7 +514,7 @@
       "type": "roundsVaultOutput",
       "data": {
         "label": "RoundsVaultOutput",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0xed98B956B70c20836F6A2825e46A7a090b883d24"
       }
     },
@@ -570,7 +572,8 @@
       "target": "sys:ExtDemoCorp:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -580,7 +583,8 @@
       "target": "sys:ExtDemoCorp:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -590,7 +594,8 @@
       "target": "sys:ExtDemoCorp:ProtocolAccessManager",
       "data": {
         "role": "GUARDIAN_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -600,7 +605,8 @@
       "target": "sys:ExtDemoCorp:ProtocolAccessManager",
       "data": {
         "role": "GUARDIAN_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -610,7 +616,8 @@
       "target": "sys:ExtDemoCorp:ProtocolAccessManager",
       "data": {
         "role": "SUPER_KEEPER_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": false,
+        "drift": true
       }
     },
     {
@@ -620,7 +627,8 @@
       "target": "sys:ExtDemoCorp:ProtocolAccessManager",
       "data": {
         "role": "WHITELIST_MANAGER_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": false,
+        "drift": true
       }
     },
     {
@@ -726,7 +734,8 @@
       "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -736,7 +745,8 @@
       "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -746,7 +756,8 @@
       "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "GUARDIAN_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -756,7 +767,8 @@
       "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "GUARDIAN_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -766,7 +778,8 @@
       "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "SUPER_KEEPER_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -776,7 +789,8 @@
       "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "WHITELIST_MANAGER_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
