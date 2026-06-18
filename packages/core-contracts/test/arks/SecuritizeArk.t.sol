@@ -1038,10 +1038,11 @@ contract SecuritizeArkTest is
         assertEq(usdc.balanceOf(address(bufferArk)), returned);
     }
 
-    /// @dev Finding 3: an `emergencySweep` on a *frozen* ark must clear the freeze and the stale
-    ///      `_frozenTotalAssets` snapshot; otherwise the swept value is double-counted in fleet NAV
-    ///      (here via the stale snapshot + the buffer ark's real balance).
-    function test_EmergencySweep_ClearsFreezeSnapshot() public {
+    /// @dev Finding 3 (accepted): an `emergencySweep` on a *frozen* ark intentionally leaves the
+    ///      freeze and the `_frozenTotalAssets` snapshot untouched. In an emergency the reported
+    ///      assets cannot be trusted, so the keeper must explicitly unfreeze the ark after the
+    ///      governor sweeps to restore live valuation.
+    function test_EmergencySweep_RetainsFreezeSnapshot() public {
         uint256 amount = 1000 * 1e6;
         _board(amount);
 
@@ -1058,18 +1059,26 @@ contract SecuritizeArkTest is
         deal(USDC_ADDRESS, address(ark), 500 * 1e6);
         _mockCommanderBuffer();
 
-        vm.expectEmit(true, true, true, true);
-        emit ArkIsFrozenUpdated(false, 0);
         vm.prank(governor);
         ark.emergencySweep();
 
-        // Freeze cleared and stale snapshot dropped: NAV falls back to live valuation, so the
-        // swept value is no longer counted both here and in the buffer ark.
-        assertFalse(ark.isArkFrozen(), "freeze cleared after sweep");
+        // Freeze is intentionally preserved: the ark keeps reporting the frozen snapshot until a
+        // keeper manually unfreezes it.
+        assertTrue(ark.isArkFrozen(), "freeze retained after sweep");
+        assertEq(
+            ark.totalAssets(),
+            frozenSnapshot,
+            "frozen snapshot still reported after sweep"
+        );
+
+        // Keeper unfreezes to restore live valuation once the situation is resolved.
+        vm.prank(keeper);
+        ark.setArkFrozen(false, 0);
+        assertFalse(ark.isArkFrozen(), "freeze cleared by keeper");
         assertEq(
             ark.totalAssets(),
             liveAssets,
-            "stale frozen snapshot no longer reported"
+            "live valuation restored after unfreeze"
         );
     }
 
