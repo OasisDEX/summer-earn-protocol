@@ -1,14 +1,60 @@
 {
   "sepolia_mainnet": {
     "deployedContracts": {
-      "gov": {},
-      "core": {}
+      "gov": {
+        "protocolAccessManager": {
+          "address": "0xC4cd9c4A41c960839cC4284F3Ce3625bF4AA2fB1"
+        },
+        "governorTimelock": {
+          "address": "0xee40EbF1A086D2375768f4AfD9A3b060591Bf819"
+        },
+        "curatorTimelock": {
+          "address": "0x438cDd87b17fbD8F9771844731E9C29E2c10C602"
+        },
+        "treasuryTimelock": {
+          "address": "0x29272547a3fE989187f42d1E554578479CE11CcE"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x5680038C9c587668feA064879d17C513a9AD81D6"
+        },
+        "configurationManager": {
+          "address": "0x0E060a72e2a5a8a41b269233277025DC5315E25c"
+        },
+        "harborCommand": {
+          "address": "0x27912502177328551319D47CF7c5e83e322Ee568"
+        },
+        "admiralsQuarters": {
+          "address": "0x687b6Da69dc2eDaDc124dD5b6f7cC3a51D895A27"
+        },
+        "raft": {
+          "address": "0x3024Fb277441edC61FE95C1fb74ef6a531e42032"
+        }
+      }
     },
-    "fleets": {},
-    "governor": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
-    "guardian": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
+    "fleets": {
+      "Ext_Demo_Superstate_USDC": {
+        "fleetCommander": "0x3ca3E44F4254bcd77394Abb2B97cd10A86a5b38a",
+        "bufferArk": "0x5E1E2Fa429764659ed28b3804EAd5a25A1d2F022",
+        "arks": [
+          "0xB909F4a602ef86C18E695539C99d95023a5Ef260",
+          "0x5e61B5f59Ca5E0E5434f691872A078B6611Bcf28"
+        ],
+        "roundsVaultInput": "0x48B6e2aF68cce18e3Daeb91571f14cd05be55659",
+        "roundsVaultOutput": "0x19C04F5c592897BdD5D651D7B35ca9238Bf73F1D"
+      }
+    },
+    "governor": [
+      "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"
+    ],
+    "guardian": [
+      "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"
+    ],
     "superKeeper": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
-    "whitelistManagers": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
+    "whitelistManagers": [
+      "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"
+    ],
     "timelock": {
       "governorDelay": 0,
       "curatorDelay": 0,
