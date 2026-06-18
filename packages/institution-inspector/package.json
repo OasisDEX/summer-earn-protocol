@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "generate": "tsx scripts/generate-graph.ts",
+    "generate:all": "tsx scripts/generate-all.ts --onchain",
+    "dev:fresh": "pnpm generate:all && next dev",
     "lint": "eslint",
     "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"

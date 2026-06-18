@@ -11,12 +11,22 @@ Data is reconstructed from the local **`packages/deployment`** config + Ignition
 
 ```bash
 # from packages/institution-inspector
+
+# regenerate ALL graphs (base + mainnet, prod + staging, on-chain) then start the viewer:
+pnpm dev:fresh                                              # http://localhost:3000
+
+# or step by step:
+pnpm generate:all                                          # regenerate every network/env (--onchain)
+pnpm dev
+
+# single graph:
 pnpm generate -- --network base --env production            # config + Ignition only
-pnpm generate -- --network base --env production --onchain  # + on-chain verification
-pnpm dev                                                    # view at http://localhost:3000
+pnpm generate -- --network mainnet --env production --onchain  # + on-chain verification
 ```
 
-The generator writes `data/graph.<network>.<env>.json`; the viewer loads every file in `data/`.
+The generator writes `data/graph.<network>.<env>.json`; the viewer loads every file in `data/` and
+lists them in the network/env dropdown. Currently wired: **base** and **mainnet** (production +
+staging).
 
 ## How it works
 
@@ -61,6 +71,7 @@ data/                     generated graph snapshots
 ## Notes / TODO
 
 - Theme adopted from `summer-earn-interface`.
-- Multi-network: add RPCs to `config/chains.ts`, then `pnpm generate -- --network <net> --env <env> --onchain`.
+- Multi-network: add the network to `TARGETS` in `scripts/generate-all.ts` and RPCs to
+  `config/chains.ts`; empty network/env combos are skipped automatically.
 - Possible follow-ups: enumerate on-chain role holders not present in config (needs
   `AccessControlEnumerable` or event scan), per-ark on-chain config checks.
