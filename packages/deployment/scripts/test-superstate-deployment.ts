@@ -25,6 +25,7 @@ async function main() {
     maxDepositPercentageOfTVL: '0',
     fleetName: 'TestFleet',
     version: 1,
+    variant: superstateTokenConfig.variant,
     shareToken: superstateTokenConfig.shareToken,
     superstateSubscribe: superstateTokenConfig.superstateSubscribe,
     superstateRedeem: superstateTokenConfig.superstateRedeem,

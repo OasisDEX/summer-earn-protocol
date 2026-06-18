@@ -535,11 +535,22 @@ export async function deployArk(
         'superstateSubscribe',
         `Superstate fund '${fundName}' superstateSubscribe`,
       )
-      const superstateRedeem = validateConfigAddressEntry(
-        superstateByToken[fundName],
-        'superstateRedeem',
-        `Superstate fund '${fundName}' superstateRedeem`,
-      )
+      const variant = superstateByToken[fundName].variant
+      if (variant !== 'standard' && variant !== 'subscribe') {
+        throw new Error(
+          `Superstate fund '${fundName}' has invalid variant '${variant}' (expected 'standard' or 'subscribe')`,
+        )
+      }
+      // Only the 'subscribe' variant uses an on-chain redemption contract; 'standard' redeems
+      // off-chain and has no redeem address.
+      const superstateRedeem =
+        variant === 'subscribe'
+          ? validateConfigAddressEntry(
+              superstateByToken[fundName],
+              'superstateRedeem',
+              `Superstate fund '${fundName}' superstateRedeem`,
+            )
+          : undefined
       const oracle = validateConfigAddressEntry(
         superstateByToken[fundName],
         'oracle',
@@ -549,6 +560,7 @@ export async function deployArk(
       const depositSlippage = superstateByToken[fundName].depositSlippage
       const ark = await deploySuperstateArk(config, {
         ...baseArkParams,
+        variant: variant,
         fundName: fundName,
         shareToken: shareToken,
         superstateSubscribe: superstateSubscribe,

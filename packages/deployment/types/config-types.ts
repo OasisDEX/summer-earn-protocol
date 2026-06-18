@@ -219,10 +219,15 @@ export interface BaseConfig {
     superstate?: {
       [key in Token]?: {
         [key: string]: {
+          // 'subscribe' = SuperstateSubscribeArk (USTB-style: SUPERSTATE_SUBSCRIBE + on-chain
+          // RedemptionIdle); 'standard' = SuperstateStandardArk (USCC-style: deposit to the fund
+          // token, off-chain redemption — no redeem contract).
+          variant: 'standard' | 'subscribe'
           oracle: string
           shareToken: string
           superstateSubscribe: string
-          superstateRedeem: string
+          // Required for the 'subscribe' variant; unused (may be omitted) for 'standard'.
+          superstateRedeem?: string
           sweepSlippage: string
           depositSlippage: string
         }

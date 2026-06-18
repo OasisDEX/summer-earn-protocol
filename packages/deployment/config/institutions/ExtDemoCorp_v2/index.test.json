@@ -1,4 +1,20 @@
 {
+  "sepolia_mainnet": {
+    "deployedContracts": {
+      "gov": {},
+      "core": {}
+    },
+    "fleets": {},
+    "governor": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
+    "guardian": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
+    "superKeeper": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+    "whitelistManagers": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
+    "timelock": {
+      "governorDelay": 0,
+      "curatorDelay": 0,
+      "treasuryDelay": 0
+    }
+  },
   "base": {
     "deployedContracts": {
       "gov": {
