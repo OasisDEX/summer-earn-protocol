@@ -983,7 +983,11 @@ contract SecuritizeArkTest is
 
         vm.prank(keeper);
         ark.setArkFrozen(false, 0);
-        assertEq(ark.totalAssets(), amount * 2, "live NAV resumes after unfreeze");
+        assertEq(
+            ark.totalAssets(),
+            amount * 2,
+            "live NAV resumes after unfreeze"
+        );
     }
 
     function test_SetArkFrozen_CustomValue() public {
@@ -1062,7 +1066,11 @@ contract SecuritizeArkTest is
         // Freeze cleared and stale snapshot dropped: NAV falls back to live valuation, so the
         // swept value is no longer counted both here and in the buffer ark.
         assertFalse(ark.isArkFrozen(), "freeze cleared after sweep");
-        assertEq(ark.totalAssets(), liveAssets, "stale frozen snapshot no longer reported");
+        assertEq(
+            ark.totalAssets(),
+            liveAssets,
+            "stale frozen snapshot no longer reported"
+        );
     }
 
     /* malformed board payloads (decode edges) */
