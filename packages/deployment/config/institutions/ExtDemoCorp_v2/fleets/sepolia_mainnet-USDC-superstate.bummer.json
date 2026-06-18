@@ -1,0 +1,39 @@
+{
+  "fleetName": "Ext_Demo_Superstate_USDC",
+  "isBummer": true,
+  "symbol": "extSuperUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "sepolia_mainnet",
+  "keeper": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+  "operatorType": "roundsVaults",
+  "curator": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+  "details": {
+    "type": "protocol",
+    "name": "ExtDemoCorp_v2_Superstate_USDC_Sepolia",
+    "chainId": 11155111,
+    "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "assetSymbol": "USDC"
+  },
+  "arks": [
+    {
+      "type": "SuperstateArk",
+      "params": {
+        "asset": "USDC",
+        "fundName": "USTB",
+        "protocol": "superstate"
+      }
+    },
+    {
+      "type": "SuperstateArk",
+      "params": {
+        "asset": "USDC",
+        "fundName": "USCC",
+        "protocol": "superstate"
+      }
+    }
+  ]
+}
