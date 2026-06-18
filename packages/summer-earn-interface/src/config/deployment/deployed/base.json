@@ -167,5 +167,18 @@
   "staging_extDemo_2_USDC_base_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0",
   "DCAStrategyManagerModule_v1#DCAStrategyManager": "0x9407a57C1Ebe92cB7fc6CB68705e34371A33735A",
   "DCAStrategyManagerModule_v2#DCAStrategyManager": "0x48459d7F83E918472BB4827eEd14FE387a30FdA0",
-  "DCAStrategyManagerModule_v3#DCAStrategyManager": "0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72"
+  "DCAStrategyManagerModule_v3#DCAStrategyManager": "0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72",
+  "ExtDemoCorp_3_FleetWhitelist_Ext_Demo_StdEng_USDC#FleetCommanderCacheLib": "0x1fE08AC51386b75991619F2c1c27905753a48cbc",
+  "ExtDemoCorp_3_FleetWhitelist_Ext_Demo_StdEng_USDC#FleetCommanderWhitelist": "0x44e39D3EB84fa25c2031252Fc229F2a74A3800D4",
+  "Ext_Demo_StdEng_USDC_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0xC09406254941E8136b910F87c9393D6eF2aa5640",
+  "Ext_Demo_StdEng_USDC_AaveV3_usdc_8453#AaveV3Ark": "0xA419A6100f69840d3Fa8bcCd706D1ebe73bBae4A",
+  "RoundsVaultRegistry#RoundsVaultRegistry": "0xE7dcdE48cbF1435b48026a14219F5BC41f4e4015",
+  "ExtDemoCorp_3_RoundsVaultInput_Ext_Demo_StdEng_USDC#RoundsVaultInput": "0xaB52066D933742ec53Cb18152C65C63546E88c7a",
+  "ExtDemoCorp_3_RoundsVaultOutput_Ext_Demo_StdEng_USDC#RoundsVaultOutput": "0xed98B956B70c20836F6A2825e46A7a090b883d24",
+  "staging_ExtDemoCorp_3_FleetWhitelist_Ext_Demo_StdEng_USDC#FleetCommanderCacheLib": "0x0f404a8E27E4599Cc64dc2Cd38B7A1fBF3841224",
+  "staging_ExtDemoCorp_3_FleetWhitelist_Ext_Demo_StdEng_USDC#FleetCommanderWhitelist": "0xea342341Dc8dD1bca787Fac812dF9080A273d724",
+  "staging_ExtDemoCorp_3_RoundsVaultInput_Ext_Demo_StdEng_USDC#RoundsVaultInput": "0x4CaFDCfA25cbe473879B64665CcE1DA4E2FbD0A1",
+  "staging_ExtDemoCorp_3_RoundsVaultOutput_Ext_Demo_StdEng_USDC#RoundsVaultOutput": "0x5ba887FFaEB0873f745063a5743C89855A908d09",
+  "staging_Ext_Demo_StdEng_USDC_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x9c3070d7D56b0a4BffFceAdC9762aa03b6302699",
+  "staging_Ext_Demo_StdEng_USDC_AaveV3_usdc_8453#AaveV3Ark": "0xd545cCc5629ED7591e9113Cd2521e314fF88fEC6"
 }

@@ -163,24 +163,28 @@ const config: HardhatUserConfig = {
       accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
         .filter((k): k is string => !!k)
         .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
+      chainId: 11155111,
     },
     sepolia_optimism: {
       url: `${process.env.SEPOLIA_OPTIMISM_RPC_URL}`,
       accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
         .filter((k): k is string => !!k)
         .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
+      chainId: 11155420,
     },
     sepolia_arbitrum: {
       url: `${process.env.SEPOLIA_ARBITRUM_RPC_URL}`,
       accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
         .filter((k): k is string => !!k)
         .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
+      chainId: 421614,
     },
     sepolia_base: {
       url: `${process.env.SEPOLIA_BASE_RPC_URL}`,
       accounts: [process.env.DEPLOYER_PRIV_KEY, process.env.PRIVILEGED_PRIV_KEY]
         .filter((k): k is string => !!k)
         .map((k) => (k.startsWith('0x') ? k : `0x${k}`)),
+      chainId: 84532,
     },
   },
 }

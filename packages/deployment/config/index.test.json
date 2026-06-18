@@ -613,6 +613,7 @@
       "superstate": {
         "usdc": {
           "USTB": {
+            "variant": "subscribe",
             "shareToken": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
             "superstateSubscribe": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
             "superstateRedeem": "0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf",
@@ -621,6 +622,7 @@
             "depositSlippage": "500000000000000000"
           },
           "USCC": {
+            "variant": "standard",
             "shareToken": "0x14d60e7fdc0d71d8611742720e4c50e7a974020c",
             "superstateSubscribe": "0x14d60E7FDC0D71d8611742720E4C50E7a974020c",
             "superstateRedeem": "0x0000000000000000000000000000000000000000",
@@ -1260,6 +1262,7 @@
       "superstate": {
         "usdc": {
           "USTB": {
+            "variant": "subscribe",
             "shareToken": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
             "superstateSubscribe": "0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e",
             "superstateRedeem": "0x4c21B7577C8FE8b0B0669165ee7C8f67fa1454Cf",
@@ -1268,6 +1271,7 @@
             "depositSlippage": "500000000000000000"
           },
           "USCC": {
+            "variant": "standard",
             "shareToken": "0x14d60e7fdc0d71d8611742720e4c50e7a974020c",
             "superstateSubscribe": "0x14d60E7FDC0D71d8611742720E4C50E7a974020c",
             "superstateRedeem": "0x0000000000000000000000000000000000000000",
@@ -1899,6 +1903,68 @@
       "hypurr": {
         "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
         "rewards": "0x5280b0Bac1c8342F9dCeA2bC5B6121A1473A368C"
+      }
+    }
+  },
+  "sepolia_mainnet": {
+    "_note": "STAGING \u2014 minimal Superstate fleet stack on Ethereum Sepolia (chainId 11155111). gov/core addresses filled by deploy:pam + deploy:core + deploy:institution-registry + deploy:rounds-vault-registry. swapProvider is a non-zero placeholder (deployer) \u2014 zaps are unused (operatorType=roundsVaults). See docs/superstate/sepolia-deployment-plan.md.",
+    "deployedContracts": {
+      "gov": {},
+      "core": {
+        "institutionalVaultRegistryV2": {
+          "address": "0xfa104a094eF45A09716407a633E263A9c62bb9DB"
+        },
+        "roundsVaultRegistry": {
+          "address": "0x021983E824F1c76D956a8f56b12256A8725540d1"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "wrappedNative": "0x7b79995e5f793a07bc00c21412e50ecae098e7f9",
+      "weth": "0x7b79995e5f793a07bc00c21412e50ecae098e7f9"
+    },
+    "common": {
+      "chainId": "11155111",
+      "initialSupply": "0",
+      "swapProvider": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+      "ensoRouter": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+      "tipRate": "100",
+      "foundation": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+      "merklDistributor": "0x0000000000000000000000000000000000000000",
+      "layerZero": {
+        "lzEndpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "eID": "40161",
+        "lzExecutor": "0x0000000000000000000000000000000000000000",
+        "sendUln302": "0x0000000000000000000000000000000000000000",
+        "receiveUln302": "0x0000000000000000000000000000000000000000",
+        "blockedMessageLib": "0x0000000000000000000000000000000000000000",
+        "lzDeadDVN": "0x0000000000000000000000000000000000000000",
+        "confirmations": 0,
+        "dvns": {}
+      }
+    },
+    "protocolSpecific": {
+      "superstate": {
+        "usdc": {
+          "USTB": {
+            "variant": "subscribe",
+            "oracle": "0xBa595155585b3572f17Ee1050d8C6FB9653fCb93",
+            "shareToken": "0x39727692cF58137Bd8c401eFE87Cc8A190D62ead",
+            "superstateSubscribe": "0x39727692cF58137Bd8c401eFE87Cc8A190D62ead",
+            "superstateRedeem": "0xd33d340cdbef8e879c827199bd7d9705b21e18c9",
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
+          },
+          "USCC": {
+            "variant": "standard",
+            "oracle": "0xE38b0917888d0d5d8d03B7371d5214A1aF8e1892",
+            "shareToken": "0xebba0e36545903f64291c4ba6d2c3b51c57a812e",
+            "superstateSubscribe": "0xebba0e36545903f64291c4ba6d2c3b51c57a812e",
+            "sweepSlippage": "500000000000000000",
+            "depositSlippage": "500000000000000000"
+          }
+        }
       }
     }
   }
