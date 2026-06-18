@@ -101,6 +101,41 @@ const STAGING_INSTITUTIONS: Institution[] = [
     ],
   },
   {
+    slug: 'extdemocorp-v3',
+    displayName: 'ExtDemoCorp v3',
+    chainId: String(base.id) as ChainId,
+    protocolAccessManager: '0xd769Dd73eAb54329E071E5D2a92E42B8d5E4D4DE',
+    configurationManager: '0x709f80b49524a0ff4442cC3F680A8336A11D42e2',
+    harborCommand: '0x0d65EA35C5c6eD1d423d8ba9CCfc58aD3209647f',
+    admiralsQuarters: '0x7Cc1D280Daa6B4D47b34Fd8a33320bE16b5cc9DD',
+    raft: '0x1De12e984C38ad455EDEaB9F3c2C311FC355614d',
+    tipJar: '0x9F0B0e17a8AA4535A2C1623C7eA27f3611e59E0A',
+    treasury: '0x0f0fA89471259433b6955827226f19999D93c568',
+    governors: [
+      '0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA',
+      '0x0f0fA89471259433b6955827226f19999D93c568',
+    ],
+    superKeeper: '0x0f0fA89471259433b6955827226f19999D93c568',
+    whitelistManagers: [
+      '0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA',
+      '0x0f0fA89471259433b6955827226f19999D93c568'
+    ],
+    fleets: [
+      {
+        key: 'extDemo_stdeng_USDC',
+        label: 'Ext Demo StdEng USDC',
+        fleetCommander: '0xea342341Dc8dD1bca787Fac812dF9080A273d724',
+        bufferArk: '0x9cFcc053B7a994C024e87bF8012C08151547976A',
+        arks: [
+          '0x9c3070d7D56b0a4BffFceAdC9762aa03b6302699',
+          '0xd545cCc5629ED7591e9113Cd2521e314fF88fEC6',
+        ],
+        roundsVaultInput: '0x4CaFDCfA25cbe473879B64665CcE1DA4E2FbD0A1',
+        roundsVaultOutput: '0x5ba887FFaEB0873f745063a5743C89855A908d09',
+      }
+    ],
+  },
+  {
     // Ignition deployment `staging_InstitutionWhitelist_Orthodox` (Ethereum
     // mainnet). Roles/bufferArk/treasury read back from chain at block
     // ~25300784; delays via getMinDelay() on each timelock.
