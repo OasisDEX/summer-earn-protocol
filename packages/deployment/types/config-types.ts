@@ -43,6 +43,7 @@ export enum ArkType {
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
   WisdomTreeArk = 'WisdomTreeArk',
+  SecuritizeArk = 'SecuritizeArk',
   MorphoV2VaultArk = 'MorphoV2VaultArk',
   MapleInstitutionalArk = 'MapleInstitutionalArk',
   UpshiftArk = 'UpshiftArk',
@@ -80,6 +81,7 @@ export const arkTypes = [
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
   { title: 'WisdomTreeArk', value: ArkType.WisdomTreeArk },
+  { title: 'SecuritizeArk', value: ArkType.SecuritizeArk },
   { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
   { title: 'UpshiftArk', value: ArkType.UpshiftArk },
   { title: 'OriginUSDArk', value: ArkType.OriginUSDArk },
@@ -207,6 +209,19 @@ export interface BaseConfig {
   protocolSpecific: {
     wisdomtree: {
       [key in Token]: {
+        [key: string]: {
+          oracle: string
+          shareToken: string
+          targetWallet: string
+          sweepSlippage: string
+          depositSlippage: string
+        }
+      }
+    }
+    // Optional: Securitize DSToken funds (e.g. VBILL). Registry is resolved on-chain from the
+    // token, so only the NAV oracle, share token, and custodian wallet are configured here.
+    securitize?: {
+      [key in Token]?: {
         [key: string]: {
           oracle: string
           shareToken: string
