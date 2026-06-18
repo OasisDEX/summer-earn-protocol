@@ -584,14 +584,6 @@ contract SecuritizeArk is
         pendingWithdrawalShares = 0;
         pendingWithdrawalAssets = 0;
 
-        // Sweeping empties the ark; never keep reporting a stale frozen snapshot afterwards,
-        // or the swept value is double-counted (here + buffer ark).
-        if (isArkFrozen) {
-            isArkFrozen = false;
-            _frozenTotalAssets = 0;
-            emit ArkIsFrozenUpdated(false, 0);
-        }
-
         address bufferArk = address(
             IFleetCommander(config.commander).bufferArk()
         );
