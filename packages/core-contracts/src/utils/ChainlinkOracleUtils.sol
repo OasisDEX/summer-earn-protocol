@@ -21,6 +21,18 @@ struct ChainlinkOraclePrice {
 }
 
 /**
+ * @notice A Chainlink feed paired with its own staleness tolerance, so the two
+ *         always travel as a unit (preventing a feed from being checked against
+ *         the wrong feed's heartbeat). Defined at file level for prefix-free import.
+ */
+struct ChainlinkFeed {
+    /// @notice Chainlink AggregatorV3 feed address.
+    address feed;
+    /// @notice Max acceptable round age in seconds; 0 → `MAX_ORACLE_STALENESS`.
+    uint256 maxStaleness;
+}
+
+/**
  * @title ChainlinkOracleUtils
  * @notice Pure/view math helpers for computations that involve two independent
  *         Chainlink USD price feeds.
@@ -33,9 +45,11 @@ library ChainlinkOracleUtils {
     /// @notice Scaling factor applied to cross-rate results (1e18).
     uint256 internal constant PRECISION = 1e18;
 
-    /// @notice Maximum age (in seconds) of a Chainlink round before it is
-    ///         considered stale. Set to 24 hours to accommodate feeds with
-    ///         a 24-hour heartbeat (e.g. USDC/USD on Ethereum mainnet).
+    /// @notice Default maximum age (in seconds) of a Chainlink round before it is
+    ///         considered stale, applied when a caller passes `maxStaleness == 0`.
+    ///         24 hours accommodates feeds with a 24-hour heartbeat (e.g. USDC/USD
+    ///         on Ethereum mainnet); callers should pass a tighter per-feed value
+    ///         for feeds with shorter heartbeats.
     uint256 internal constant MAX_ORACLE_STALENESS = 86400;
 
     /// @notice Reverts when a Chainlink feed returns a non-positive price.
@@ -95,9 +109,9 @@ library ChainlinkOracleUtils {
      *
      * @param inAmount   Amount of the input asset (in its native token decimals).
      * @param inAsset    Input ERC20 token (used to fetch decimals).
-     * @param inFeed     Chainlink AggregatorV3 feed address for the in-asset/USD price.
+     * @param inFeed     In-asset/USD Chainlink feed paired with its staleness tolerance.
      * @param outAsset   Output ERC20 token (used to fetch decimals).
-     * @param outFeed    Chainlink AggregatorV3 feed address for the out-asset/USD price.
+     * @param outFeed    Out-asset/USD Chainlink feed paired with its staleness tolerance.
      * @return outAmount   Expected output amount in the output asset's native decimals.
      * @return inPrice     ChainlinkOraclePrice fetched from `inFeed` (value + decimals).
      * @return outPrice    ChainlinkOraclePrice fetched from `outFeed` (value + decimals).
@@ -105,9 +119,9 @@ library ChainlinkOracleUtils {
     function convertAmount(
         uint256 inAmount,
         IERC20 inAsset,
-        address inFeed,
+        ChainlinkFeed memory inFeed,
         IERC20 outAsset,
-        address outFeed
+        ChainlinkFeed memory outFeed
     )
         internal
         view
@@ -139,17 +153,22 @@ library ChainlinkOracleUtils {
 
     /**
      * @dev Reads a single Chainlink feed, validates the price is positive, and
-     *      validates the round is not older than `MAX_ORACLE_STALENESS`.
+     *      validates the round is not older than `maxStaleness` seconds
+     *      (0 falls back to `MAX_ORACLE_STALENESS`).
      *      Extracted into its own frame to keep `convertAmount` within the EVM
      *      16-slot stack limit.
      */
     function _getPrice(
-        address feed
+        ChainlinkFeed memory chainlinkFeed
     ) internal view returns (ChainlinkOraclePrice memory price) {
+        address feed = chainlinkFeed.feed;
+        uint256 staleness = chainlinkFeed.maxStaleness == 0
+            ? MAX_ORACLE_STALENESS
+            : chainlinkFeed.maxStaleness;
         (, int256 raw, , uint256 updatedAt, ) = AggregatorV3Interface(feed)
             .latestRoundData();
         if (raw <= 0) revert ChainlinkOraclePriceZero();
-        if (block.timestamp - updatedAt > MAX_ORACLE_STALENESS) {
+        if (block.timestamp - updatedAt > staleness) {
             revert ChainlinkOracleStalePrice(feed, updatedAt, block.timestamp);
         }
         price = ChainlinkOraclePrice({

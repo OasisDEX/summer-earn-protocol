@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import {IFleetCommander} from "../IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAllowanceTransfer, ISignatureTransfer} from "../permit2/IPermit2.sol";
+import {ChainlinkFeed} from "../../utils/ChainlinkOracleUtils.sol";
 
 interface IDCAStrategyManager {
     /**
@@ -37,10 +38,12 @@ interface IDCAStrategyManager {
         IERC20 inAsset;
         /// @notice Underlying asset of `targetVault`; used for Chainlink price lookups.
         IERC20 outAsset;
-        /// @notice Chainlink AggregatorV3 feed address for `inAsset` (e.g. USDC / USD).
-        address inAssetFeed;
-        /// @notice Chainlink AggregatorV3 feed address for `outAsset` (e.g. ETH / USD).
-        address outAssetFeed;
+        /// @notice In-asset/USD Chainlink feed (e.g. USDC / USD) paired with its
+        ///         staleness tolerance (`maxStaleness == 0` → `MAX_ORACLE_STALENESS`).
+        ChainlinkFeed inAssetFeed;
+        /// @notice Out-asset/USD Chainlink feed (e.g. ETH / USD) paired with its
+        ///         staleness tolerance (`maxStaleness == 0` → `MAX_ORACLE_STALENESS`).
+        ChainlinkFeed outAssetFeed;
         /// @notice Number of `sourceVault` shares sold on each execution.
         uint256 tradeAmount;
         /// @notice Minimum seconds that must elapse between executions. Must be ≥ 1 day.

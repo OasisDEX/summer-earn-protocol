@@ -8,7 +8,7 @@ import {IDCAStrategyManagerErrors} from "../../../src/errors/arks/IDCAStrategyMa
 import {IDCAStrategyManagerEvents} from "../../../src/events/arks/IDCAStrategyManagerEvents.sol";
 import {EnsoRouterSwapper} from "../../../src/utils/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../../src/utils/HarborCommandConsumer.sol";
-import {ChainlinkOracleUtils} from "../../../src/utils/ChainlinkOracleUtils.sol";
+import {ChainlinkOracleUtils, ChainlinkFeed} from "../../../src/utils/ChainlinkOracleUtils.sol";
 import {Permit2Consumer} from "../../../src/utils/Permit2Consumer.sol";
 import {IFleetCommander} from "../../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -329,12 +329,12 @@ contract DCAStrategyManagerTest is Test {
         vm.startPrank(strategyOwner);
 
         IDCAStrategyManager.StrategyConfig memory zeroIn = _defaultConfig();
-        zeroIn.inAssetFeed = address(0);
+        zeroIn.inAssetFeed.feed = address(0);
         vm.expectRevert(IDCAStrategyManagerErrors.InvalidFeedAddress.selector);
         dcaManager.createStrategy(zeroIn);
 
         IDCAStrategyManager.StrategyConfig memory zeroOut = _defaultConfig();
-        zeroOut.outAssetFeed = address(0);
+        zeroOut.outAssetFeed.feed = address(0);
         vm.expectRevert(IDCAStrategyManagerErrors.InvalidFeedAddress.selector);
         dcaManager.createStrategy(zeroOut);
 
@@ -808,8 +808,14 @@ contract DCAStrategyManagerTest is Test {
                 targetVault: IFleetCommander(address(wethFleet)),
                 inAsset: IERC20(USDC_ADDRESS),
                 outAsset: IERC20(WETH_ADDRESS),
-                inAssetFeed: USDC_USD_FEED,
-                outAssetFeed: ETH_USD_FEED,
+                inAssetFeed: ChainlinkFeed({
+                    feed: USDC_USD_FEED,
+                    maxStaleness: 0
+                }),
+                outAssetFeed: ChainlinkFeed({
+                    feed: ETH_USD_FEED,
+                    maxStaleness: 0
+                }),
                 tradeAmount: 100e6,
                 interval: 7 days,
                 slippageBps: 50,
@@ -2467,8 +2473,14 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 targetVault: targetFleet,
                 inAsset: IERC20(USDC_ADDRESS),
                 outAsset: IERC20(WETH_ADDRESS),
-                inAssetFeed: address(inFeedMock),
-                outAssetFeed: address(outFeedMock),
+                inAssetFeed: ChainlinkFeed({
+                    feed: address(inFeedMock),
+                    maxStaleness: 0
+                }),
+                outAssetFeed: ChainlinkFeed({
+                    feed: address(outFeedMock),
+                    maxStaleness: 0
+                }),
                 tradeAmount: 100e6,
                 interval: 7 days,
                 slippageBps: 50,
@@ -2922,6 +2934,68 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 ChainlinkOracleUtils.ChainlinkOracleStalePrice.selector,
                 address(outFeedMock),
                 staleUpdatedAt,
+                block.timestamp
+            )
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    /// @dev CL-1: a tighter per-feed `inAssetFeed.maxStaleness` rejects a price that
+    ///      the default 24h window would have accepted (here, 2h old vs a 1h custom limit).
+    function test_Execute_RevertsOnCustomInFeedStaleness() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.inAssetFeed.maxStaleness = 1 hours;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+
+        // in-feed updated 2h ago: fresh under the 24h default, stale under 1h.
+        uint256 inUpdatedAt = block.timestamp - 2 hours;
+        _mockOraclesWithUpdatedAt(
+            int256(1e8),
+            int256(3000e8),
+            inUpdatedAt,
+            block.timestamp
+        );
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ChainlinkOracleUtils.ChainlinkOracleStalePrice.selector,
+                address(inFeedMock),
+                inUpdatedAt,
+                block.timestamp
+            )
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    /// @dev CL-1: same, for the out-feed staleness.
+    function test_Execute_RevertsOnCustomOutFeedStaleness() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.outAssetFeed.maxStaleness = 1 hours;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 outUpdatedAt = block.timestamp - 2 hours;
+        _mockOraclesWithUpdatedAt(
+            int256(1e8),
+            int256(3000e8),
+            block.timestamp,
+            outUpdatedAt
+        );
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ChainlinkOracleUtils.ChainlinkOracleStalePrice.selector,
+                address(outFeedMock),
+                outUpdatedAt,
                 block.timestamp
             )
         );

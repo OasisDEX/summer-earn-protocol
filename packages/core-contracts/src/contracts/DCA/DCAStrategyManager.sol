@@ -10,7 +10,7 @@ import {IAllowanceTransfer, ISignatureTransfer} from "../../interfaces/permit2/I
 import {Permit2Consumer} from "../../utils/Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "../../utils/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../utils/HarborCommandConsumer.sol";
-import {ChainlinkOracleUtils, ChainlinkOraclePrice} from "../../utils/ChainlinkOracleUtils.sol";
+import {ChainlinkOracleUtils, ChainlinkOraclePrice, ChainlinkFeed} from "../../utils/ChainlinkOracleUtils.sol";
 import {BPS, BPS_100} from "@summerfi/percentage-solidity/contracts/BPS.sol";
 import {BpsUtils} from "@summerfi/percentage-solidity/contracts/BpsUtils.sol";
 
@@ -664,8 +664,8 @@ contract DCAStrategyManager is
             revert ZeroMaxTrades();
         }
         if (
-            config.inAssetFeed == address(0) ||
-            config.outAssetFeed == address(0)
+            config.inAssetFeed.feed == address(0) ||
+            config.outAssetFeed.feed == address(0)
         ) {
             revert InvalidFeedAddress();
         }

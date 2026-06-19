@@ -132,6 +132,16 @@ Format: YYYY-MM-DD — author — one-sentence summary. -->
   in-tx. **ABI break on both entrypoints** (new trailing `uint256` arg) — FE +
   keeper need regenerated ABIs; commitment/struct unchanged. New error
   `DepositSharesBelowMin`. Tests in `DCAsStrategyManager.t.sol`.
+- 2026-06-19 — claude — audit CL-1: per-feed Chainlink staleness. New file-level
+  `ChainlinkFeed { address feed; uint256 maxStaleness; }` struct in
+  `ChainlinkOracleUtils`; `_getPrice` takes a `ChainlinkFeed`, `convertAmount` takes
+  two; `maxStaleness == 0` → `MAX_ORACLE_STALENESS` (default 24h kept). `StrategyConfig`
+  now holds `ChainlinkFeed inAssetFeed`/`outAssetFeed` (replaces the flat feed-address
+  fields). **STRUCT/COMMITMENT/ABI BREAK** — `keccak256(abi.encode(config))` changes and
+  feeds encode as nested `(address,uint256)` tuples; FE (`commitment.ts`/`encode.ts`/
+  `types`/`abi`), keeper, and subgraph must be updated in lockstep before ship. No
+  upper bound on `maxStaleness` (self-harm only). Tests:
+  `test_Execute_RevertsOnCustom{In,Out}FeedStaleness`.
 - 2026-06-19 — claude — audit KE-7: `_executeStrategy` slippage baseline now uses
   `targetVault.convertToShares` instead of `previewDeposit` for `expectedOutShares`
   — `previewDeposit` may include an EIP-4626 deposit fee and would understate the
