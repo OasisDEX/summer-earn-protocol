@@ -3135,6 +3135,67 @@ contract DCAStrategyManagerIntegrationTest is Test {
         assertEq(strategyId, 0, "frontrun must not block strategy creation");
     }
 
+    /// @dev P2-1: in the front-run catch path the live allowance must also cover
+    ///      the signed *expiration*, not just the amount. Here a stale approval
+    ///      with a sufficient amount but a shorter-than-signed expiration is live;
+    ///      the user's permit reuses the now-consumed nonce, so `PERMIT2.permit`
+    ///      fails and the catch must reject on `Permit2ExpirationNotSet`.
+    function test_CreateStrategyWithPermit2_Frontrun_RevertsWhenLiveExpirationTooShort()
+        public
+    {
+        address signer = _setupSigner();
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            endDate
+        );
+
+        // A live sub-allowance with a SHORT expiration (amount is sufficient),
+        // submitted by anyone — this also consumes nonce 0.
+        uint48 shortExpiration = uint48(block.timestamp + 30 days);
+        IAllowanceTransfer.PermitSingle memory stale = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: shortExpiration,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory staleSig = _signPermit2Single(stale, _SIGNER_PK);
+        vm.prank(address(0xF20E));
+        IPermit2(PERMIT2).permit(signer, stale, staleSig);
+
+        // The user's intended permit asks for a LONGER expiration but reuses the
+        // now-stale nonce 0, so PERMIT2.permit reverts and the catch inspects the
+        // live (short) allowance. Amount matches; expiration is too short.
+        uint48 longExpiration = type(uint48).max;
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: address(sourceFleet),
+                    amount: type(uint160).max,
+                    expiration: longExpiration,
+                    nonce: 0
+                }),
+                spender: address(dcaManager),
+                sigDeadline: block.timestamp + 1 hours
+            });
+        bytes memory sig = _signPermit2Single(permitSingle, _SIGNER_PK);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.Permit2ExpirationNotSet.selector,
+                longExpiration,
+                shortExpiration
+            )
+        );
+        dcaManager.createStrategyWithPermit2(cfg, permitSingle, sig);
+    }
+
     function test_DepositAndCreateWithPermit2_HappyPath() public {
         address signer = _setupSigner();
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
