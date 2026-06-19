@@ -45,16 +45,10 @@
         "roundsVaultOutput": "0x19C04F5c592897BdD5D651D7B35ca9238Bf73F1D"
       }
     },
-    "governor": [
-      "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"
-    ],
-    "guardian": [
-      "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"
-    ],
+    "governor": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
+    "guardian": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
     "superKeeper": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
-    "whitelistManagers": [
-      "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"
-    ],
+    "whitelistManagers": ["0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17"],
     "timelock": {
       "governorDelay": 0,
       "curatorDelay": 0,
@@ -99,18 +93,14 @@
       "extDemo_USDC_base": {
         "fleetCommander": "0xd40Ac82b840AF6fbb5B3BE41eC820b5ff1199dF1",
         "bufferArk": "0xE67cB1112d0AAc376EC01807F2EA551b981232E4",
-        "arks": [
-          "0xC64D773717843D3dd4f71286ceD490073586Db6e"
-        ],
+        "arks": ["0xC64D773717843D3dd4f71286ceD490073586Db6e"],
         "roundsVaultInput": "0xcA50F64f2693b6DB0ef676cf14Dce52C183bc178",
         "roundsVaultOutput": "0xB379b432b7819B3b3c4E0b7e6bE3A3f780815e82"
       },
       "extDemo_2_USDC_base": {
         "fleetCommander": "0xB5A07af4302fA0D2bBb389b4481055eD3F576B73",
         "bufferArk": "0xcC1a3b8b61745307C0BafDc2e3132dC5D4270F06",
-        "arks": [
-          "0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0"
-        ],
+        "arks": ["0x50CbB1759370ae82a9B8488c7D3e91Fe11A4A5B0"],
         "roundsVaultInput": "0xa5BB66ED32EA16B282b0bBf827b325C564C05Cd1",
         "roundsVaultOutput": "0x39B9dd2440Fc4ff138643E3a86A486487F3cfc22"
       }
@@ -124,9 +114,7 @@
       "0x0f0fA89471259433b6955827226f19999D93c568"
     ],
     "superKeeper": "0x0f0fA89471259433b6955827226f19999D93c568",
-    "whitelistManagers": [
-      "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
-    ],
+    "whitelistManagers": ["0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"],
     "timelock": {
       "governorDelay": 0,
       "curatorDelay": 0,
