@@ -16,5 +16,5 @@
   "staging_ExtDemoCorp_v2_RoundsVaultInput_Ext_Demo_Superstate_USDC#RoundsVaultInput": "0x48B6e2aF68cce18e3Daeb91571f14cd05be55659",
   "staging_ExtDemoCorp_v2_RoundsVaultOutput_Ext_Demo_Superstate_USDC#RoundsVaultOutput": "0x19C04F5c592897BdD5D651D7B35ca9238Bf73F1D",
   "staging_Ext_Demo_Superstate_USDC_Superstate_USTB_usdc_11155111#SuperstateSubscribeArk": "0xB909F4a602ef86C18E695539C99d95023a5Ef260",
-  "staging_Ext_Demo_Superstate_USDC_Superstate_USCC_usdc_11155111#SuperstateStandardArk": "0x5e61B5f59Ca5E0E5434f691872A078B6611Bcf28"
+  "staging_Ext_Demo_Superstate_USDC_Superstate_USCC_usdc_11155111#SuperstateStandardArk": "0xe8066585c4DC4c5AE92B8b73e5488Bb18994e143"
 }
