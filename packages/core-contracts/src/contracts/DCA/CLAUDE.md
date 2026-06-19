@@ -132,6 +132,12 @@ Format: YYYY-MM-DD — author — one-sentence summary. -->
   in-tx. **ABI break on both entrypoints** (new trailing `uint256` arg) — FE +
   keeper need regenerated ABIs; commitment/struct unchanged. New error
   `DepositSharesBelowMin`. Tests in `DCAsStrategyManager.t.sol`.
+- 2026-06-19 — claude — audit KE-7: `_executeStrategy` slippage baseline now uses
+  `targetVault.convertToShares` instead of `previewDeposit` for `expectedOutShares`
+  — `previewDeposit` may include an EIP-4626 deposit fee and would understate the
+  floor. Equal for FleetCommander today (no deposit fee); semantic/future-proofing.
+  `ZeroExpectedOutShares` NatSpec updated; the zero-shares test now mocks
+  `convertToShares`. No struct/ABI/wire changes.
 - 2026-06-19 — claude — audit KE-6: `_executeStrategy` now computes the cross-rate
   `executionPrice` only when `maxPrice > 0 || minPrice > 0` (mirrors checkUpkeep),
   skipping it for the common no-bounds case. Behavior-preserving gas optimization;

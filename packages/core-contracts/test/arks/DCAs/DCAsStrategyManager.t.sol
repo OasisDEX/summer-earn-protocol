@@ -2279,7 +2279,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
     }
 
     function test_Execute_RevertsOnZeroExpectedOutShares() public {
-        // Force targetVault.previewDeposit to return 0 — without the guard,
+        // Force targetVault.convertToShares to return 0 — without the guard,
         // minOut would collapse to 0 and the swap could deliver zero shares.
         uint256 endDate = block.timestamp + 365 days;
         uint256 strategyId = _createStrategy(endDate);
@@ -2288,7 +2288,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.mockCall(
             address(targetFleet),
-            abi.encodeWithSignature("previewDeposit(uint256)"),
+            abi.encodeWithSignature("convertToShares(uint256)"),
             abi.encode(uint256(0))
         );
 

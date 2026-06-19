@@ -724,7 +724,11 @@ contract DCAStrategyManager is
                 }
             }
 
-            uint256 expectedOutShares = config.targetVault.previewDeposit(
+            // Use the fee-exclusive exchange rate (`convertToShares`) as the
+            // slippage baseline. `previewDeposit` may bake in a deposit fee per
+            // EIP-4626, which would understate the expected shares and weaken the
+            // minOut floor. (Equal for FleetCommander today; future-proofing.)
+            uint256 expectedOutShares = config.targetVault.convertToShares(
                 expectedOutAssets
             );
             if (expectedOutShares == 0) revert ZeroExpectedOutShares();

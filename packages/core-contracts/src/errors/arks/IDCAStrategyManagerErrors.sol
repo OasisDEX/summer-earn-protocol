@@ -33,7 +33,7 @@ interface IDCAStrategyManagerErrors {
         uint256 actualOut
     );
 
-    /// @notice Reverts when `targetVault.previewDeposit(expectedOutAssets)` returns
+    /// @notice Reverts when `targetVault.convertToShares(expectedOutAssets)` returns
     ///         zero. With zero expected output, `minOut = 0` and the slippage floor
     ///         is silently disabled — this guard refuses to execute such trades.
     error ZeroExpectedOutShares();
