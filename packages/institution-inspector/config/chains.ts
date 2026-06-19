@@ -32,7 +32,13 @@ export const CHAIN_RPC_URLS: Record<number, string[]> = {
 }
 
 // `sepolia_mainnet` matches the deployment config/network key (Ethereum Sepolia testnet).
-export type NetworkType = 'base' | 'arbitrum' | 'mainnet' | 'sonic' | 'hyperliquid' | 'sepolia_mainnet'
+export type NetworkType =
+  | 'base'
+  | 'arbitrum'
+  | 'mainnet'
+  | 'sonic'
+  | 'hyperliquid'
+  | 'sepolia_mainnet'
 
 export const NETWORK_TO_CHAIN_ID: Record<NetworkType, number> = {
   base: base.id,

@@ -1,22 +1,33 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-18T07:54:28.135Z",
+  "generatedAt": "2026-06-19T04:28:03.446Z",
   "network": "base",
   "chainId": 8453,
   "env": "production",
   "onchain": {
     "fetched": true,
-    "blockNumber": "47489959",
+    "blockNumber": "47526967",
     "rpcOk": true
   },
   "nodes": [
+    {
+      "id": "registry:V2",
+      "type": "systemContract",
+      "data": {
+        "label": "InstitutionalVaultRegistry V2",
+        "source": "config",
+        "address": "0x3C6203f22cf5DF38638EF65c5F212f102c5FD985",
+        "kind": "Registry"
+      }
+    },
     {
       "id": "inst:ExtDemoCorp",
       "type": "institution",
       "data": {
         "label": "ExtDemoCorp",
-        "source": "config",
-        "institutionId": "ExtDemoCorp"
+        "source": "config+onchain",
+        "institutionId": "ExtDemoCorp",
+        "existsOnChain": false
       }
     },
     {
@@ -217,8 +228,9 @@
       "type": "institution",
       "data": {
         "label": "ExtDemoCorp_3",
-        "source": "config",
-        "institutionId": "ExtDemoCorp_3"
+        "source": "config+onchain",
+        "institutionId": "ExtDemoCorp_3",
+        "existsOnChain": true
       }
     },
     {
@@ -226,7 +238,7 @@
       "type": "systemContract",
       "data": {
         "label": "PAM",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0xd769Dd73eAb54329E071E5D2a92E42B8d5E4D4DE",
         "kind": "ProtocolAccessManager"
       }
@@ -246,7 +258,7 @@
       "type": "systemContract",
       "data": {
         "label": "ConfigurationManager",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0x709f80b49524a0ff4442cC3F680A8336A11D42e2",
         "kind": "ConfigurationManager"
       }
@@ -266,7 +278,7 @@
       "type": "systemContract",
       "data": {
         "label": "AdmiralsQuarters",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0x7Cc1D280Daa6B4D47b34Fd8a33320bE16b5cc9DD",
         "kind": "AdmiralsQuarters"
       }
@@ -523,8 +535,9 @@
       "type": "institution",
       "data": {
         "label": "WisdomTree",
-        "source": "config",
-        "institutionId": "WisdomTree"
+        "source": "config+onchain",
+        "institutionId": "WisdomTree",
+        "existsOnChain": false
       }
     }
   ],
@@ -924,6 +937,15 @@
       "type": "roundsOutput",
       "source": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
       "target": "rvout:ExtDemoCorp_3:Ext_Demo_StdEng_USDC"
+    },
+    {
+      "id": "eonc-reg-1",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "registry:V2",
+      "data": {
+        "verifiedOnChain": true
+      }
     }
   ]
 }

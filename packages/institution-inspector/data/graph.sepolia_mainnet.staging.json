@@ -1,11 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-18T16:26:02.595Z",
+  "generatedAt": "2026-06-19T04:28:05.941Z",
   "network": "sepolia_mainnet",
   "chainId": 11155111,
   "env": "staging",
   "onchain": {
-    "fetched": false
+    "fetched": true,
+    "blockNumber": "11091856",
+    "rpcOk": true
   },
   "nodes": [
     {
@@ -23,8 +25,9 @@
       "type": "institution",
       "data": {
         "label": "ExtDemoCorp_v2",
-        "source": "config",
-        "institutionId": "ExtDemoCorp_v2"
+        "source": "config+onchain",
+        "institutionId": "ExtDemoCorp_v2",
+        "existsOnChain": true
       }
     },
     {
@@ -32,7 +35,7 @@
       "type": "systemContract",
       "data": {
         "label": "PAM",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0xC4cd9c4A41c960839cC4284F3Ce3625bF4AA2fB1",
         "kind": "ProtocolAccessManager"
       }
@@ -52,7 +55,7 @@
       "type": "systemContract",
       "data": {
         "label": "ConfigurationManager",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0x0E060a72e2a5a8a41b269233277025DC5315E25c",
         "kind": "ConfigurationManager"
       }
@@ -72,7 +75,7 @@
       "type": "systemContract",
       "data": {
         "label": "AdmiralsQuarters",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0x687b6Da69dc2eDaDc124dD5b6f7cC3a51D895A27",
         "kind": "AdmiralsQuarters"
       }
@@ -189,7 +192,7 @@
       "type": "roundsVaultInput",
       "data": {
         "label": "RoundsVaultInput",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0x48B6e2aF68cce18e3Daeb91571f14cd05be55659"
       }
     },
@@ -198,7 +201,7 @@
       "type": "roundsVaultOutput",
       "data": {
         "label": "RoundsVaultOutput",
-        "source": "config",
+        "source": "config+onchain",
         "address": "0x19C04F5c592897BdD5D651D7B35ca9238Bf73F1D"
       }
     }
@@ -274,7 +277,8 @@
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -284,7 +288,8 @@
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
       "data": {
         "role": "GUARDIAN_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -294,7 +299,8 @@
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
       "data": {
         "role": "SUPER_KEEPER_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -304,7 +310,8 @@
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
       "data": {
         "role": "WHITELIST_MANAGER_ROLE",
-        "verifiedOnChain": false
+        "verifiedOnChain": true,
+        "drift": false
       }
     },
     {
@@ -348,6 +355,15 @@
       "type": "roundsOutput",
       "source": "fc:ExtDemoCorp_v2:Ext_Demo_Superstate_USDC",
       "target": "rvout:ExtDemoCorp_v2:Ext_Demo_Superstate_USDC"
+    },
+    {
+      "id": "eonc-reg-0",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "registry:V2",
+      "data": {
+        "verifiedOnChain": true
+      }
     }
   ]
 }

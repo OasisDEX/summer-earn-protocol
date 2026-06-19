@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-18T07:54:28.650Z",
+  "generatedAt": "2026-06-19T04:28:04.273Z",
   "network": "base",
   "chainId": 8453,
   "env": "staging",
   "onchain": {
     "fetched": true,
-    "blockNumber": "47489960",
+    "blockNumber": "47526968",
     "rpcOk": true
   },
   "nodes": [
@@ -174,6 +174,167 @@
       }
     },
     {
+      "id": "inst:ExtDemoCorp_3",
+      "type": "institution",
+      "data": {
+        "label": "ExtDemoCorp_3",
+        "source": "config+onchain",
+        "institutionId": "ExtDemoCorp_3",
+        "existsOnChain": true
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "type": "systemContract",
+      "data": {
+        "label": "PAM",
+        "source": "config+onchain",
+        "address": "0xd769Dd73eAb54329E071E5D2a92E42B8d5E4D4DE",
+        "kind": "ProtocolAccessManager"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:TipJar",
+      "type": "systemContract",
+      "data": {
+        "label": "TipJar",
+        "source": "config",
+        "address": "0x9F0B0e17a8AA4535A2C1623C7eA27f3611e59E0A",
+        "kind": "TipJar"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:ConfigurationManager",
+      "type": "systemContract",
+      "data": {
+        "label": "ConfigurationManager",
+        "source": "config+onchain",
+        "address": "0x709f80b49524a0ff4442cC3F680A8336A11D42e2",
+        "kind": "ConfigurationManager"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:HarborCommand",
+      "type": "systemContract",
+      "data": {
+        "label": "HarborCommand",
+        "source": "config",
+        "address": "0x0d65EA35C5c6eD1d423d8ba9CCfc58aD3209647f",
+        "kind": "HarborCommand"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:AdmiralsQuarters",
+      "type": "systemContract",
+      "data": {
+        "label": "AdmiralsQuarters",
+        "source": "config+onchain",
+        "address": "0x7Cc1D280Daa6B4D47b34Fd8a33320bE16b5cc9DD",
+        "kind": "AdmiralsQuarters"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:Raft",
+      "type": "systemContract",
+      "data": {
+        "label": "Raft",
+        "source": "config",
+        "address": "0x1De12e984C38ad455EDEaB9F3c2C311FC355614d",
+        "kind": "Raft"
+      }
+    },
+    {
+      "id": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "type": "roleHolder",
+      "data": {
+        "label": "0xDDc6…98dA",
+        "source": "config",
+        "address": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
+      }
+    },
+    {
+      "id": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "type": "roleHolder",
+      "data": {
+        "label": "0x0f0f…c568",
+        "source": "config",
+        "address": "0x0f0fA89471259433b6955827226f19999D93c568"
+      }
+    },
+    {
+      "id": "fleet:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "type": "fleet",
+      "data": {
+        "label": "Ext_Demo_StdEng_USDC",
+        "source": "config",
+        "fleetName": "Ext_Demo_StdEng_USDC",
+        "asset": "USDC",
+        "arkCount": 2
+      }
+    },
+    {
+      "id": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "type": "fleetCommander",
+      "data": {
+        "label": "FleetCommander",
+        "source": "config",
+        "address": "0xea342341Dc8dD1bca787Fac812dF9080A273d724",
+        "contractName": "FleetCommanderWhitelist",
+        "futureId": "staging_ExtDemoCorp_3_FleetWhitelist_Ext_Demo_StdEng_USDC#FleetCommanderWhitelist"
+      }
+    },
+    {
+      "id": "buf:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "type": "bufferArk",
+      "data": {
+        "label": "BufferArk",
+        "source": "config",
+        "address": "0x9cFcc053B7a994C024e87bF8012C08151547976A"
+      }
+    },
+    {
+      "id": "ark:ExtDemoCorp_3:Ext_Demo_StdEng_USDC:0",
+      "type": "ark",
+      "data": {
+        "label": "SkyUsdsPsm3Ark",
+        "source": "config",
+        "address": "0x9c3070d7D56b0a4BffFceAdC9762aa03b6302699",
+        "contractName": "SkyUsdsPsm3Ark",
+        "protocol": "SkyUsdsPsm3",
+        "futureId": "staging_Ext_Demo_StdEng_USDC_SkyUsds_usdc_8453#SkyUsdsPsm3Ark"
+      }
+    },
+    {
+      "id": "ark:ExtDemoCorp_3:Ext_Demo_StdEng_USDC:1",
+      "type": "ark",
+      "data": {
+        "label": "AaveV3Ark",
+        "source": "config",
+        "address": "0xd545cCc5629ED7591e9113Cd2521e314fF88fEC6",
+        "contractName": "AaveV3Ark",
+        "protocol": "AaveV3",
+        "futureId": "staging_Ext_Demo_StdEng_USDC_AaveV3_usdc_8453#AaveV3Ark"
+      }
+    },
+    {
+      "id": "rvin:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "type": "roundsVaultInput",
+      "data": {
+        "label": "RoundsVaultInput",
+        "source": "config+onchain",
+        "address": "0x4CaFDCfA25cbe473879B64665CcE1DA4E2FbD0A1"
+      }
+    },
+    {
+      "id": "rvout:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "type": "roundsVaultOutput",
+      "data": {
+        "label": "RoundsVaultOutput",
+        "source": "config+onchain",
+        "address": "0x5ba887FFaEB0873f745063a5743C89855A908d09"
+      }
+    },
+    {
       "id": "inst:ExtDemoCorp_v2",
       "type": "institution",
       "data": {
@@ -274,24 +435,6 @@
         "address": "0xCeb7F01D731c95012f43f35E4b891cf403a2aeEb",
         "kind": "TreasuryTimelock",
         "delaySeconds": 0
-      }
-    },
-    {
-      "id": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
-      "type": "roleHolder",
-      "data": {
-        "label": "0xDDc6…98dA",
-        "source": "config",
-        "address": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
-      }
-    },
-    {
-      "id": "role:0x0f0fa89471259433b6955827226f19999d93c568",
-      "type": "roleHolder",
-      "data": {
-        "label": "0x0f0f…c568",
-        "source": "config",
-        "address": "0x0f0fA89471259433b6955827226f19999D93c568"
       }
     },
     {
@@ -636,71 +779,44 @@
     {
       "id": "e15",
       "type": "system",
-      "source": "inst:ExtDemoCorp_v2",
-      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager"
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager"
     },
     {
       "id": "e16",
       "type": "system",
-      "source": "inst:ExtDemoCorp_v2",
-      "target": "sys:ExtDemoCorp_v2:TipJar"
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:TipJar"
     },
     {
       "id": "e17",
       "type": "system",
-      "source": "inst:ExtDemoCorp_v2",
-      "target": "sys:ExtDemoCorp_v2:ConfigurationManager"
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:ConfigurationManager"
     },
     {
       "id": "e18",
       "type": "system",
-      "source": "inst:ExtDemoCorp_v2",
-      "target": "sys:ExtDemoCorp_v2:HarborCommand"
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:HarborCommand"
     },
     {
       "id": "e19",
       "type": "system",
-      "source": "inst:ExtDemoCorp_v2",
-      "target": "sys:ExtDemoCorp_v2:AdmiralsQuarters"
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:AdmiralsQuarters"
     },
     {
       "id": "e20",
       "type": "system",
-      "source": "inst:ExtDemoCorp_v2",
-      "target": "sys:ExtDemoCorp_v2:Raft"
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:Raft"
     },
     {
       "id": "e21",
-      "type": "governs",
-      "source": "tl:ExtDemoCorp_v2:GovernorTimelock",
-      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
-      "data": {
-        "role": "GOVERNOR_ROLE"
-      }
-    },
-    {
-      "id": "e22",
-      "type": "governs",
-      "source": "tl:ExtDemoCorp_v2:CuratorTimelock",
-      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
-      "data": {
-        "role": "CURATOR_ROLE"
-      }
-    },
-    {
-      "id": "e23",
-      "type": "governs",
-      "source": "tl:ExtDemoCorp_v2:TreasuryTimelock",
-      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
-      "data": {
-        "role": "TREASURY_ROLE"
-      }
-    },
-    {
-      "id": "e24",
       "type": "hasRole",
       "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
-      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
         "verifiedOnChain": true,
@@ -708,12 +824,45 @@
       }
     },
     {
-      "id": "e25",
+      "id": "e22",
       "type": "hasRole",
       "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
-      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
       "data": {
         "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e23",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e24",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e25",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "SUPER_KEEPER_ROLE",
         "verifiedOnChain": true,
         "drift": false
       }
@@ -722,6 +871,144 @@
       "id": "e26",
       "type": "hasRole",
       "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "WHITELIST_MANAGER_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e27",
+      "type": "contains",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "fleet:ExtDemoCorp_3:Ext_Demo_StdEng_USDC"
+    },
+    {
+      "id": "e28",
+      "type": "deploys",
+      "source": "fleet:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "target": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC"
+    },
+    {
+      "id": "e29",
+      "type": "buffer",
+      "source": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "target": "buf:ExtDemoCorp_3:Ext_Demo_StdEng_USDC"
+    },
+    {
+      "id": "e30",
+      "type": "ark",
+      "source": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "target": "ark:ExtDemoCorp_3:Ext_Demo_StdEng_USDC:0"
+    },
+    {
+      "id": "e31",
+      "type": "ark",
+      "source": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "target": "ark:ExtDemoCorp_3:Ext_Demo_StdEng_USDC:1"
+    },
+    {
+      "id": "e32",
+      "type": "roundsInput",
+      "source": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "target": "rvin:ExtDemoCorp_3:Ext_Demo_StdEng_USDC"
+    },
+    {
+      "id": "e33",
+      "type": "roundsOutput",
+      "source": "fc:ExtDemoCorp_3:Ext_Demo_StdEng_USDC",
+      "target": "rvout:ExtDemoCorp_3:Ext_Demo_StdEng_USDC"
+    },
+    {
+      "id": "e34",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager"
+    },
+    {
+      "id": "e35",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "sys:ExtDemoCorp_v2:TipJar"
+    },
+    {
+      "id": "e36",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "sys:ExtDemoCorp_v2:ConfigurationManager"
+    },
+    {
+      "id": "e37",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "sys:ExtDemoCorp_v2:HarborCommand"
+    },
+    {
+      "id": "e38",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "sys:ExtDemoCorp_v2:AdmiralsQuarters"
+    },
+    {
+      "id": "e39",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_v2",
+      "target": "sys:ExtDemoCorp_v2:Raft"
+    },
+    {
+      "id": "e40",
+      "type": "governs",
+      "source": "tl:ExtDemoCorp_v2:GovernorTimelock",
+      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE"
+      }
+    },
+    {
+      "id": "e41",
+      "type": "governs",
+      "source": "tl:ExtDemoCorp_v2:CuratorTimelock",
+      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "data": {
+        "role": "CURATOR_ROLE"
+      }
+    },
+    {
+      "id": "e42",
+      "type": "governs",
+      "source": "tl:ExtDemoCorp_v2:TreasuryTimelock",
+      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "data": {
+        "role": "TREASURY_ROLE"
+      }
+    },
+    {
+      "id": "e43",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e44",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e45",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
       "data": {
         "role": "GUARDIAN_ROLE",
@@ -730,7 +1017,7 @@
       }
     },
     {
-      "id": "e27",
+      "id": "e46",
       "type": "hasRole",
       "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
@@ -741,7 +1028,7 @@
       }
     },
     {
-      "id": "e28",
+      "id": "e47",
       "type": "hasRole",
       "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
@@ -752,7 +1039,7 @@
       }
     },
     {
-      "id": "e29",
+      "id": "e48",
       "type": "hasRole",
       "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
       "target": "sys:ExtDemoCorp_v2:ProtocolAccessManager",
@@ -763,145 +1050,154 @@
       }
     },
     {
-      "id": "e30",
+      "id": "e49",
       "type": "contains",
       "source": "inst:ExtDemoCorp_v2",
       "target": "fleet:ExtDemoCorp_v2:extDemo_USDC_base"
     },
     {
-      "id": "e31",
+      "id": "e50",
       "type": "deploys",
       "source": "fleet:ExtDemoCorp_v2:extDemo_USDC_base",
       "target": "fc:ExtDemoCorp_v2:extDemo_USDC_base"
     },
     {
-      "id": "e32",
+      "id": "e51",
       "type": "buffer",
       "source": "fc:ExtDemoCorp_v2:extDemo_USDC_base",
       "target": "buf:ExtDemoCorp_v2:extDemo_USDC_base"
     },
     {
-      "id": "e33",
+      "id": "e52",
       "type": "ark",
       "source": "fc:ExtDemoCorp_v2:extDemo_USDC_base",
       "target": "ark:ExtDemoCorp_v2:extDemo_USDC_base:0"
     },
     {
-      "id": "e34",
+      "id": "e53",
       "type": "roundsInput",
       "source": "fc:ExtDemoCorp_v2:extDemo_USDC_base",
       "target": "rvin:ExtDemoCorp_v2:extDemo_USDC_base"
     },
     {
-      "id": "e35",
+      "id": "e54",
       "type": "roundsOutput",
       "source": "fc:ExtDemoCorp_v2:extDemo_USDC_base",
       "target": "rvout:ExtDemoCorp_v2:extDemo_USDC_base"
     },
     {
-      "id": "e36",
+      "id": "e55",
       "type": "contains",
       "source": "inst:ExtDemoCorp_v2",
       "target": "fleet:ExtDemoCorp_v2:extDemo_2_USDC_base"
     },
     {
-      "id": "e37",
+      "id": "e56",
       "type": "deploys",
       "source": "fleet:ExtDemoCorp_v2:extDemo_2_USDC_base",
       "target": "fc:ExtDemoCorp_v2:extDemo_2_USDC_base"
     },
     {
-      "id": "e38",
+      "id": "e57",
       "type": "buffer",
       "source": "fc:ExtDemoCorp_v2:extDemo_2_USDC_base",
       "target": "buf:ExtDemoCorp_v2:extDemo_2_USDC_base"
     },
     {
-      "id": "e39",
+      "id": "e58",
       "type": "ark",
       "source": "fc:ExtDemoCorp_v2:extDemo_2_USDC_base",
       "target": "ark:ExtDemoCorp_v2:extDemo_2_USDC_base:0"
     },
     {
-      "id": "e40",
+      "id": "e59",
       "type": "roundsInput",
       "source": "fc:ExtDemoCorp_v2:extDemo_2_USDC_base",
       "target": "rvin:ExtDemoCorp_v2:extDemo_2_USDC_base"
     },
     {
-      "id": "e41",
+      "id": "e60",
       "type": "roundsOutput",
       "source": "fc:ExtDemoCorp_v2:extDemo_2_USDC_base",
       "target": "rvout:ExtDemoCorp_v2:extDemo_2_USDC_base"
     },
     {
-      "id": "e42",
+      "id": "e61",
       "type": "system",
       "source": "inst:WisdomTree",
       "target": "sys:WisdomTree:ProtocolAccessManager"
     },
     {
-      "id": "e43",
+      "id": "e62",
       "type": "system",
       "source": "inst:WisdomTree",
       "target": "sys:WisdomTree:TipJar"
     },
     {
-      "id": "e44",
+      "id": "e63",
       "type": "system",
       "source": "inst:WisdomTree",
       "target": "sys:WisdomTree:ConfigurationManager"
     },
     {
-      "id": "e45",
+      "id": "e64",
       "type": "system",
       "source": "inst:WisdomTree",
       "target": "sys:WisdomTree:HarborCommand"
     },
     {
-      "id": "e46",
+      "id": "e65",
       "type": "system",
       "source": "inst:WisdomTree",
       "target": "sys:WisdomTree:AdmiralsQuarters"
     },
     {
-      "id": "e47",
+      "id": "e66",
       "type": "system",
       "source": "inst:WisdomTree",
       "target": "sys:WisdomTree:Raft"
     },
     {
-      "id": "e48",
+      "id": "e67",
       "type": "contains",
       "source": "inst:WisdomTree",
       "target": "fleet:WisdomTree:WisdomTree_USDC_Base"
     },
     {
-      "id": "e49",
+      "id": "e68",
       "type": "deploys",
       "source": "fleet:WisdomTree:WisdomTree_USDC_Base",
       "target": "fc:WisdomTree:WisdomTree_USDC_Base"
     },
     {
-      "id": "e50",
+      "id": "e69",
       "type": "buffer",
       "source": "fc:WisdomTree:WisdomTree_USDC_Base",
       "target": "buf:WisdomTree:WisdomTree_USDC_Base"
     },
     {
-      "id": "e51",
+      "id": "e70",
       "type": "ark",
       "source": "fc:WisdomTree:WisdomTree_USDC_Base",
       "target": "ark:WisdomTree:WisdomTree_USDC_Base:0"
     },
     {
-      "id": "e52",
+      "id": "e71",
       "type": "ark",
       "source": "fc:WisdomTree:WisdomTree_USDC_Base",
       "target": "ark:WisdomTree:WisdomTree_USDC_Base:1"
     },
     {
       "id": "eonc-reg-1",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "registry:V2",
+      "data": {
+        "verifiedOnChain": true
+      }
+    },
+    {
+      "id": "eonc-reg-2",
       "type": "system",
       "source": "inst:ExtDemoCorp_v2",
       "target": "registry:V2",
