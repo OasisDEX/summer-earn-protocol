@@ -708,15 +708,20 @@ contract DCAStrategyManager is
                     config.outAssetFeed
                 );
 
-            uint256 executionPrice = ChainlinkOracleUtils.crossRate(
-                inPrice,
-                outPrice
-            );
-            if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
-                revert PriceAboveCeiling(executionPrice, config.maxPrice);
-            }
-            if (config.minPrice > 0 && executionPrice < config.minPrice) {
-                revert PriceBelowFloor(executionPrice, config.minPrice);
+            // Only the price guard needs the cross-rate; skip it when no bound is
+            // set (mirrors checkUpkeep). `inPrice`/`outPrice` are still required
+            // above for `expectedOutAssets`.
+            if (config.maxPrice > 0 || config.minPrice > 0) {
+                uint256 executionPrice = ChainlinkOracleUtils.crossRate(
+                    inPrice,
+                    outPrice
+                );
+                if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
+                    revert PriceAboveCeiling(executionPrice, config.maxPrice);
+                }
+                if (config.minPrice > 0 && executionPrice < config.minPrice) {
+                    revert PriceBelowFloor(executionPrice, config.minPrice);
+                }
             }
 
             uint256 expectedOutShares = config.targetVault.previewDeposit(

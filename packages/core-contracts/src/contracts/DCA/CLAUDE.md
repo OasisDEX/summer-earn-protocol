@@ -132,6 +132,11 @@ Format: YYYY-MM-DD — author — one-sentence summary. -->
   in-tx. **ABI break on both entrypoints** (new trailing `uint256` arg) — FE +
   keeper need regenerated ABIs; commitment/struct unchanged. New error
   `DepositSharesBelowMin`. Tests in `DCAsStrategyManager.t.sol`.
+- 2026-06-19 — claude — audit KE-6: `_executeStrategy` now computes the cross-rate
+  `executionPrice` only when `maxPrice > 0 || minPrice > 0` (mirrors checkUpkeep),
+  skipping it for the common no-bounds case. Behavior-preserving gas optimization;
+  `convertAmount`/`inPrice`/`outPrice`/`minOut` unchanged. Covered by existing
+  execute price tests.
 - 2026-06-19 — claude — audit KE-5: `checkUpkeep` now returns `false` unless both
   `sourceVault.transfersEnabled()` and `targetVault.transfersEnabled()` (a pull of
   source shares and the payout of target shares are both gated transfers).
