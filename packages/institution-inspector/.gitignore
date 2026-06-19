@@ -7,6 +7,9 @@
 /.next/
 /out/
 
+# transient stash used by `pnpm build:static` (app/api during a static export build)
+/.api-stash/
+
 # production
 /build
 

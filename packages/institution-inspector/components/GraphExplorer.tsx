@@ -134,15 +134,19 @@ export function GraphExplorer({ graphs }: { graphs: Record<string, GraphFile> })
             verified only
           </label>
 
-          <button
-            onClick={refresh}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 rounded border border-outline-variant bg-surface-container px-2 py-1 text-xs text-on-surface hover:border-primary disabled:opacity-50"
-            title="Re-run config + on-chain verification for this network/env"
-          >
-            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Refreshing…' : 'Refresh on-chain'}
-          </button>
+          {/* On-chain refresh reads the sibling deployment package off disk, so it only
+              works against a local checkout — hidden on the static hosted build. */}
+          {process.env.NEXT_PUBLIC_STATIC_EXPORT !== '1' && (
+            <button
+              onClick={refresh}
+              disabled={refreshing}
+              className="flex items-center gap-1.5 rounded border border-outline-variant bg-surface-container px-2 py-1 text-xs text-on-surface hover:border-primary disabled:opacity-50"
+              title="Re-run config + on-chain verification for this network/env"
+            >
+              <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Refreshing…' : 'Refresh on-chain'}
+            </button>
+          )}
 
           <span className="text-xs text-on-surface-variant">
             {level} · {rfNodes.length} nodes ·{' '}
