@@ -1,0 +1,40 @@
+{
+  "name": "institution-inspector",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "generate": "tsx scripts/generate-graph.ts",
+    "generate:all": "tsx scripts/generate-all.ts --onchain",
+    "dev:fresh": "pnpm generate:all && next dev",
+    "lint": "eslint",
+    "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^1.1.4",
+    "@xyflow/react": "^12.3.6",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.563.0",
+    "next": "16.2.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.5.0",
+    "viem": "^2.47.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

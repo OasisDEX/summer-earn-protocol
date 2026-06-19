@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+/* Palette adopted from summer-earn-interface (dark theme). */
+@theme {
+  --color-surface: #0d0e10;
+  --color-surface-container-low: #121316;
+  --color-surface-container: #181a1c;
+  --color-surface-container-high: #1e2022;
+  --color-surface-container-highest: #242629;
+  --color-on-surface: #fdfbfe;
+  --color-on-surface-variant: #ababad;
+  --color-outline: #757578;
+  --color-outline-variant: #47484a;
+  --color-primary: #89acff;
+  --color-primary-dim: #5a90ff;
+  --color-secondary: #68fadd;
+  --color-tertiary: #e0f4ff;
+  --color-magenta: #ff2d8f;
+  --color-violet: #9b7bff;
+  --color-error: #ff716c;
+  --font-display: var(--font-manrope), Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-display;
+  }
+}
+
+/* React Flow dark surface tuning */
+.react-flow {
+  --xy-background-color: var(--color-surface);
+  --xy-edge-label-background-color-default: var(--color-surface-container-high);
+  --xy-edge-label-color-default: var(--color-on-surface-variant);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(137, 172, 255, 0.25);
+  border-radius: 10px;
+}
