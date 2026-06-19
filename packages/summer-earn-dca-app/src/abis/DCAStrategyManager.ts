@@ -1,2395 +1,2718 @@
 export const dcaStrategyManagerAbi = [
   {
-    type: 'constructor',
-    inputs: [
+    "type": "constructor",
+    "inputs": [
       {
-        name: '_accessManager',
-        type: 'address',
-        internalType: 'address',
+        "name": "_accessManager",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: '_ensoRouter',
-        type: 'address',
-        internalType: 'address',
+        "name": "_ensoRouter",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: '_harborCommand',
-        type: 'address',
-        internalType: 'address',
+        "name": "_harborCommand",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: '_permit2',
-        type: 'address',
-        internalType: 'address',
-      },
+        "name": "_permit2",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    stateMutability: 'nonpayable',
+    "stateMutability": "nonpayable"
   },
   {
-    type: 'function',
-    name: 'ADMIRALS_QUARTERS_ROLE',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "ADMIRALS_QUARTERS_ROLE",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'DECAY_CONTROLLER_ROLE',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "DECAY_CONTROLLER_ROLE",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'ENSO_ROUTER',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "ENSO_ROUTER",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'address',
-        internalType: 'address',
-      },
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'GOVERNOR_ROLE',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "GOVERNOR_ROLE",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'GUARDIAN_ROLE',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "GUARDIAN_ROLE",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'HARBOR_COMMAND',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "HARBOR_COMMAND",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'address',
-        internalType: 'contract IHarborCommand',
-      },
+        "name": "",
+        "type": "address",
+        "internalType": "contract IHarborCommand"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'PERMIT2',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "PERMIT2",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'address',
-        internalType: 'contract IPermit2',
-      },
+        "name": "",
+        "type": "address",
+        "internalType": "contract IPermit2"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'SUPER_KEEPER_ROLE',
-    inputs: [],
-    outputs: [
+    "type": "function",
+    "name": "SUPER_KEEPER_ROLE",
+    "inputs": [],
+    "outputs": [
       {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'activeCommitments',
-    inputs: [
+    "type": "function",
+    "name": "activeCommitments",
+    "inputs": [
       {
-        name: 'commitmentHash',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "commitmentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    outputs: [
+    "outputs": [
       {
-        name: '',
-        type: 'bool',
-        internalType: 'bool',
-      },
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'cancelStrategy',
-    inputs: [
+    "type": "function",
+    "name": "cancelStrategy",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'checkUpkeep',
-    inputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
-          {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        name: 'upkeepNeeded',
-        type: 'bool',
-        internalType: 'bool',
-      },
-      {
-        name: 'performData',
-        type: 'bytes',
-        internalType: 'bytes',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'createStrategy',
-    inputs: [
-      {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
-          {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'createStrategyWithPermit2',
-    inputs: [
-      {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
-          {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-      {
-        name: 'permitSingle',
-        type: 'tuple',
-        internalType: 'struct IAllowanceTransfer.PermitSingle',
-        components: [
-          {
-            name: 'details',
-            type: 'tuple',
-            internalType: 'struct IAllowanceTransfer.PermitDetails',
-            components: [
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
               {
-                name: 'token',
-                type: 'address',
-                internalType: 'address',
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
               },
               {
-                name: 'amount',
-                type: 'uint160',
-                internalType: 'uint160',
-              },
-              {
-                name: 'expiration',
-                type: 'uint48',
-                internalType: 'uint48',
-              },
-              {
-                name: 'nonce',
-                type: 'uint48',
-                internalType: 'uint48',
-              },
-            ],
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'spender',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'sigDeadline',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
-        ],
-      },
-      {
-        name: 'signature',
-        type: 'bytes',
-        internalType: 'bytes',
-      },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    outputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
-    stateMutability: 'nonpayable',
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: 'function',
-    name: 'depositAndCreate',
-    inputs: [
+    "type": "function",
+    "name": "checkUpkeep",
+    "inputs": [
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
-          {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'assetAmount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    outputs: [
+    "outputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "upkeepNeeded",
+        "type": "bool",
+        "internalType": "bool"
       },
+      {
+        "name": "performData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
     ],
-    stateMutability: 'nonpayable',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'depositAndCreateWithPermit2',
-    inputs: [
+    "type": "function",
+    "name": "createStrategy",
+    "inputs": [
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-      {
-        name: 'assetAmount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'permits',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.Permit2DepositBundle',
-        components: [
-          {
-            name: 'inAsset',
-            type: 'tuple',
-            internalType: 'struct ISignatureTransfer.PermitTransferFrom',
-            components: [
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
               {
-                name: 'permitted',
-                type: 'tuple',
-                internalType: 'struct ISignatureTransfer.TokenPermissions',
-                components: [
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createStrategyWithPermit2",
+    "inputs": [
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "permitSingle",
+        "type": "tuple",
+        "internalType": "struct IAllowanceTransfer.PermitSingle",
+        "components": [
+          {
+            "name": "details",
+            "type": "tuple",
+            "internalType": "struct IAllowanceTransfer.PermitDetails",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint160",
+                "internalType": "uint160"
+              },
+              {
+                "name": "expiration",
+                "type": "uint48",
+                "internalType": "uint48"
+              },
+              {
+                "name": "nonce",
+                "type": "uint48",
+                "internalType": "uint48"
+              }
+            ]
+          },
+          {
+            "name": "spender",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sigDeadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "signature",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "depositAndCreate",
+    "inputs": [
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "assetAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedMinShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "depositAndCreateWithPermit2",
+    "inputs": [
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "assetAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "permits",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.Permit2DepositBundle",
+        "components": [
+          {
+            "name": "inAsset",
+            "type": "tuple",
+            "internalType": "struct ISignatureTransfer.PermitTransferFrom",
+            "components": [
+              {
+                "name": "permitted",
+                "type": "tuple",
+                "internalType": "struct ISignatureTransfer.TokenPermissions",
+                "components": [
                   {
-                    name: 'token',
-                    type: 'address',
-                    internalType: 'contract IERC20',
+                    "name": "token",
+                    "type": "address",
+                    "internalType": "contract IERC20"
                   },
                   {
-                    name: 'amount',
-                    type: 'uint256',
-                    internalType: 'uint256',
-                  },
-                ],
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
               },
               {
-                name: 'nonce',
-                type: 'uint256',
-                internalType: 'uint256',
+                "name": "nonce",
+                "type": "uint256",
+                "internalType": "uint256"
               },
               {
-                name: 'deadline',
-                type: 'uint256',
-                internalType: 'uint256',
-              },
-            ],
+                "name": "deadline",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'inAssetSig',
-            type: 'bytes',
-            internalType: 'bytes',
+            "name": "inAssetSig",
+            "type": "bytes",
+            "internalType": "bytes"
           },
           {
-            name: 'shares',
-            type: 'tuple',
-            internalType: 'struct IAllowanceTransfer.PermitSingle',
-            components: [
+            "name": "shares",
+            "type": "tuple",
+            "internalType": "struct IAllowanceTransfer.PermitSingle",
+            "components": [
               {
-                name: 'details',
-                type: 'tuple',
-                internalType: 'struct IAllowanceTransfer.PermitDetails',
-                components: [
+                "name": "details",
+                "type": "tuple",
+                "internalType": "struct IAllowanceTransfer.PermitDetails",
+                "components": [
                   {
-                    name: 'token',
-                    type: 'address',
-                    internalType: 'address',
-                  },
-                  {
-                    name: 'amount',
-                    type: 'uint160',
-                    internalType: 'uint160',
+                    "name": "token",
+                    "type": "address",
+                    "internalType": "address"
                   },
                   {
-                    name: 'expiration',
-                    type: 'uint48',
-                    internalType: 'uint48',
+                    "name": "amount",
+                    "type": "uint160",
+                    "internalType": "uint160"
                   },
                   {
-                    name: 'nonce',
-                    type: 'uint48',
-                    internalType: 'uint48',
+                    "name": "expiration",
+                    "type": "uint48",
+                    "internalType": "uint48"
                   },
-                ],
+                  {
+                    "name": "nonce",
+                    "type": "uint48",
+                    "internalType": "uint48"
+                  }
+                ]
               },
               {
-                name: 'spender',
-                type: 'address',
-                internalType: 'address',
+                "name": "spender",
+                "type": "address",
+                "internalType": "address"
               },
               {
-                name: 'sigDeadline',
-                type: 'uint256',
-                internalType: 'uint256',
+                "name": "sigDeadline",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "sharesSig",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "expectedMinShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "editStrategy",
+    "inputs": [
+      {
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "oldConfig",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
+          },
+          {
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
               },
-            ],
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'sharesSig',
-            type: 'bytes',
-            internalType: 'bytes',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'editStrategy',
-    inputs: [
-      {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'oldConfig',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
-          {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
-          {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
-          },
-          {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
-          },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       },
       {
-        name: 'newConfig',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "newConfig",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    outputs: [],
-    stateMutability: 'nonpayable',
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: 'function',
-    name: 'executeStrategy',
-    inputs: [
+    "type": "function",
+    "name": "executeStrategy",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       },
       {
-        name: 'ensoData',
-        type: 'bytes',
-        internalType: 'bytes',
-      },
+        "name": "ensoData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
     ],
-    outputs: [],
-    stateMutability: 'nonpayable',
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: 'function',
-    name: 'generateRole',
-    inputs: [
+    "type": "function",
+    "name": "generateRole",
+    "inputs": [
       {
-        name: 'roleName',
-        type: 'uint8',
-        internalType: 'enum ContractSpecificRoles',
+        "name": "roleName",
+        "type": "uint8",
+        "internalType": "enum ContractSpecificRoles"
       },
       {
-        name: 'roleTargetContract',
-        type: 'address',
-        internalType: 'address',
-      },
+        "name": "roleTargetContract",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    outputs: [
+    "outputs": [
       {
-        name: '',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'pure',
+    "stateMutability": "pure"
   },
   {
-    type: 'function',
-    name: 'hasAdmiralsQuartersRole',
-    inputs: [
+    "type": "function",
+    "name": "hasAdmiralsQuartersRole",
+    "inputs": [
       {
-        name: 'account',
-        type: 'address',
-        internalType: 'address',
-      },
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    outputs: [
+    "outputs": [
       {
-        name: '',
-        type: 'bool',
-        internalType: 'bool',
-      },
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'pauseStrategy',
-    inputs: [
+    "type": "function",
+    "name": "pauseStrategy",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
-          {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
-          },
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'priceFromFeed',
-    inputs: [
-      {
-        name: 'feed',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    outputs: [
-      {
-        name: '',
-        type: 'tuple',
-        internalType: 'struct ChainlinkOraclePrice',
-        components: [
           {
-            name: 'value',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'decimals',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-        ],
-      },
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    stateMutability: 'view',
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: 'function',
-    name: 'resumeStrategy',
-    inputs: [
+    "type": "function",
+    "name": "resumeStrategy",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    outputs: [],
-    stateMutability: 'nonpayable',
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: 'function',
-    name: 'strategyCommitments',
-    inputs: [
+    "type": "function",
+    "name": "strategyCommitments",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [
+    "outputs": [
       {
-        name: 'commitmentHash',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        "name": "commitmentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'function',
-    name: 'strategyStates',
-    inputs: [
+    "type": "function",
+    "name": "strategyStates",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [
+    "outputs": [
       {
-        name: '',
-        type: 'tuple',
-        internalType: 'struct IDCAStrategyManager.StrategyState',
-        components: [
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IDCAStrategyManager.StrategyState",
+        "components": [
           {
-            name: 'status',
-            type: 'uint8',
-            internalType: 'enum IDCAStrategyManager.Status',
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum IDCAStrategyManager.Status"
           },
           {
-            name: 'tradesExecuted',
-            type: 'uint248',
-            internalType: 'uint248',
+            "name": "tradesExecuted",
+            "type": "uint248",
+            "internalType": "uint248"
           },
           {
-            name: 'nextTriggerAt',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "nextTriggerAt",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'lastScheduledAt',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
+            "name": "lastScheduledAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    stateMutability: 'view',
+    "stateMutability": "view"
   },
   {
-    type: 'event',
-    name: 'ExecutionCompleted',
-    inputs: [
+    "type": "event",
+    "name": "ExecutionCompleted",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
-        name: 'tradesExecuted',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
+        "name": "tradesExecuted",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       },
       {
-        name: 'inShares',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
+        "name": "inShares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       },
       {
-        name: 'outShares',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
+        "name": "outShares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       },
       {
-        name: 'inAssets',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
+        "name": "inAssets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       },
       {
-        name: 'outAssets',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
+        "name": "outAssets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       },
       {
-        name: 'nextTriggerAt',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
-      },
+        "name": "nextTriggerAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'event',
-    name: 'StrategyCancelled',
-    inputs: [
+    "type": "event",
+    "name": "StrategyCancelled",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
-      },
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'event',
-    name: 'StrategyCompleted',
-    inputs: [
+    "type": "event",
+    "name": "StrategyCompleted",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
-        name: 'reason',
-        type: 'bytes32',
-        indexed: false,
-        internalType: 'bytes32',
-      },
+        "name": "reason",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'event',
-    name: 'StrategyCreated',
-    inputs: [
+    "type": "event",
+    "name": "StrategyCreated",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
-        name: 'config',
-        type: 'tuple',
-        indexed: false,
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "config",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'event',
-    name: 'StrategyEdited',
-    inputs: [
+    "type": "event",
+    "name": "StrategyEdited",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
-        name: 'config',
-        type: 'tuple',
-        indexed: false,
-        internalType: 'struct IDCAStrategyManager.StrategyConfig',
-        components: [
+        "name": "config",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct IDCAStrategyManager.StrategyConfig",
+        "components": [
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            name: 'sourceVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "sourceVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'targetVault',
-            type: 'address',
-            internalType: 'contract IFleetCommander',
+            "name": "targetVault",
+            "type": "address",
+            "internalType": "contract IFleetCommander"
           },
           {
-            name: 'inAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "inAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'outAsset',
-            type: 'address',
-            internalType: 'contract IERC20',
+            "name": "outAsset",
+            "type": "address",
+            "internalType": "contract IERC20"
           },
           {
-            name: 'inAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "inAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'outAssetFeed',
-            type: 'address',
-            internalType: 'address',
+            "name": "outAssetFeed",
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
-            name: 'tradeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "tradeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'interval',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "interval",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'slippageBps',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "slippageBps",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "maxPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'minPrice',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "minPrice",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'endDate',
-            type: 'uint256',
-            internalType: 'uint256',
+            "name": "endDate",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            name: 'maxTrades',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
+            "name": "maxTrades",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'event',
-    name: 'StrategyPaused',
-    inputs: [
+    "type": "event",
+    "name": "StrategyPaused",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
-        name: 'nextTriggerAt',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
-      },
+        "name": "nextTriggerAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'event',
-    name: 'StrategyResumed',
-    inputs: [
+    "type": "event",
+    "name": "StrategyResumed",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       },
       {
-        name: 'nextTriggerAt',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
-      },
+        "name": "nextTriggerAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
-    anonymous: false,
+    "anonymous": false
   },
   {
-    type: 'error',
-    name: 'AmountOverflowsUint160',
-    inputs: [
+    "type": "error",
+    "name": "AmountOverflowsUint160",
+    "inputs": [
       {
-        name: 'amount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotAdmin',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotAdmin",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotAuthorizedToBoard',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotAuthorizedToBoard",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotCommander',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotCommander",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotContractSpecificRole',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotContractSpecificRole",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'role',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
-    ],
+        "name": "role",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotCurator',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotCurator",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotDecayController',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotDecayController",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotFoundation',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotFoundation",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotGovernor',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotGovernor",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotGuardian',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotGuardian",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotGuardianOrGovernor',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotGuardianOrGovernor",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotKeeper',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotKeeper",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotOperator',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotOperator",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotRaft',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotRaft",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotRaftOrCommander',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotRaftOrCommander",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CallerIsNotSuperKeeper',
-    inputs: [
+    "type": "error",
+    "name": "CallerIsNotSuperKeeper",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'ChainlinkOraclePriceZero',
-    inputs: [],
+    "type": "error",
+    "name": "ChainlinkOraclePriceZero",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'ChainlinkOracleStalePrice',
-    inputs: [
+    "type": "error",
+    "name": "ChainlinkOracleStalePrice",
+    "inputs": [
       {
-        name: 'feed',
-        type: 'address',
-        internalType: 'address',
+        "name": "feed",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'updatedAt',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "updatedAt",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'currentTime',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'CommitmentMismatch',
-    inputs: [
+    "type": "error",
+    "name": "CommitmentMismatch",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'DirectGrantIsDisabled',
-    inputs: [
+    "type": "error",
+    "name": "DepositSharesBelowMin",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
+        "name": "expected",
+        "type": "uint256",
+        "internalType": "uint256"
       },
-    ],
+      {
+        "name": "received",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'DirectRevokeIsDisabled',
-    inputs: [
+    "type": "error",
+    "name": "DirectGrantIsDisabled",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DirectRevokeIsDisabled",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'DuplicateStrategy',
-    inputs: [],
+    "type": "error",
+    "name": "DuplicateStrategy",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'EmptySwapData',
-    inputs: [],
+    "type": "error",
+    "name": "EmptySwapData",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'ExecutionWindowNotReached',
-    inputs: [
+    "type": "error",
+    "name": "ExecutionWindowNotReached",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'nextTriggerAt',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "nextTriggerAt",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'blockTimestamp',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "blockTimestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InAssetVaultMismatch',
-    inputs: [
+    "type": "error",
+    "name": "InAssetVaultMismatch",
+    "inputs": [
       {
-        name: 'expected',
-        type: 'address',
-        internalType: 'address',
+        "name": "expected",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'actual',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "actual",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InactiveFleetCommander',
-    inputs: [
+    "type": "error",
+    "name": "InactiveFleetCommander",
+    "inputs": [
       {
-        name: 'vault',
-        type: 'address',
-        internalType: 'address',
+        "name": "vault",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'label',
-        type: 'string',
-        internalType: 'string',
-      },
-    ],
+        "name": "label",
+        "type": "string",
+        "internalType": "string"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'IntervalTooLong',
-    inputs: [
+    "type": "error",
+    "name": "IntervalTooLong",
+    "inputs": [
       {
-        name: 'provided',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "provided",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'maximum',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'IntervalTooShort',
-    inputs: [
+    "type": "error",
+    "name": "IntervalTooShort",
+    "inputs": [
       {
-        name: 'provided',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "provided",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'minimum',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "minimum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InvalidAccessManagerAddress',
-    inputs: [
+    "type": "error",
+    "name": "InvalidAccessManagerAddress",
+    "inputs": [
       {
-        name: 'invalidAddress',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "invalidAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InvalidFeedAddress',
-    inputs: [],
+    "type": "error",
+    "name": "InvalidFeedAddress",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'InvalidHarborCommandAddress',
-    inputs: [],
+    "type": "error",
+    "name": "InvalidHarborCommandAddress",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'InvalidOwner',
-    inputs: [],
+    "type": "error",
+    "name": "InvalidOwner",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'InvalidPermit2Address',
-    inputs: [],
+    "type": "error",
+    "name": "InvalidPermit2Address",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'InvalidPermit2Amount',
-    inputs: [
+    "type": "error",
+    "name": "InvalidPermit2Amount",
+    "inputs": [
       {
-        name: 'expected',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "expected",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'actual',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InvalidPermit2Spender',
-    inputs: [
+    "type": "error",
+    "name": "InvalidPermit2Spender",
+    "inputs": [
       {
-        name: 'expected',
-        type: 'address',
-        internalType: 'address',
+        "name": "expected",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'actual',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "actual",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InvalidPermit2Token',
-    inputs: [
+    "type": "error",
+    "name": "InvalidPermit2Token",
+    "inputs": [
       {
-        name: 'expected',
-        type: 'address',
-        internalType: 'address',
+        "name": "expected",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'actual',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "actual",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InvalidPriceBounds',
-    inputs: [
+    "type": "error",
+    "name": "InvalidPriceBounds",
+    "inputs": [
       {
-        name: 'minPrice',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "minPrice",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'maxPrice',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "maxPrice",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'InvalidRouterAddress',
-    inputs: [],
+    "type": "error",
+    "name": "InvalidRouterAddress",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'InvalidSlippage',
-    inputs: [
+    "type": "error",
+    "name": "InvalidSlippage",
+    "inputs": [
       {
-        name: 'slippageBps',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "slippageBps",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'OutAssetVaultMismatch',
-    inputs: [
+    "type": "error",
+    "name": "OutAssetVaultMismatch",
+    "inputs": [
       {
-        name: 'expected',
-        type: 'address',
-        internalType: 'address',
+        "name": "expected",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'actual',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "actual",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'Permit2AllowanceInsufficient',
-    inputs: [
+    "type": "error",
+    "name": "Permit2AllowanceInsufficient",
+    "inputs": [
       {
-        name: 'signed',
-        type: 'uint160',
-        internalType: 'uint160',
+        "name": "signed",
+        "type": "uint160",
+        "internalType": "uint160"
       },
       {
-        name: 'required',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "required",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'Permit2AllowanceNotSet',
-    inputs: [
+    "type": "error",
+    "name": "Permit2AllowanceNotSet",
+    "inputs": [
       {
-        name: 'required',
-        type: 'uint160',
-        internalType: 'uint160',
+        "name": "required",
+        "type": "uint160",
+        "internalType": "uint160"
       },
       {
-        name: 'actual',
-        type: 'uint160',
-        internalType: 'uint160',
-      },
-    ],
+        "name": "actual",
+        "type": "uint160",
+        "internalType": "uint160"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'Permit2ExpirationTooEarly',
-    inputs: [
+    "type": "error",
+    "name": "Permit2ExpirationNotSet",
+    "inputs": [
       {
-        name: 'expiration',
-        type: 'uint48',
-        internalType: 'uint48',
+        "name": "required",
+        "type": "uint48",
+        "internalType": "uint48"
       },
       {
-        name: 'endDate',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "actual",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'PriceAboveCeiling',
-    inputs: [
+    "type": "error",
+    "name": "Permit2ExpirationTooEarly",
+    "inputs": [
       {
-        name: 'executionPrice',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "expiration",
+        "type": "uint48",
+        "internalType": "uint48"
       },
       {
-        name: 'maxPrice',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "endDate",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'PriceBelowFloor',
-    inputs: [
+    "type": "error",
+    "name": "PriceAboveCeiling",
+    "inputs": [
       {
-        name: 'executionPrice',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "executionPrice",
+        "type": "uint256",
+        "internalType": "uint256"
       },
+      {
+        "name": "maxPrice",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PriceBelowFloor",
+    "inputs": [
       {
-        name: 'minPrice',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "executionPrice",
+        "type": "uint256",
+        "internalType": "uint256"
       },
-    ],
+      {
+        "name": "minPrice",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'ReentrancyGuardReentrantCall',
-    inputs: [],
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'SafeERC20FailedOperation',
-    inputs: [
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
       {
-        name: 'token',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'SameAsset',
-    inputs: [
+    "type": "error",
+    "name": "SameAsset",
+    "inputs": [
       {
-        name: 'asset',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "asset",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'StrategyNotActive',
-    inputs: [
+    "type": "error",
+    "name": "StrategyNotActive",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'SwapFailed',
-    inputs: [],
+    "type": "error",
+    "name": "SwapFailed",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'SwapOutputBelowMinOut',
-    inputs: [
+    "type": "error",
+    "name": "SwapOutputBelowMinOut",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'minOut',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "minOut",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'actualOut',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
+        "name": "actualOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'UnauthorizedAccess',
-    inputs: [
+    "type": "error",
+    "name": "UnauthorizedAccess",
+    "inputs": [
       {
-        name: 'strategyId',
-        type: 'uint256',
-        internalType: 'uint256',
+        "name": "strategyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'UnauthorizedOwner',
-    inputs: [
+    "type": "error",
+    "name": "UnauthorizedOwner",
+    "inputs": [
       {
-        name: 'caller',
-        type: 'address',
-        internalType: 'address',
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        name: 'owner',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
-    type: 'error',
-    name: 'ZeroDeposit',
-    inputs: [],
+    "type": "error",
+    "name": "ZeroDeposit",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'ZeroExpectedOutShares',
-    inputs: [],
+    "type": "error",
+    "name": "ZeroExpectedOutShares",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'ZeroMaxTrades',
-    inputs: [],
+    "type": "error",
+    "name": "ZeroMaxTrades",
+    "inputs": []
   },
   {
-    type: 'error',
-    name: 'ZeroTradeAmount',
-    inputs: [],
-  },
+    "type": "error",
+    "name": "ZeroTradeAmount",
+    "inputs": []
+  }
 ] as const
