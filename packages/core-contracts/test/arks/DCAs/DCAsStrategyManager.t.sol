@@ -402,7 +402,20 @@ contract DCAStrategyManagerTest is Test {
 
     function test_CheckUpkeep_ReturnsTrueWhenReady() public {
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+
+        // checkUpkeep now requires the owner to hold the source-vault shares and
+        // keep a live Permit2 sub-allowance covering the next pull, so set both up.
+        deal(USDC_ADDRESS, strategyOwner, 10000e6);
         vm.startPrank(strategyOwner);
+        IERC20(USDC_ADDRESS).approve(address(usdcFleet), type(uint256).max);
+        usdcFleet.deposit(1000e6, strategyOwner);
+        IERC20(address(usdcFleet)).approve(PERMIT2, type(uint256).max);
+        IPermit2(PERMIT2).approve(
+            address(usdcFleet),
+            address(dcaManager),
+            type(uint160).max,
+            type(uint48).max
+        );
         uint256 strategyId = dcaManager.createStrategy(config);
         vm.stopPrank();
 
@@ -2235,6 +2248,82 @@ contract DCAStrategyManagerIntegrationTest is Test {
         assertFalse(
             upkeepNeeded,
             "Upkeep must be false when execution price is outside guardrails"
+        );
+    }
+
+    /// @dev KE-3: checkUpkeep returns false when the owner no longer holds enough
+    ///      source-vault shares for the next pull (the keeper pull would revert).
+    function test_CheckUpkeep_ReturnsFalseWhenShareBalanceTooLow() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+        vm.warp(block.timestamp + 7 days);
+
+        (bool ready, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertTrue(ready, "precondition: upkeep ready");
+
+        // Drain the owner's source-vault shares below tradeAmount (100e6).
+        uint256 bal = IERC20(address(sourceFleet)).balanceOf(strategyOwner);
+        vm.prank(strategyOwner);
+        IERC20(address(sourceFleet)).transfer(address(0xBEEF), bal - 1e6);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when share balance is below tradeAmount"
+        );
+    }
+
+    /// @dev KE-3: checkUpkeep returns false when the live Permit2 sub-allowance
+    ///      no longer covers the next pull.
+    function test_CheckUpkeep_ReturnsFalseWhenAllowanceTooLow() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+        vm.warp(block.timestamp + 7 days);
+
+        // Lower the Permit2 sub-allowance below tradeAmount (100e6).
+        vm.prank(strategyOwner);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
+            address(dcaManager),
+            uint160(1e6),
+            type(uint48).max
+        );
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when allowance is below tradeAmount"
+        );
+    }
+
+    /// @dev KE-3: checkUpkeep returns false when the Permit2 sub-allowance has
+    ///      expired, even though its amount still covers the pull.
+    function test_CheckUpkeep_ReturnsFalseWhenAllowanceExpired() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        // Amount is ample but the allowance expires before the trigger time.
+        uint48 soonExpiration = uint48(block.timestamp + 1 days);
+        vm.prank(strategyOwner);
+        IPermit2(PERMIT2).approve(
+            address(sourceFleet),
+            address(dcaManager),
+            type(uint160).max,
+            soonExpiration
+        );
+
+        vm.warp(block.timestamp + 7 days); // now past soonExpiration
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when allowance has expired"
         );
     }
 

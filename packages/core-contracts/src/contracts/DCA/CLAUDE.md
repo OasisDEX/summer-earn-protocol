@@ -124,6 +124,12 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-19 — claude — audit KE-3: `checkUpkeep` now returns `false` when the
+  owner's source-vault share balance or live Permit2 sub-allowance (amount or
+  expiration) can't cover the next `tradeAmount` pull, so the keeper avoids
+  doomed executions. View-only; no struct/ABI/wire changes. Tests added in
+  `DCAsStrategyManager.t.sol` (`test_CheckUpkeep_ReturnsFalseWhen{ShareBalanceTooLow,AllowanceTooLow,AllowanceExpired}`);
+  `test_CheckUpkeep_ReturnsTrueWhenReady` now funds + approves the owner.
 - 2026-05-27 — claude — product alignment + DRY pass.
   Validation: `_MAX_INTERVAL = 90 days` cap (new `IntervalTooLong` error);
   `maxTrades == 0` rejected (new `ZeroMaxTrades` error); `maxTrades >= 1` is

@@ -438,6 +438,28 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // Funding pre-checks: the keeper's pull (`tradeAmount` source-vault shares
+        // via Permit2) will revert unless the owner still holds the shares and
+        // keeps a live, unexpired sub-allowance covering them. Surface that as
+        // "no upkeep" so the keeper doesn't burn gas on a doomed execution.
+        if (
+            IERC20(address(config.sourceVault)).balanceOf(config.owner) <
+            config.tradeAmount
+        ) {
+            return (false, performData);
+        }
+        (uint160 allowed, uint48 allowedExpiration, ) = PERMIT2.allowance(
+            config.owner,
+            address(config.sourceVault),
+            address(this)
+        );
+        if (
+            uint256(allowed) < config.tradeAmount ||
+            allowedExpiration < block.timestamp
+        ) {
+            return (false, performData);
+        }
+
         if (config.maxPrice > 0 || config.minPrice > 0) {
             ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
                 ._getPrice(config.inAssetFeed);
