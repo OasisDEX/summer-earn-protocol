@@ -464,6 +464,16 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // Both fleets must have share-token transfers enabled: execution pulls
+        // source shares from the owner and forwards target shares back to them —
+        // both are gated transfers that would revert otherwise.
+        if (
+            !config.sourceVault.transfersEnabled() ||
+            !config.targetVault.transfersEnabled()
+        ) {
+            return (false, performData);
+        }
+
         if (config.maxPrice > 0 || config.minPrice > 0) {
             ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
                 ._getPrice(config.inAssetFeed);

@@ -132,6 +132,13 @@ Format: YYYY-MM-DD — author — one-sentence summary. -->
   in-tx. **ABI break on both entrypoints** (new trailing `uint256` arg) — FE +
   keeper need regenerated ABIs; commitment/struct unchanged. New error
   `DepositSharesBelowMin`. Tests in `DCAsStrategyManager.t.sol`.
+- 2026-06-19 — claude — audit KE-5: `checkUpkeep` now returns `false` unless both
+  `sourceVault.transfersEnabled()` and `targetVault.transfersEnabled()` (a pull of
+  source shares and the payout of target shares are both gated transfers).
+  Added `transfersEnabled()` to `IFleetCommanderConfigProvider` (accessor already
+  existed as a public var). View-only; no struct/ABI/wire changes. Tests in
+  `DCAsStrategyManager.t.sol`. Scope: standard transfer flag only — does not cover
+  whitelist-membership gating on whitelist fleets.
 - 2026-06-19 — claude — audit KE-3: `checkUpkeep` now returns `false` when the
   owner's source-vault share balance or live Permit2 sub-allowance (amount or
   expiration) can't cover the next `tradeAmount` pull, so the keeper avoids

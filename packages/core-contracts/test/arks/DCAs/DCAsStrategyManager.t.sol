@@ -400,11 +400,10 @@ contract DCAStrategyManagerTest is Test {
         assertFalse(upkeepNeeded, "Upkeep should be false past endDate");
     }
 
-    function test_CheckUpkeep_ReturnsTrueWhenReady() public {
-        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
-
-        // checkUpkeep now requires the owner to hold the source-vault shares and
-        // keep a live Permit2 sub-allowance covering the next pull, so set both up.
+    /// @dev Funds `strategyOwner` with source-vault shares and a max Permit2
+    ///      sub-allowance to the manager so checkUpkeep's KE-3 funding gates pass.
+    ///      Does NOT enable fleet transfers — callers control that for KE-5 cases.
+    function _fundOwnerForUpkeep() internal {
         deal(USDC_ADDRESS, strategyOwner, 10000e6);
         vm.startPrank(strategyOwner);
         IERC20(USDC_ADDRESS).approve(address(usdcFleet), type(uint256).max);
@@ -416,8 +415,21 @@ contract DCAStrategyManagerTest is Test {
             type(uint160).max,
             type(uint48).max
         );
-        uint256 strategyId = dcaManager.createStrategy(config);
         vm.stopPrank();
+    }
+
+    function test_CheckUpkeep_ReturnsTrueWhenReady() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+
+        // checkUpkeep requires the owner to hold source-vault shares with a live
+        // Permit2 allowance (KE-3) and both fleets to have transfers enabled (KE-5).
+        _fundOwnerForUpkeep();
+        vm.startPrank(governor);
+        usdcFleet.setFleetTokenTransferability();
+        wethFleet.setFleetTokenTransferability();
+        vm.stopPrank();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
 
         (bool upkeepNeededBefore, ) = dcaManager.checkUpkeep(
             strategyId,
@@ -432,6 +444,44 @@ contract DCAStrategyManagerTest is Test {
 
         (bool upkeepNeededAfter, ) = dcaManager.checkUpkeep(strategyId, config);
         assertTrue(upkeepNeededAfter, "Upkeep should be true after interval");
+    }
+
+    /// @dev KE-5: checkUpkeep returns false when the source fleet's share-token
+    ///      transfers are disabled (the keeper's pull would revert).
+    function test_CheckUpkeep_ReturnsFalseWhenSourceTransfersDisabled() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        _fundOwnerForUpkeep();
+        // Enable the target only; the source (usdcFleet) stays disabled.
+        vm.prank(governor);
+        wethFleet.setFleetTokenTransferability();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        vm.warp(block.timestamp + 7 days);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when source fleet transfers are disabled"
+        );
+    }
+
+    /// @dev KE-5: checkUpkeep returns false when the target fleet's share-token
+    ///      transfers are disabled (forwarding shares to the owner would revert).
+    function test_CheckUpkeep_ReturnsFalseWhenTargetTransfersDisabled() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        _fundOwnerForUpkeep();
+        // Enable the source only; the target (wethFleet) stays disabled.
+        vm.prank(governor);
+        usdcFleet.setFleetTokenTransferability();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+        vm.warp(block.timestamp + 7 days);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(
+            upkeepNeeded,
+            "Upkeep must be false when target fleet transfers are disabled"
+        );
     }
 
     function test_CreateStrategy_AssignsUniqueIdAndCommitment() public {
