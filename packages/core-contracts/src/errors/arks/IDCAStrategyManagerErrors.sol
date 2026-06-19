@@ -38,6 +38,10 @@ interface IDCAStrategyManagerErrors {
     ///         is silently disabled — this guard refuses to execute such trades.
     error ZeroExpectedOutShares();
 
+    /// @notice Reverts when `sourceVault.deposit` during a deposit-and-create mints
+    ///         fewer shares than the caller's `expectedMinShares` floor.
+    error DepositSharesBelowMin(uint256 expected, uint256 received);
+
     /// @notice Reverts when the caller is not `config.owner` on an owner-gated function,
     ///         or when `editStrategy` attempts to change `config.owner` (ownership
     ///         transfer via edit is disallowed; cancel and recreate instead).

@@ -39,7 +39,7 @@ shares from the user via Permit2 `AllowanceTransfer`, routes them through
 Enso, deposits the proceeds into the target FleetCommander, and forwards the
 resulting shares to the user in the same tx.
 
-A convenience entry point `depositAndCreate(config, assetAmount)` lets a user
+A convenience entry point `depositAndCreate(config, assetAmount, expectedMinShares)` lets a user
 deposit the underlying `inAsset` into `config.sourceVault` and register the
 strategy in one transaction; the resulting source-vault shares go directly to
 `msg.sender`, not to this contract.
@@ -124,6 +124,14 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-19 — claude — audit VD-1: added `expectedMinShares` parameter to
+  `depositAndCreate` and `depositAndCreateWithPermit2` (passed through to
+  `_depositPulledAsset`, which reverts `DepositSharesBelowMin` when the minted
+  source-vault shares fall short). Caller-supplied floor — the vault's own
+  `previewDeposit` is not a usable reference since `deposit` mints exactly that
+  in-tx. **ABI break on both entrypoints** (new trailing `uint256` arg) — FE +
+  keeper need regenerated ABIs; commitment/struct unchanged. New error
+  `DepositSharesBelowMin`. Tests in `DCAsStrategyManager.t.sol`.
 - 2026-06-19 — claude — audit KE-3: `checkUpkeep` now returns `false` when the
   owner's source-vault share balance or live Permit2 sub-allowance (amount or
   expiration) can't cover the next `tradeAmount` pull, so the keeper avoids

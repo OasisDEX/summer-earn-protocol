@@ -889,7 +889,11 @@ contract DCAStrategyManagerTest is Test {
         IERC20(USDC_ADDRESS).approve(address(dcaManager), depositAmount);
 
         uint256 sharesBefore = usdcFleet.balanceOf(strategyOwner);
-        uint256 strategyId = dcaManager.depositAndCreate(config, depositAmount);
+        uint256 strategyId = dcaManager.depositAndCreate(
+            config,
+            depositAmount,
+            0
+        );
         uint256 sharesAfter = usdcFleet.balanceOf(strategyOwner);
         vm.stopPrank();
 
@@ -934,7 +938,52 @@ contract DCAStrategyManagerTest is Test {
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         vm.prank(strategyOwner);
         vm.expectRevert(IDCAStrategyManagerErrors.ZeroDeposit.selector);
-        dcaManager.depositAndCreate(config, 0);
+        dcaManager.depositAndCreate(config, 0, 0);
+    }
+
+    /// @dev VD-1: depositAndCreate honors the caller's `expectedMinShares` floor.
+    function test_DepositAndCreate_RevertsWhenSharesBelowMin() public {
+        uint256 depositAmount = 1_000e6;
+        deal(USDC_ADDRESS, strategyOwner, depositAmount);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+
+        // Ask for far more shares than a 1_000e6 deposit can ever mint.
+        uint256 expectedMinShares = depositAmount * 2;
+        uint256 minted = usdcFleet.previewDeposit(depositAmount);
+
+        vm.startPrank(strategyOwner);
+        IERC20(USDC_ADDRESS).approve(address(dcaManager), depositAmount);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.DepositSharesBelowMin.selector,
+                expectedMinShares,
+                minted
+            )
+        );
+        dcaManager.depositAndCreate(config, depositAmount, expectedMinShares);
+        vm.stopPrank();
+    }
+
+    /// @dev VD-1: a floor at or below the actual minted shares passes.
+    function test_DepositAndCreate_SucceedsWhenSharesMeetMin() public {
+        uint256 depositAmount = 1_000e6;
+        deal(USDC_ADDRESS, strategyOwner, depositAmount);
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+
+        uint256 expectedMinShares = usdcFleet.previewDeposit(depositAmount);
+
+        vm.startPrank(strategyOwner);
+        IERC20(USDC_ADDRESS).approve(address(dcaManager), depositAmount);
+        uint256 sharesBefore = usdcFleet.balanceOf(strategyOwner);
+        dcaManager.depositAndCreate(config, depositAmount, expectedMinShares);
+        uint256 received = usdcFleet.balanceOf(strategyOwner) - sharesBefore;
+        vm.stopPrank();
+
+        assertGe(
+            received,
+            expectedMinShares,
+            "received shares must meet the floor"
+        );
     }
 
     function test_DepositAndCreate_RevertsForNonOwnerSender() public {
@@ -952,7 +1001,7 @@ contract DCAStrategyManagerTest is Test {
                 impostor
             )
         );
-        dcaManager.depositAndCreate(config, 100e6);
+        dcaManager.depositAndCreate(config, 100e6, 0);
         vm.stopPrank();
     }
 
@@ -973,7 +1022,7 @@ contract DCAStrategyManagerTest is Test {
                 "source"
             )
         );
-        dcaManager.depositAndCreate(config, 100e6);
+        dcaManager.depositAndCreate(config, 100e6, 0);
         vm.stopPrank();
     }
 
@@ -3330,7 +3379,8 @@ contract DCAStrategyManagerIntegrationTest is Test {
         uint256 strategyId = dcaManager.depositAndCreateWithPermit2(
             cfg,
             depositAmount,
-            permits
+            permits,
+            0
         );
 
         assertEq(strategyId, 0);
@@ -3362,6 +3412,66 @@ contract DCAStrategyManagerIntegrationTest is Test {
             allowanceAmount,
             type(uint160).max,
             "shares sub-allowance set"
+        );
+    }
+
+    /// @dev VD-1: depositAndCreateWithPermit2 honors `expectedMinShares` too.
+    function test_DepositAndCreateWithPermit2_RevertsWhenSharesBelowMin()
+        public
+    {
+        address signer = _setupSigner();
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfigFor(
+            signer,
+            block.timestamp + 365 days
+        );
+        uint256 depositAmount = 500e6;
+
+        IDCAStrategyManager.Permit2DepositBundle
+            memory permits = IDCAStrategyManager.Permit2DepositBundle({
+                inAsset: ISignatureTransfer.PermitTransferFrom({
+                    permitted: ISignatureTransfer.TokenPermissions({
+                        token: IERC20(USDC_ADDRESS),
+                        amount: depositAmount
+                    }),
+                    nonce: 1,
+                    deadline: block.timestamp + 1 hours
+                }),
+                inAssetSig: bytes(""),
+                shares: IAllowanceTransfer.PermitSingle({
+                    details: IAllowanceTransfer.PermitDetails({
+                        token: address(sourceFleet),
+                        amount: type(uint160).max,
+                        expiration: type(uint48).max,
+                        nonce: 0
+                    }),
+                    spender: address(dcaManager),
+                    sigDeadline: block.timestamp + 1 hours
+                }),
+                sharesSig: bytes("")
+            });
+        permits.inAssetSig = _signPermit2Transfer(
+            permits.inAsset,
+            address(dcaManager),
+            _SIGNER_PK
+        );
+        permits.sharesSig = _signPermit2Single(permits.shares, _SIGNER_PK);
+
+        uint256 expectedMinShares = depositAmount * 2; // unreachable floor
+        uint256 minted = sourceFleet.previewDeposit(depositAmount);
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.DepositSharesBelowMin.selector,
+                expectedMinShares,
+                minted
+            )
+        );
+        dcaManager.depositAndCreateWithPermit2(
+            cfg,
+            depositAmount,
+            permits,
+            expectedMinShares
         );
     }
 
@@ -3410,7 +3520,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 address(0xBEEF)
             )
         );
-        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits, 0);
     }
 
     function test_DepositAndCreateWithPermit2_RevertsOnSharesTokenMismatch()
@@ -3458,7 +3568,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 USDC_ADDRESS
             )
         );
-        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits, 0);
     }
 
     function test_DepositAndCreateWithPermit2_RevertsOnInAssetTokenMismatch()
@@ -3506,7 +3616,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 WETH_ADDRESS
             )
         );
-        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits, 0);
     }
 
     function test_DepositAndCreateWithPermit2_RevertsOnInAssetAmountMismatch()
@@ -3554,7 +3664,7 @@ contract DCAStrategyManagerIntegrationTest is Test {
                 depositAmount + 1
             )
         );
-        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits);
+        dcaManager.depositAndCreateWithPermit2(cfg, depositAmount, permits, 0);
     }
 
     function test_DepositAndCreateWithPermit2_RevertsOnZeroDeposit() public {
@@ -3567,6 +3677,6 @@ contract DCAStrategyManagerIntegrationTest is Test {
 
         vm.prank(signer);
         vm.expectRevert(IDCAStrategyManagerErrors.ZeroDeposit.selector);
-        dcaManager.depositAndCreateWithPermit2(cfg, 0, permits);
+        dcaManager.depositAndCreateWithPermit2(cfg, 0, permits, 0);
     }
 }

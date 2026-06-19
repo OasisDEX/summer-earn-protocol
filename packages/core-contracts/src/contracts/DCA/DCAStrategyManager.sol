@@ -156,7 +156,8 @@ contract DCAStrategyManager is
      */
     function depositAndCreate(
         StrategyConfig calldata config,
-        uint256 assetAmount
+        uint256 assetAmount,
+        uint256 expectedMinShares
     )
         external
         nonReentrant
@@ -175,7 +176,8 @@ contract DCAStrategyManager is
             config.sourceVault,
             inAsset,
             _msgSender(),
-            assetAmount
+            assetAmount,
+            expectedMinShares
         );
     }
 
@@ -214,7 +216,8 @@ contract DCAStrategyManager is
     function depositAndCreateWithPermit2(
         StrategyConfig calldata config,
         uint256 assetAmount,
-        Permit2DepositBundle calldata permits
+        Permit2DepositBundle calldata permits,
+        uint256 expectedMinShares
     )
         external
         nonReentrant
@@ -250,7 +253,8 @@ contract DCAStrategyManager is
             config.sourceVault,
             IERC20(address(config.inAsset)),
             _msgSender(),
-            assetAmount
+            assetAmount,
+            expectedMinShares
         );
     }
 
@@ -517,16 +521,24 @@ contract DCAStrategyManager is
      *      by this contract, deposits with `shareReceiver` as the recipient,
      *      and resets the allowance to 0 for hygiene. Caller is responsible
      *      for pulling the assets into this contract beforehand.
+     *      Reverts with `DepositSharesBelowMin` when the minted shares are below
+     *      `minShares` — the caller's off-chain slippage floor (the vault's own
+     *      `previewDeposit` is not a usable reference here since `deposit` mints
+     *      exactly that amount in the same call).
      */
     function _depositPulledAsset(
         IFleetCommander sourceVault,
         IERC20 inAsset,
         address shareReceiver,
-        uint256 assetAmount
+        uint256 assetAmount,
+        uint256 minShares
     ) internal {
         inAsset.forceApprove(address(sourceVault), assetAmount);
-        sourceVault.deposit(assetAmount, shareReceiver);
+        uint256 shares = sourceVault.deposit(assetAmount, shareReceiver);
         inAsset.forceApprove(address(sourceVault), 0);
+        if (shares < minShares) {
+            revert DepositSharesBelowMin(minShares, shares);
+        }
     }
 
     /**
