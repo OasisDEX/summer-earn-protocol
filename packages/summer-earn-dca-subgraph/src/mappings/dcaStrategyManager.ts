@@ -30,8 +30,8 @@ export function handleStrategyCreated(event: StrategyCreated): void {
 
   // Spin up the polling template for any feed we haven't seen before. From
   // this block forward the subgraph will sample `latestRoundData` ~every 5 min.
-  registerFeed(cfg.inAssetFeed, event.block)
-  registerFeed(cfg.outAssetFeed, event.block)
+  registerFeed(cfg.inAssetFeed.feed, event.block)
+  registerFeed(cfg.outAssetFeed.feed, event.block)
 
   const s = new Strategy(event.params.strategyId.toString())
   s.strategyId = event.params.strategyId
@@ -41,8 +41,10 @@ export function handleStrategyCreated(event: StrategyCreated): void {
   s.targetVault = cfg.targetVault
   s.inAsset = cfg.inAsset
   s.outAsset = cfg.outAsset
-  s.inAssetFeed = cfg.inAssetFeed
-  s.outAssetFeed = cfg.outAssetFeed
+  s.inAssetFeed = cfg.inAssetFeed.feed
+  s.outAssetFeed = cfg.outAssetFeed.feed
+  s.inAssetFeedStaleness = cfg.inAssetFeed.maxStaleness
+  s.outAssetFeedStaleness = cfg.outAssetFeed.maxStaleness
 
   s.tradeAmount = cfg.tradeAmount
   s.interval = cfg.interval
@@ -83,8 +85,8 @@ export function handleStrategyEdited(event: StrategyEdited): void {
   const user = getOrCreateUser(cfg.owner, event.block)
 
   // Edits may swap in a previously-unseen feed pair — register them too.
-  registerFeed(cfg.inAssetFeed, event.block)
-  registerFeed(cfg.outAssetFeed, event.block)
+  registerFeed(cfg.inAssetFeed.feed, event.block)
+  registerFeed(cfg.outAssetFeed.feed, event.block)
 
   // Update configurable fields, including owner and vault/asset configs
   s.owner = user.id
@@ -92,8 +94,10 @@ export function handleStrategyEdited(event: StrategyEdited): void {
   s.targetVault = cfg.targetVault
   s.inAsset = cfg.inAsset
   s.outAsset = cfg.outAsset
-  s.inAssetFeed = cfg.inAssetFeed
-  s.outAssetFeed = cfg.outAssetFeed
+  s.inAssetFeed = cfg.inAssetFeed.feed
+  s.outAssetFeed = cfg.outAssetFeed.feed
+  s.inAssetFeedStaleness = cfg.inAssetFeed.maxStaleness
+  s.outAssetFeedStaleness = cfg.outAssetFeed.maxStaleness
 
   s.tradeAmount = cfg.tradeAmount
   s.interval = cfg.interval
