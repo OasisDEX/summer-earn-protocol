@@ -14,7 +14,6 @@ import { buildConfigGraph, type Env } from '@/scripts/build-config-graph'
 const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1'
 
 export const runtime = 'nodejs'
-export const dynamic = STATIC_EXPORT ? 'force-static' : 'force-dynamic'
 
 export async function GET(req: Request) {
   if (STATIC_EXPORT) {
