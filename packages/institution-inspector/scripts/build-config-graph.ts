@@ -11,6 +11,7 @@ const CHAIN_IDS: Record<string, number> = {
   mainnet: 1,
   sonic: 146,
   hyperliquid: 999,
+  sepolia_mainnet: 11155111,
 }
 
 const SYSTEM_CORE_KINDS: Record<string, string> = {

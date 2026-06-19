@@ -13,6 +13,7 @@ const TARGETS: Array<{ network: string; env: Env }> = [
   { network: 'base', env: 'staging' },
   { network: 'mainnet', env: 'production' },
   { network: 'mainnet', env: 'staging' },
+  { network: 'sepolia_mainnet', env: 'staging' },
 ]
 
 async function main() {

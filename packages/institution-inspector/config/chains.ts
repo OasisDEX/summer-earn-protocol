@@ -1,4 +1,4 @@
-import { mainnet, arbitrum, base, sonic, hyperliquid, type Chain } from 'viem/chains'
+import { mainnet, arbitrum, base, sonic, hyperliquid, sepolia, type Chain } from 'viem/chains'
 
 // Public RPC endpoints per chain (fallback transport tries them in order).
 // Copied from oracle-dashboard; trimmed to the primary handful per chain.
@@ -24,9 +24,15 @@ export const CHAIN_RPC_URLS: Record<number, string[]> = {
   ],
   [sonic.id]: ['https://sonic.api.onfinality.io/public'],
   [hyperliquid.id]: [hyperliquid.rpcUrls.default.http[0] as string],
+  [sepolia.id]: [
+    'https://ethereum-sepolia-rpc.publicnode.com',
+    'https://sepolia.drpc.org',
+    'https://1rpc.io/sepolia',
+  ],
 }
 
-export type NetworkType = 'base' | 'arbitrum' | 'mainnet' | 'sonic' | 'hyperliquid'
+// `sepolia_mainnet` matches the deployment config/network key (Ethereum Sepolia testnet).
+export type NetworkType = 'base' | 'arbitrum' | 'mainnet' | 'sonic' | 'hyperliquid' | 'sepolia_mainnet'
 
 export const NETWORK_TO_CHAIN_ID: Record<NetworkType, number> = {
   base: base.id,
@@ -34,9 +40,17 @@ export const NETWORK_TO_CHAIN_ID: Record<NetworkType, number> = {
   mainnet: mainnet.id,
   sonic: sonic.id,
   hyperliquid: hyperliquid.id,
+  sepolia_mainnet: sepolia.id,
 }
 
-const VIEM_CHAINS: Record<NetworkType, Chain> = { base, arbitrum, mainnet, sonic, hyperliquid }
+const VIEM_CHAINS: Record<NetworkType, Chain> = {
+  base,
+  arbitrum,
+  mainnet,
+  sonic,
+  hyperliquid,
+  sepolia_mainnet: sepolia,
+}
 export const viemChainFor = (network: string): Chain | undefined =>
   VIEM_CHAINS[network as NetworkType]
 
@@ -46,4 +60,5 @@ export const CHAIN_ID_TO_EXPLORER: Record<number, string> = {
   [base.id]: 'https://basescan.org',
   [sonic.id]: 'https://sonicscan.org',
   [hyperliquid.id]: 'https://hyperevmscan.io',
+  [sepolia.id]: 'https://sepolia.etherscan.io',
 }
