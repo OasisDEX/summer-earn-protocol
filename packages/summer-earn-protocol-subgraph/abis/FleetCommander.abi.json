@@ -1328,6 +1328,19 @@
   },
   {
     "type": "function",
+    "name": "performanceFeeRate",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "totalAssets",
     "inputs": [],
     "outputs": [
@@ -2017,6 +2030,19 @@
     "inputs": [
       {
         "name": "newTipRate",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "Percentage"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PerformanceFeeRateUpdated",
+    "inputs": [
+      {
+        "name": "newRate",
         "type": "uint256",
         "indexed": false,
         "internalType": "Percentage"

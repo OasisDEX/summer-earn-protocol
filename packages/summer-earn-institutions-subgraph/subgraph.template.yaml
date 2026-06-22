@@ -165,6 +165,9 @@ templates:
         - event: TipRateUpdated(uint256)
           handler: handleTipRateUpdated
           receipt: true
+        - event: PerformanceFeeRateUpdated(uint256)
+          handler: handlePerformanceFeeRateUpdated
+          receipt: true
         - event: WhitelistStatusUpdated(indexed address,bool)
           handler: handleWhitelistStatusUpdated
           receipt: true

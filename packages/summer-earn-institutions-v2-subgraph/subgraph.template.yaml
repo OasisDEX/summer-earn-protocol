@@ -225,6 +225,9 @@ templates:
         - event: TipRateUpdated(uint256)
           handler: handleTipRateUpdated
           receipt: true
+        - event: PerformanceFeeRateUpdated(uint256)
+          handler: handlePerformanceFeeRateUpdated
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
 
   - kind: ethereum/contract
