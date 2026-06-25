@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
@@ -14,13 +14,34 @@ interface UseRebalanceProps {
   chainId: ChainId
 }
 
+/**
+ * Builds a readable failure message from a wagmi/viem write error and, when the revert carries a
+ * custom-error selector, surfaces the 4-byte selector so it can be decoded with the deployment
+ * `pnpm errors:decode <selector>` tool.
+ */
+function getRevertMessage(error: unknown): string {
+  type ViemCause = { data?: unknown; cause?: { data?: unknown } }
+  const e = error as
+    | { shortMessage?: string; details?: string; message?: string; cause?: ViemCause; data?: unknown }
+    | undefined
+  if (!e) return 'Rebalance failed'
+  const base = e.shortMessage || e.details || e.message || 'Rebalance failed'
+  // viem nests the raw revert payload under cause(.cause).data
+  const dataHex: unknown = e.cause?.data ?? e.data ?? e.cause?.cause?.data
+  if (typeof dataHex === 'string' && /^0x[0-9a-fA-F]{8}/.test(dataHex)) {
+    const selector = dataHex.slice(0, 10)
+    return base.includes(selector) ? base : `${base} (error selector ${selector})`
+  }
+  return base
+}
+
 export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
   const [rebalancePending, setRebalancePending] = useState(false)
 
   // Rebalance
   const {
     data: rebalanceHash,
-    writeContract: writeRebalance,
+    writeContractAsync: writeRebalance,
     error: rebalanceError,
     isPending: isRebalanceWritePending,
   } = useWriteContract()
@@ -55,6 +76,9 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
         disembarkData: data.disembarkData,
       }))
 
+      // NOTE: writeContractAsync (not writeContract) so simulation/submission errors reject here
+      // and reach the catch — otherwise they'd be swallowed into the unused error state and the
+      // failure would be silent.
       await writeRebalance({
         address: fleetAddress,
         abi: fleetCommanderAbi,
@@ -65,19 +89,33 @@ export function useRebalance({ fleetAddress, chainId }: UseRebalanceProps) {
       })
     } catch (error) {
       console.error('Error performing rebalance:', error)
-      toast.error('Rebalance failed')
+      toast.error('Rebalance failed', { description: getRevertMessage(error) })
     } finally {
       setRebalancePending(false)
     }
   }
 
-  if (isRebalanceSuccess) {
-    toast.success('Rebalance confirmed', {
-      action: { label: 'View', onClick: () => openTx(rebalanceHash as `0x${string}`) },
-    })
-  } else if (isRebalanceError) {
-    toast.error('Rebalance failed on-chain')
-  }
+  // Surface the on-chain receipt outcome. Effects (not render-body calls) so each toast fires once
+  // per transaction instead of on every re-render.
+  useEffect(() => {
+    if (isRebalanceSuccess) {
+      toast.success('Rebalance confirmed', {
+        action: { label: 'View', onClick: () => openTx(rebalanceHash as `0x${string}`) },
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRebalanceSuccess])
+
+  useEffect(() => {
+    if (isRebalanceError) {
+      toast.error('Rebalance failed on-chain', {
+        action: rebalanceHash
+          ? { label: 'View', onClick: () => openTx(rebalanceHash as `0x${string}`) }
+          : undefined,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRebalanceError])
 
   return {
     rebalance,
