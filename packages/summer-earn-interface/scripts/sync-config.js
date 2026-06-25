@@ -14,6 +14,7 @@ const CHAIN_NAMES = {
   42161: 'arbitrum',
   8453: 'base',
   999: 'hyperliquid',
+  11155111: 'sepolia',
 }
 
 // Source paths

@@ -8,6 +8,7 @@ import arbitrumConfig from '@/config/deployment/deployed/arbitrum.json'
 import baseConfig from '@/config/deployment/deployed/base.json'
 import hyperliquidConfig from '@/config/deployment/deployed/hyperliquid.json'
 import mainnetConfig from '@/config/deployment/deployed/mainnet.json'
+import sepoliaConfig from '@/config/deployment/deployed/sepolia.json'
 import sonicConfig from '@/config/deployment/deployed/sonic.json'
 import type { ChainId } from '@/types'
 
@@ -23,6 +24,7 @@ const configs: Record<string, any> = {
   '1': mainnetConfig,
   '146': sonicConfig,
   '999': hyperliquidConfig,
+  '11155111': sepoliaConfig,
 }
 
 const chainIdToName: Record<string, string> = {
@@ -31,6 +33,7 @@ const chainIdToName: Record<string, string> = {
   '42161': 'arbitrum',
   '146': 'sonic',
   '999': 'hyperliquid',
+  '11155111': 'sepolia',
 }
 
 interface VaultPair {

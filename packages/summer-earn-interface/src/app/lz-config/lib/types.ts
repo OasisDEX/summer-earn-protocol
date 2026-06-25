@@ -2,7 +2,10 @@ import type { Address, Hex } from 'viem'
 
 import type { ChainId } from '../../../types'
 
-export type ChainName = 'mainnet' | 'arbitrum' | 'base' | 'sonic' | 'hyperliquid'
+// 'sepolia' is a testnet that carries no LayerZero OApp config — it is intentionally
+// excluded from ALL_CHAINS so the LZ config tooling ignores it, but it must exist here to
+// satisfy the exhaustive Record<ChainId, ChainName> map below.
+export type ChainName = 'mainnet' | 'arbitrum' | 'base' | 'sonic' | 'hyperliquid' | 'sepolia'
 
 export type OAppKind = 'SummerToken' | 'SummerGovernorV1' | 'SummerGovernorV2'
 
@@ -25,6 +28,7 @@ export const CHAIN_NAME_TO_ID: Record<ChainName, ChainId> = {
   base: '8453',
   sonic: '146',
   hyperliquid: '999',
+  sepolia: '11155111',
 }
 
 export const CHAIN_ID_TO_NAME: Record<ChainId, ChainName> = {
@@ -33,6 +37,7 @@ export const CHAIN_ID_TO_NAME: Record<ChainId, ChainName> = {
   '8453': 'base',
   '146': 'sonic',
   '999': 'hyperliquid',
+  '11155111': 'sepolia',
 }
 
 export interface UlnConfig {

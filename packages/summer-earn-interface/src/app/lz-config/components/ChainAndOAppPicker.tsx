@@ -8,6 +8,7 @@ const CHAIN_LABEL: Record<ChainName, string> = {
   base: 'Base',
   sonic: 'Sonic',
   hyperliquid: 'Hyperliquid',
+  sepolia: 'Sepolia',
 }
 
 const OAPP_LABEL: Record<OAppKind, string> = {
