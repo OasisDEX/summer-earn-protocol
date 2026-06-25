@@ -77,6 +77,7 @@
     "gov:submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
     "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",
     "gov:open-fleet-for": "hardhat run scripts/governance/open-fleet-for.ts --network $NETWORK",
+    "gov:grant-fleet-roles": "hardhat run scripts/governance/grant-fleet-roles.ts --network $NETWORK",
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:execute-proposal:direct": "hardhat run scripts/governance/execute-proposal-direct.ts --network $NETWORK",
     "gov:execute-timelock": "hardhat run scripts/governance/execute-timelock.ts --network $NETWORK",
