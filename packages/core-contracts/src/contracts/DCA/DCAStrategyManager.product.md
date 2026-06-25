@@ -184,9 +184,9 @@ and produce the same ACTIVE strategy.
 | Entry point | What it does | When to use |
 |-------------|--------------|-------------|
 | `createStrategy(config)` | Registers the strategy only. Assumes the user already holds source-vault shares and has set up the Permit2 allowance separately. | User already has a vault position. |
-| `depositAndCreate(config, assetAmount)` | Pulls `assetAmount` of the underlying `inAsset` from the user (standard ERC-20 approval), deposits it into the source vault (**shares go straight to the user**), and registers the strategy — one transaction. | User holds the underlying asset, not yet vault shares. |
+| `depositAndCreate(config, assetAmount, expectedMinShares)` | Pulls `assetAmount` of the underlying `inAsset` from the user (standard ERC-20 approval), deposits it into the source vault (**shares go straight to the user**, reverting if fewer than `expectedMinShares` are minted), and registers the strategy — one transaction. | User holds the underlying asset, not yet vault shares. |
 | `createStrategyWithPermit2(config, permit, sig)` | Like `createStrategy`, but also sets up the recurring keeper allowance via a signed Permit2 message — no separate approval tx. | Gasless/streamlined approval. |
-| `depositAndCreateWithPermit2(config, assetAmount, permits)` | Combines the deposit **and** the recurring allowance, both via signed Permit2 messages — one transaction, two signatures. | Fully streamlined onboarding from the underlying asset. |
+| `depositAndCreateWithPermit2(config, assetAmount, permits, expectedMinShares)` | Combines the deposit **and** the recurring allowance, both via signed Permit2 messages — one transaction, two signatures. Reverts if fewer than `expectedMinShares` source-vault shares are minted. | Fully streamlined onboarding from the underlying asset. |
 
 **Scheduling at creation:** the first trade is scheduled at the **next whole-hour
 boundary + `interval`**. Rounding to the hour reduces keeper scheduling churn

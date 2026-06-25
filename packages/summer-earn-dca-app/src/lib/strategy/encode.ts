@@ -13,8 +13,14 @@ export function toStrategyConfigStruct(s: SubgraphStrategy): StrategyConfigTuple
     targetVault: getAddress(s.targetVault),
     inAsset: getAddress(s.inAsset),
     outAsset: getAddress(s.outAsset),
-    inAssetFeed: getAddress(s.inAssetFeed),
-    outAssetFeed: getAddress(s.outAssetFeed),
+    inAssetFeed: {
+      feed: getAddress(s.inAssetFeed),
+      maxStaleness: BigInt(s.inAssetFeedStaleness),
+    },
+    outAssetFeed: {
+      feed: getAddress(s.outAssetFeed),
+      maxStaleness: BigInt(s.outAssetFeedStaleness),
+    },
     tradeAmount: BigInt(s.tradeAmount),
     interval: BigInt(s.interval),
     slippageBps: BigInt(s.slippageBps),
@@ -33,6 +39,9 @@ export function buildCreateTuple(input: {
   outAsset: `0x${string}`
   inAssetFeed: `0x${string}`
   outAssetFeed: `0x${string}`
+  // Per-feed staleness (seconds); omitted/0 → contract default MAX_ORACLE_STALENESS.
+  inAssetFeedStaleness?: bigint
+  outAssetFeedStaleness?: bigint
   tradeAmountShares: bigint
   intervalSeconds: bigint
   slippageBps: bigint
@@ -47,8 +56,14 @@ export function buildCreateTuple(input: {
     targetVault: getAddress(input.targetVault),
     inAsset: getAddress(input.inAsset),
     outAsset: getAddress(input.outAsset),
-    inAssetFeed: getAddress(input.inAssetFeed),
-    outAssetFeed: getAddress(input.outAssetFeed),
+    inAssetFeed: {
+      feed: getAddress(input.inAssetFeed),
+      maxStaleness: input.inAssetFeedStaleness ?? 0n,
+    },
+    outAssetFeed: {
+      feed: getAddress(input.outAssetFeed),
+      maxStaleness: input.outAssetFeedStaleness ?? 0n,
+    },
     tradeAmount: input.tradeAmountShares,
     interval: input.intervalSeconds,
     slippageBps: input.slippageBps,

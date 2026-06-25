@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {Test} from "forge-std/Test.sol";
 
 import {Permit2Consumer} from "../../../src/utils/Permit2Consumer.sol";
-import {IPermit2} from "../../../src/interfaces/permit2/IPermit2.sol";
+import {IPermit2, IAllowanceTransfer} from "../../../src/interfaces/permit2/IPermit2.sol";
 
 /// @notice Minimal mock that records the last `transferFrom` call and can be
 ///         configured to revert, simulating an expired or exhausted allowance.
@@ -34,6 +34,44 @@ contract MockPermit2 {
         lastAmount = amount;
         lastToken = token;
     }
+
+    /*//////////////////////////////////////////////////////////////
+        AllowanceTransfer.permit + allowance (for _applyPermit2Allowance)
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice When true, `permit` reverts — simulating a mempool front-run that
+    ///         already consumed the signed nonce (`InvalidNonce`).
+    bool public permitShouldRevert;
+
+    /// @dev Live on-chain sub-allowance returned by `allowance` (the state the
+    ///      front-run catch path inspects).
+    uint160 public allowanceAmount;
+    uint48 public allowanceExpiration;
+
+    function setPermitRevert(bool _revert) external {
+        permitShouldRevert = _revert;
+    }
+
+    function setAllowance(uint160 _amount, uint48 _expiration) external {
+        allowanceAmount = _amount;
+        allowanceExpiration = _expiration;
+    }
+
+    function permit(
+        address,
+        IAllowanceTransfer.PermitSingle calldata,
+        bytes calldata
+    ) external view {
+        if (permitShouldRevert) revert("InvalidNonce");
+    }
+
+    function allowance(
+        address,
+        address,
+        address
+    ) external view returns (uint160, uint48, uint48) {
+        return (allowanceAmount, allowanceExpiration, 0);
+    }
 }
 
 /// @notice Concrete implementation that exposes `_pullFunds` for testing.
@@ -46,6 +84,14 @@ contract TestablePermit2Consumer is Permit2Consumer {
         uint256 amount
     ) external returns (uint256) {
         return _pullFunds(owner, token, amount);
+    }
+
+    function applyPermit2Allowance(
+        address owner,
+        IAllowanceTransfer.PermitSingle calldata permitSingle,
+        bytes calldata signature
+    ) external {
+        _applyPermit2Allowance(owner, permitSingle, signature);
     }
 }
 
@@ -119,5 +165,123 @@ contract Permit2ConsumerTest is Test {
 
         vm.expectRevert(bytes("ALLOWANCE_EXPIRED"));
         consumer.pullFunds(OWNER, TOKEN, 100e6);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          _applyPermit2Allowance
+    //////////////////////////////////////////////////////////////*/
+
+    uint160 internal constant SIGNED_AMOUNT = 1_000e6;
+
+    /// @dev Builds a PermitSingle spent by `consumer`, signed for `SIGNED_AMOUNT`
+    ///      and the given expiration. `nonce`/`sigDeadline` are irrelevant to the
+    ///      catch-path checks under test.
+    function _permitSingle(
+        uint48 expiration
+    ) internal view returns (IAllowanceTransfer.PermitSingle memory) {
+        return
+            IAllowanceTransfer.PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: TOKEN,
+                    amount: SIGNED_AMOUNT,
+                    expiration: expiration,
+                    nonce: 0
+                }),
+                spender: address(consumer),
+                sigDeadline: block.timestamp + 1 days
+            });
+    }
+
+    function test_ApplyPermit2Allowance_RevertsOnWrongSpender() public {
+        IAllowanceTransfer.PermitSingle memory ps = _permitSingle(
+            uint48(block.timestamp + 30 days)
+        );
+        ps.spender = address(0xDEAD);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.InvalidPermit2Spender.selector,
+                address(consumer),
+                address(0xDEAD)
+            )
+        );
+        consumer.applyPermit2Allowance(OWNER, ps, "");
+    }
+
+    function test_ApplyPermit2Allowance_SucceedsWhenPermitSucceeds() public {
+        // No front-run: permit() does not revert, so the catch path is never hit
+        // (no allowance inspection required).
+        consumer.applyPermit2Allowance(
+            OWNER,
+            _permitSingle(uint48(block.timestamp + 30 days)),
+            ""
+        );
+    }
+
+    function test_ApplyPermit2Allowance_FrontRun_RevertsWhenAmountInsufficient()
+        public
+    {
+        mockPermit2.setPermitRevert(true);
+        // Live allowance below the signed amount.
+        mockPermit2.setAllowance(
+            SIGNED_AMOUNT - 1,
+            uint48(block.timestamp + 30 days)
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.Permit2AllowanceNotSet.selector,
+                SIGNED_AMOUNT,
+                SIGNED_AMOUNT - 1
+            )
+        );
+        consumer.applyPermit2Allowance(
+            OWNER,
+            _permitSingle(uint48(block.timestamp + 30 days)),
+            ""
+        );
+    }
+
+    /// @dev The P2-1 fix: even when the live allowance amount is sufficient, a
+    ///      shorter-than-signed expiration must revert (front-run that set a
+    ///      weaker expiration, or a stale pre-existing allowance).
+    function test_ApplyPermit2Allowance_FrontRun_RevertsWhenExpirationTooEarly()
+        public
+    {
+        uint48 signedExpiration = uint48(block.timestamp + 30 days);
+        uint48 liveExpiration = uint48(block.timestamp + 1 days);
+
+        mockPermit2.setPermitRevert(true);
+        mockPermit2.setAllowance(SIGNED_AMOUNT, liveExpiration); // amount OK, expiration short
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Permit2Consumer.Permit2ExpirationNotSet.selector,
+                signedExpiration,
+                liveExpiration
+            )
+        );
+        consumer.applyPermit2Allowance(
+            OWNER,
+            _permitSingle(signedExpiration),
+            ""
+        );
+    }
+
+    function test_ApplyPermit2Allowance_FrontRun_SucceedsWhenAllowanceCovers()
+        public
+    {
+        uint48 signedExpiration = uint48(block.timestamp + 30 days);
+
+        mockPermit2.setPermitRevert(true);
+        // Front-run replayed the same signed message: live allowance matches the
+        // signed amount and expiration, so the catch path must proceed silently.
+        mockPermit2.setAllowance(SIGNED_AMOUNT, signedExpiration);
+
+        consumer.applyPermit2Allowance(
+            OWNER,
+            _permitSingle(signedExpiration),
+            ""
+        );
     }
 }

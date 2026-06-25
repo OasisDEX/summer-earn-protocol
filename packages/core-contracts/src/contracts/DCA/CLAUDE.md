@@ -39,7 +39,7 @@ shares from the user via Permit2 `AllowanceTransfer`, routes them through
 Enso, deposits the proceeds into the target FleetCommander, and forwards the
 resulting shares to the user in the same tx.
 
-A convenience entry point `depositAndCreate(config, assetAmount)` lets a user
+A convenience entry point `depositAndCreate(config, assetAmount, expectedMinShares)` lets a user
 deposit the underlying `inAsset` into `config.sourceVault` and register the
 strategy in one transaction; the resulting source-vault shares go directly to
 `msg.sender`, not to this contract.
@@ -124,6 +124,48 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-19 — claude — audit VD-1: added `expectedMinShares` parameter to
+  `depositAndCreate` and `depositAndCreateWithPermit2` (passed through to
+  `_depositPulledAsset`, which reverts `DepositSharesBelowMin` when the minted
+  source-vault shares fall short). Caller-supplied floor — the vault's own
+  `previewDeposit` is not a usable reference since `deposit` mints exactly that
+  in-tx. **ABI break on both entrypoints** (new trailing `uint256` arg) — FE +
+  keeper need regenerated ABIs; commitment/struct unchanged. New error
+  `DepositSharesBelowMin`. Tests in `DCAsStrategyManager.t.sol`.
+- 2026-06-19 — claude — audit CL-1: per-feed Chainlink staleness. New file-level
+  `ChainlinkFeed { address feed; uint256 maxStaleness; }` struct in
+  `ChainlinkOracleUtils`; `_getPrice` takes a `ChainlinkFeed`, `convertAmount` takes
+  two; `maxStaleness == 0` → `MAX_ORACLE_STALENESS` (default 24h kept). `StrategyConfig`
+  now holds `ChainlinkFeed inAssetFeed`/`outAssetFeed` (replaces the flat feed-address
+  fields). **STRUCT/COMMITMENT/ABI BREAK** — `keccak256(abi.encode(config))` changes and
+  feeds encode as nested `(address,uint256)` tuples; FE (`commitment.ts`/`encode.ts`/
+  `types`/`abi`), keeper, and subgraph must be updated in lockstep before ship. No
+  upper bound on `maxStaleness` (self-harm only). Tests:
+  `test_Execute_RevertsOnCustom{In,Out}FeedStaleness`.
+- 2026-06-19 — claude — audit KE-7: `_executeStrategy` slippage baseline now uses
+  `targetVault.convertToShares` instead of `previewDeposit` for `expectedOutShares`
+  — `previewDeposit` may include an EIP-4626 deposit fee and would understate the
+  floor. Equal for FleetCommander today (no deposit fee); semantic/future-proofing.
+  `ZeroExpectedOutShares` NatSpec updated; the zero-shares test now mocks
+  `convertToShares`. No struct/ABI/wire changes.
+- 2026-06-19 — claude — audit KE-6: `_executeStrategy` now computes the cross-rate
+  `executionPrice` only when `maxPrice > 0 || minPrice > 0` (mirrors checkUpkeep),
+  skipping it for the common no-bounds case. Behavior-preserving gas optimization;
+  `convertAmount`/`inPrice`/`outPrice`/`minOut` unchanged. Covered by existing
+  execute price tests.
+- 2026-06-19 — claude — audit KE-5: `checkUpkeep` now returns `false` unless both
+  `sourceVault.transfersEnabled()` and `targetVault.transfersEnabled()` (a pull of
+  source shares and the payout of target shares are both gated transfers).
+  Added `transfersEnabled()` to `IFleetCommanderConfigProvider` (accessor already
+  existed as a public var). View-only; no struct/ABI/wire changes. Tests in
+  `DCAsStrategyManager.t.sol`. Scope: standard transfer flag only — does not cover
+  whitelist-membership gating on whitelist fleets.
+- 2026-06-19 — claude — audit KE-3: `checkUpkeep` now returns `false` when the
+  owner's source-vault share balance or live Permit2 sub-allowance (amount or
+  expiration) can't cover the next `tradeAmount` pull, so the keeper avoids
+  doomed executions. View-only; no struct/ABI/wire changes. Tests added in
+  `DCAsStrategyManager.t.sol` (`test_CheckUpkeep_ReturnsFalseWhen{ShareBalanceTooLow,AllowanceTooLow,AllowanceExpired}`);
+  `test_CheckUpkeep_ReturnsTrueWhenReady` now funds + approves the owner.
 - 2026-05-27 — claude — product alignment + DRY pass.
   Validation: `_MAX_INTERVAL = 90 days` cap (new `IntervalTooLong` error);
   `maxTrades == 0` rejected (new `ZeroMaxTrades` error); `maxTrades >= 1` is
