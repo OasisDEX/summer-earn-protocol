@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-19T04:48:42.214Z",
+  "generatedAt": "2026-06-19T08:03:52.007Z",
   "network": "sepolia_mainnet",
   "chainId": 11155111,
   "env": "staging",
   "onchain": {
     "fetched": true,
-    "blockNumber": "11091958",
+    "blockNumber": "11092924",
     "rpcOk": true
   },
   "nodes": [
