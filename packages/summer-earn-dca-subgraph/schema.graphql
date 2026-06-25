@@ -17,6 +17,10 @@ type Strategy @entity {
   outAsset: Bytes!
   inAssetFeed: Bytes!
   outAssetFeed: Bytes!
+  "Max acceptable age (seconds) of inAssetFeed; 0 means the contract default (MAX_ORACLE_STALENESS, 24h)."
+  inAssetFeedStaleness: BigInt!
+  "Max acceptable age (seconds) of outAssetFeed; 0 means the contract default (MAX_ORACLE_STALENESS, 24h)."
+  outAssetFeedStaleness: BigInt!
 
   tradeAmount: BigInt!
   interval: BigInt!

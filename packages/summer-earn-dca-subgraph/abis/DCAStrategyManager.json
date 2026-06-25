@@ -189,13 +189,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -279,13 +303,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -375,13 +423,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -466,13 +538,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -606,13 +702,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -653,6 +773,11 @@
       },
       {
         "name": "assetAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedMinShares",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -702,13 +827,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -846,6 +995,11 @@
             "internalType": "bytes"
           }
         ]
+      },
+      {
+        "name": "expectedMinShares",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -898,13 +1052,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -975,13 +1153,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -1065,13 +1267,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -1203,13 +1429,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -1254,37 +1504,6 @@
   },
   {
     "type": "function",
-    "name": "priceFromFeed",
-    "inputs": [
-      {
-        "name": "feed",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ChainlinkOraclePrice",
-        "components": [
-          {
-            "name": "value",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "decimals",
-            "type": "uint8",
-            "internalType": "uint8"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "resumeStrategy",
     "inputs": [
       {
@@ -1324,13 +1543,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -1557,13 +1800,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -1648,13 +1915,37 @@
           },
           {
             "name": "inAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "outAssetFeed",
-            "type": "address",
-            "internalType": "address"
+            "type": "tuple",
+            "internalType": "struct ChainlinkFeed",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "tradeAmount",
@@ -1954,6 +2245,22 @@
   },
   {
     "type": "error",
+    "name": "DepositSharesBelowMin",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "received",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "DirectGrantIsDisabled",
     "inputs": [
       {
@@ -2225,6 +2532,22 @@
         "name": "actual",
         "type": "uint160",
         "internalType": "uint160"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "Permit2ExpirationNotSet",
+    "inputs": [
+      {
+        "name": "required",
+        "type": "uint48",
+        "internalType": "uint48"
+      },
+      {
+        "name": "actual",
+        "type": "uint48",
+        "internalType": "uint48"
       }
     ]
   },

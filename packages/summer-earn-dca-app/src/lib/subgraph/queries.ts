@@ -10,6 +10,8 @@ const STRATEGY_FIELDS = /* GraphQL */ `
   outAsset
   inAssetFeed
   outAssetFeed
+  inAssetFeedStaleness
+  outAssetFeedStaleness
   tradeAmount
   interval
   slippageBps

@@ -79,6 +79,12 @@ Logs go to stdout at `LOG_LEVEL=INFO` by default. Each strategy logs its
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-19 — claude — lockstep with contract CL-1: `StrategyConfig` feeds are now
+  `ChainlinkFeed (address feed, uint256 maxStaleness)` tuples. Inline `DCA_MANAGER_ABI`
+  feed components nested in both `checkUpkeep`/`executeStrategy`; `StrategyConfig`
+  dataclass gained `in/outAssetFeedStaleness`; `as_tuple()` emits `(feed, maxStaleness)`
+  for each feed; `from_subgraph` + `_SUBGRAPH_QUERY` read the staleness fields.
+  `ast.parse` + ABI-JSON checks pass.
 - 2026-05-21 — claude — keeper code unchanged but **semantic of
   `maxPrice` / `minPrice` flipped** to a 1e18-scaled out/in execution-price
   ratio (see [contract CLAUDE.md](../../src/contracts/DCA/CLAUDE.md)).
