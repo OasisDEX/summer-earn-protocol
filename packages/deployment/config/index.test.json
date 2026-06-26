@@ -1960,7 +1960,7 @@
             "variant": "standard",
             "oracle": "0xE38b0917888d0d5d8d03B7371d5214A1aF8e1892",
             "shareToken": "0xebba0e36545903f64291c4ba6d2c3b51c57a812e",
-            "superstateSubscribe": "0xebba0e36545903f64291c4ba6d2c3b51c57a812e",
+            "superstateSubscribe": "0x5C6062Aa6A009fFb2CC4a1EA4D1DcD8fd5e09eBe",
             "sweepSlippage": "500000000000000000",
             "depositSlippage": "500000000000000000"
           }
