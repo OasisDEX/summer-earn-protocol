@@ -26,9 +26,7 @@ const REGISTRY_PATH = path.resolve(__dirname, 'fleet-error-registry.json')
 
 function loadRegistry(): Record<string, RegistryEntry> {
   if (!fs.existsSync(REGISTRY_PATH)) {
-    throw new Error(
-      `Registry not found at ${REGISTRY_PATH}. Run \`pnpm errors:generate\` first.`,
-    )
+    throw new Error(`Registry not found at ${REGISTRY_PATH}. Run \`pnpm errors:generate\` first.`)
   }
   return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
 }
@@ -91,7 +89,9 @@ function main() {
   // If we only got the selector, there are no args to decode.
   if (data.length === 10) {
     if (entry.inputs.length > 0) {
-      console.log(`  (selector only — pass the full revert data to decode the ${entry.inputs.length} argument(s))`)
+      console.log(
+        `  (selector only — pass the full revert data to decode the ${entry.inputs.length} argument(s))`,
+      )
     }
     return
   }

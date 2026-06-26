@@ -95,7 +95,9 @@ function main() {
   fs.writeFileSync(REGISTRY_PATH, JSON.stringify(sorted, null, 2) + '\n')
   console.log(`Wrote ${Object.keys(sorted).length} unique errors to ${REGISTRY_PATH}`)
   if (collisions.length > 0) {
-    console.warn(`\n⚠ ${collisions.length} selector collision(s) (same 4 bytes, different signature):`)
+    console.warn(
+      `\n⚠ ${collisions.length} selector collision(s) (same 4 bytes, different signature):`,
+    )
     collisions.forEach((c) => console.warn('  ' + c))
   }
 }

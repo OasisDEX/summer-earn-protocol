@@ -22,7 +22,13 @@ interface UseRebalanceProps {
 function getRevertMessage(error: unknown): string {
   type ViemCause = { data?: unknown; cause?: { data?: unknown } }
   const e = error as
-    | { shortMessage?: string; details?: string; message?: string; cause?: ViemCause; data?: unknown }
+    | {
+        shortMessage?: string
+        details?: string
+        message?: string
+        cause?: ViemCause
+        data?: unknown
+      }
     | undefined
   if (!e) return 'Rebalance failed'
   const base = e.shortMessage || e.details || e.message || 'Rebalance failed'

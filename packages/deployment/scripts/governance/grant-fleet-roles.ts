@@ -92,10 +92,7 @@ async function main() {
         continue
       }
       console.log(kleur.blue(`  → granting ${role} to ${account} ...`))
-      const hash = (await (pam.write as any)[GRANT_FN[role]]([
-        fleet,
-        account,
-      ])) as `0x${string}`
+      const hash = (await (pam.write as any)[GRANT_FN[role]]([fleet, account])) as `0x${string}`
       await waitMined(hash)
       console.log(kleur.green(`    ✓ ${role} granted (${hash})`))
     }
