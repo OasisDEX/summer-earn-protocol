@@ -92,6 +92,11 @@ export const ROUNDS_VAULT_ROLE_SPECS: ContractSpecificRoleSpec[] = [
   new ContractSpecificRoleSpec(ContractSpecificRole.OPERATOR_ROLE, RoleName.OPERATOR_ROLE),
 ]
 
+// Arks carry COMMANDER, granted to the fleet that commands them.
+export const ARK_ROLE_SPECS: ContractSpecificRoleSpec[] = [
+  new ContractSpecificRoleSpec(ContractSpecificRole.COMMANDER_ROLE, RoleName.COMMANDER_ROLE),
+]
+
 // Single matcher shared by the role-grant handler (fleet + rounds vault) and the
 // registry backfill: try each role spec against the candidate addresses and
 // return the first exact hash match, or null. A role hash matches at most one

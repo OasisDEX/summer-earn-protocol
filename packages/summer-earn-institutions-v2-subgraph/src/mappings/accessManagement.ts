@@ -8,6 +8,7 @@ import {
 import { Institution, Role, Vault } from '../../generated/schema'
 import { ADDRESS_ZERO, RoleAction, RoleName } from '../common/constants'
 import {
+  ARK_ROLE_SPECS,
   FLEET_ROLE_SPECS,
   ROLE_MAP,
   ROUNDS_VAULT_ROLE_SPECS,
@@ -71,6 +72,24 @@ export function handleRoleGranted(event: RoleGranted): void {
       if (roundsMatch != null) {
         role.name = roundsMatch.name
         role.targetContract = roundsMatch.target
+      } else {
+        // Arks carry COMMANDER, granted to the fleet. Resolves grants that arrive
+        // when the ark is already known to the subgraph (e.g. just after enlist);
+        // grants that land before the ark is known are back-filled at enlist
+        // bootstrap / handleArkAdded. targetContract is the fleet (the grantee),
+        // by design — mirroring how CURATOR is stored against the fleet.
+        const arkAddresses: string[] = []
+        for (let i = 0; i < vaults.length; i++) {
+          const arks = vaults[i].arks.load()
+          for (let j = 0; j < arks.length; j++) {
+            arkAddresses.push(arks[j].id)
+          }
+        }
+        const arkMatch = matchContractSpecificRole(roleHash, arkAddresses, ARK_ROLE_SPECS)
+        if (arkMatch != null) {
+          role.name = arkMatch.name
+          role.targetContract = event.params.account.toHexString()
+        }
       }
     }
   }
