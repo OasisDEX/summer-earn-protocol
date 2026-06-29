@@ -33,6 +33,12 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
     ? generateContractSpecificRole('KEEPER_ROLE', outputRv)
     : undefined
 
+  // Pin every read to the institution's chain (per-contract — useReadContracts
+  // has no top-level chainId). Without it wagmi reads against whatever chain the
+  // wallet is connected to, so a mainnet PAM read while the wallet sits on Base
+  // resolves to false and greys out every keeper/governor control.
+  const cid = Number(institution.chainId)
+
   const reads = useReadContracts({
     contracts: account
       ? [
@@ -41,30 +47,35 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
             abi: protocolAccessManagerAbi,
             functionName: 'hasRole',
             args: [GOVERNOR_ROLE, account],
+            chainId: cid,
           },
           {
             address: pam,
             abi: protocolAccessManagerAbi,
             functionName: 'hasRole',
             args: [SUPER_KEEPER_ROLE, account],
+            chainId: cid,
           },
           {
             address: pam,
             abi: protocolAccessManagerAbi,
             functionName: 'hasRole',
             args: [WHITELIST_MANAGER_ROLE, account],
+            chainId: cid,
           },
           {
             address: pam,
             abi: protocolAccessManagerAbi,
             functionName: 'hasRole',
             args: [keeperFleetRole, account],
+            chainId: cid,
           },
           {
             address: pam,
             abi: protocolAccessManagerAbi,
             functionName: 'hasRole',
             args: [curatorFleetRole, account],
+            chainId: cid,
           },
           ...(keeperInputRole
             ? [
@@ -73,6 +84,7 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
                   abi: protocolAccessManagerAbi,
                   functionName: 'hasRole' as const,
                   args: [keeperInputRole, account] as const,
+                  chainId: cid,
                 },
               ]
             : []),
@@ -83,6 +95,7 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
                   abi: protocolAccessManagerAbi,
                   functionName: 'hasRole' as const,
                   args: [keeperOutputRole, account] as const,
+                  chainId: cid,
                 },
               ]
             : []),
@@ -91,12 +104,14 @@ export function useAccess({ institution, fleet, account }: UseAccessProps) {
             abi: protocolAccessManagerV2Abi,
             functionName: 'isWhitelisted',
             args: [fleetAddr, account],
+            chainId: cid,
           },
           {
             address: pam,
             abi: protocolAccessManagerV2Abi,
             functionName: 'isWhitelistOpen',
             args: [fleetAddr],
+            chainId: cid,
           },
         ]
       : [],

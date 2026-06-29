@@ -51,39 +51,47 @@ export function useKeeperActions({ roundsVaultAddress, chainId }: UseKeeperActio
   })
 
   return {
-    nextRound: () => {
+    nextRound: async () => {
+      if (!(await nextRound.ensureChain())) return
       nextRound.beginToast()
       return nextRound.writeContractAsync({
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'nextRound',
+        chainId: Number(chainId),
       })
     },
-    setRoundSettled: (roundId: bigint) => {
+    setRoundSettled: async (roundId: bigint) => {
+      if (!(await settle.ensureChain())) return
       settle.beginToast()
       return settle.writeContractAsync({
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'setRoundSettled',
         args: [roundId],
+        chainId: Number(chainId),
       })
     },
-    setRoundSettledBatch: (roundIds: bigint[]) => {
+    setRoundSettledBatch: async (roundIds: bigint[]) => {
+      if (!(await settle.ensureChain())) return
       settle.beginToast()
       return settle.writeContractAsync({
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'setRoundSettledBatch',
         args: [roundIds],
+        chainId: Number(chainId),
       })
     },
-    retryRound: (roundId: bigint) => {
+    retryRound: async (roundId: bigint) => {
+      if (!(await retry.ensureChain())) return
       retry.beginToast()
       return retry.writeContractAsync({
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'retryRound',
         args: [roundId],
+        chainId: Number(chainId),
       })
     },
     pending: {
