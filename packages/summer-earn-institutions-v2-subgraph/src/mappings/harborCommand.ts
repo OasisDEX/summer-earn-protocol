@@ -1,8 +1,9 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/templates/HarborCommand/HarborCommand'
-import { Vault, YieldAggregator } from '../../generated/schema'
+import { Institution, Vault, YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
+  backfillArkCommanderRole,
   getOrCreateAccessController,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
@@ -33,7 +34,27 @@ import { updateVault } from './entities/vault'
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   const accessController = getOrCreateAccessController(event.address.toHexString())
 
-  getOrCreateVault(event.params.fleetCommander, event.block, accessController.institution)
+  const vault = getOrCreateVault(
+    event.params.fleetCommander,
+    event.block,
+    accessController.institution,
+  )
+
+  // addArk emits ArkAdded BEFORE this enlist (and before the FleetCommander
+  // template that handles it exists), so handleArkAdded never fires for the arks
+  // present at enlist. Decode their COMMANDER roles from the snapshot here.
+  const institution = Institution.load(accessController.institution)
+  if (institution != null) {
+    const arks = vault.arksArray
+    for (let i = 0; i < arks.length; i++) {
+      backfillArkCommanderRole(
+        institution,
+        event.params.fleetCommander,
+        Address.fromString(arks[i]),
+        event.block,
+      )
+    }
+  }
 }
 
 function updateArkData(vault: Vault, arkAddress: Address, block: ethereum.Block): void {

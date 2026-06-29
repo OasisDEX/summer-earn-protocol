@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, Bytes, store } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, store } from '@graphprotocol/graph-ts'
 import { Institution, Role, VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
@@ -33,8 +33,8 @@ import {
   ContractSpecificRole,
   VaultFeeType,
 } from '../common/constants'
-import { generateContractSpecificRole, hasRole } from '../common/hashHelpers'
 import {
+  backfillArkCommanderRole,
   createCurationEvent,
   getOrCreateAccount,
   getOrCreateArk,
@@ -75,23 +75,8 @@ export function handleArkAdded(event: ArkAdded): void {
   const ark = getOrCreateArk(event.params.ark, event.block)
   const institution = Institution.load(vault.institution)
   if (institution) {
-    const role = generateContractSpecificRole(
-      ContractSpecificRole.COMMANDER_ROLE,
-      event.params.ark.toHexString(),
-    )
-    const roleApplied = hasRole(
-      Bytes.fromHexString(role),
-      event.address,
-      Address.fromString(institution.protocolAccessManager),
-    )
-    const id = `${institution.protocolAccessManager}-${role}-${event.address.toHexString()}`
-    const roleEntity = getOrCreateRole(id)
-    if (roleApplied) {
-      roleEntity.active = true
-      roleEntity.name = `COMMANDER_ROLE`
-      roleEntity.targetContract = event.address.toHexString()
-      roleEntity.save()
-    }
+    // event.address is the FleetCommander (this template's data source).
+    backfillArkCommanderRole(institution, event.address, event.params.ark, event.block)
   }
   ark.vault = vault.id
   ark.save()
