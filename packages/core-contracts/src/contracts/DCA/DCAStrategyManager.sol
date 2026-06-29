@@ -296,9 +296,7 @@ contract DCAStrategyManager is
             strategyCommitments[strategyId] = newCommitment;
         }
 
-        // Clamp so a reduced interval (or a long-running strategy) cannot place
-        // the next trigger in the past, which would let the keeper execute
-        // immediately and bypass the interval cadence.
+        // Clamp to now so a reduced interval can't backdate the trigger (cadence bypass).
         uint256 rescheduledTriggerAt = state.lastScheduledAt +
             newConfig.interval;
         if (rescheduledTriggerAt < block.timestamp) {
@@ -349,9 +347,7 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
-        // Resuming into an already-terminal condition would strand the strategy
-        // ACTIVE (checkUpkeep signals no trade and it never completes). Mirror the
-        // executeStrategy/editStrategy pre-flight and finalize instead.
+        // Resuming past a terminal condition would strand it ACTIVE — finalize instead.
         if (state.tradesExecuted >= config.maxTrades) {
             _markCompleted(strategyId, state, "max_trades");
             return;
@@ -401,9 +397,8 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
-        // Terminal short-circuit runs BEFORE the active-fleet checks so a strategy
-        // that has reached maxTrades/endDate can still be finalized even if one of
-        // its vaults was later deregistered from HarborCommand.
+        // Terminal short-circuit runs before the active-fleet checks so a strategy can
+        // still finalize even if a vault was later deregistered from HarborCommand.
         if (state.tradesExecuted >= config.maxTrades) {
             _markCompleted(strategyId, state, "max_trades");
             return;
@@ -414,9 +409,6 @@ contract DCAStrategyManager is
         }
 
         // A real trade requires both fleets active (source pull + target payout).
-        // Same check as the `onlyActiveFleetCommander` modifier, invoked here —
-        // after the terminal short-circuit — so a deregistered vault never blocks
-        // finalization of an already-terminal strategy.
         _requireActiveFleetCommander(config.sourceVault, "source");
         _requireActiveFleetCommander(config.targetVault, "target");
 
@@ -460,10 +452,8 @@ contract DCAStrategyManager is
         if (state.status != Status.ACTIVE) {
             return (false, performData);
         }
-        // Terminal conditions take precedence over the cadence gate. A strategy
-        // whose maxTrades is exhausted, or whose endDate has passed (even with
-        // nextTriggerAt still in the future), needs an `executeStrategy` call to
-        // transition to COMPLETED. Signal upkeep so the keeper triggers that.
+        // Terminal conditions take precedence over the cadence gate: signal upkeep so
+        // the keeper calls executeStrategy and drives the auto-COMPLETED transition.
         if (state.tradesExecuted >= config.maxTrades) {
             return (true, performData);
         }
@@ -769,11 +759,8 @@ contract DCAStrategyManager is
             minOut = expectedOutShares.subtractBps(
                 BPS.wrap(config.slippageBps)
             );
-            // `subtractBps` floors: a small `expectedOutShares` (e.g. 1) makes
-            // `minOut` round down to 0, which would turn the post-swap
-            // `swappedAmount < minOut` check into `0 < 0` (false) and let a
-            // zero-output swap pass. Reject it. (Covers expectedOutShares == 0
-            // too, since subtractBps(0) == 0.)
+            // `subtractBps` floors: a tiny `expectedOutShares` rounds `minOut` to 0,
+            // which would make the post-swap `swappedAmount < minOut` floor a no-op.
             if (minOut == 0) revert ZeroExpectedOutShares();
         }
 
