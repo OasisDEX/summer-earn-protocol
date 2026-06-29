@@ -56,6 +56,8 @@ export interface SubgraphStrategy {
   outAsset: SubgraphAddress
   inAssetFeed: SubgraphAddress
   outAssetFeed: SubgraphAddress
+  inAssetFeedStaleness: string
+  outAssetFeedStaleness: string
 
   tradeAmount: string
   interval: string

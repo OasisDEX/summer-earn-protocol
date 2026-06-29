@@ -1,0 +1,1570 @@
+{
+  "0x7caedaea": {
+    "name": "ArkIsFrozen",
+    "signature": "ArkIsFrozen()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xeccc156e": {
+    "name": "CallerIsNotAdmin",
+    "signature": "CallerIsNotAdmin(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x8f7a567d": {
+    "name": "CallerIsNotAuthorizedToBoard",
+    "signature": "CallerIsNotAuthorizedToBoard(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x2ac981c2": {
+    "name": "CallerIsNotCommander",
+    "signature": "CallerIsNotCommander(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x7f209db6": {
+    "name": "CallerIsNotContractSpecificRole",
+    "signature": "CallerIsNotContractSpecificRole(address,bytes32)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "role",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xc76a5dae": {
+    "name": "CallerIsNotCurator",
+    "signature": "CallerIsNotCurator(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x522887c8": {
+    "name": "CallerIsNotDecayController",
+    "signature": "CallerIsNotDecayController(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xc0f0a8e6": {
+    "name": "CallerIsNotFoundation",
+    "signature": "CallerIsNotFoundation(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x3a9f5fb4": {
+    "name": "CallerIsNotGovernor",
+    "signature": "CallerIsNotGovernor(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x5560e16d": {
+    "name": "CallerIsNotGuardian",
+    "signature": "CallerIsNotGuardian(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x6b2a758d": {
+    "name": "CallerIsNotGuardianOrGovernor",
+    "signature": "CallerIsNotGuardianOrGovernor(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xa41a3a04": {
+    "name": "CallerIsNotKeeper",
+    "signature": "CallerIsNotKeeper(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x26671112": {
+    "name": "CallerIsNotOperator",
+    "signature": "CallerIsNotOperator(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x4612cc6c": {
+    "name": "CallerIsNotRaft",
+    "signature": "CallerIsNotRaft(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x7c25446e": {
+    "name": "CallerIsNotRaftOrCommander",
+    "signature": "CallerIsNotRaftOrCommander(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x73743b76": {
+    "name": "CallerIsNotSuperKeeper",
+    "signature": "CallerIsNotSuperKeeper(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xd32184ed": {
+    "name": "CannotAddCommanderToArkWithCommander",
+    "signature": "CannotAddCommanderToArkWithCommander()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x268c0729": {
+    "name": "CannotDeployArkWithEmptyName",
+    "signature": "CannotDeployArkWithEmptyName()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xb53c4931": {
+    "name": "CannotDeployArkWithoutConfigurationManager",
+    "signature": "CannotDeployArkWithoutConfigurationManager()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xe93e736c": {
+    "name": "CannotDeployArkWithoutRaft",
+    "signature": "CannotDeployArkWithoutRaft()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xffeafde2": {
+    "name": "CannotDeployArkWithoutToken",
+    "signature": "CannotDeployArkWithoutToken()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x73a075f3": {
+    "name": "CannotRemoveCommanderFromArkWithAssets",
+    "signature": "CannotRemoveCommanderFromArkWithAssets()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x0cd0fdf9": {
+    "name": "CannotUseKeeperDataWhenNotRequired",
+    "signature": "CannotUseKeeperDataWhenNotRequired()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xf1634df9": {
+    "name": "ConfigurationManagerZeroAddress",
+    "signature": "ConfigurationManagerZeroAddress()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x7092ddf5": {
+    "name": "CooldownEnforcerCooldownTooLong",
+    "signature": "CooldownEnforcerCooldownTooLong()",
+    "inputs": [],
+    "sources": [
+      "FleetCommander"
+    ]
+  },
+  "0xd93a8d87": {
+    "name": "CooldownEnforcerCooldownTooShort",
+    "signature": "CooldownEnforcerCooldownTooShort()",
+    "inputs": [],
+    "sources": [
+      "FleetCommander"
+    ]
+  },
+  "0x24936fc4": {
+    "name": "CooldownNotElapsed",
+    "signature": "CooldownNotElapsed(uint256,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "lastActionTimestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cooldown",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentTimestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommander"
+    ]
+  },
+  "0x3854803c": {
+    "name": "DirectGrantIsDisabled",
+    "signature": "DirectGrantIsDisabled(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xc6892f0a": {
+    "name": "DirectRevokeIsDisabled",
+    "signature": "DirectRevokeIsDisabled(address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xd93c0665": {
+    "name": "EnforcedPause",
+    "signature": "EnforcedPause()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0xfb8f41b2": {
+    "name": "ERC20InsufficientAllowance",
+    "signature": "ERC20InsufficientAllowance(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "allowance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xe450d38c": {
+    "name": "ERC20InsufficientBalance",
+    "signature": "ERC20InsufficientBalance(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "balance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xe602df05": {
+    "name": "ERC20InvalidApprover",
+    "signature": "ERC20InvalidApprover(address)",
+    "inputs": [
+      {
+        "name": "approver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xec442f05": {
+    "name": "ERC20InvalidReceiver",
+    "signature": "ERC20InvalidReceiver(address)",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x96c6fd1e": {
+    "name": "ERC20InvalidSender",
+    "signature": "ERC20InvalidSender(address)",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x94280d62": {
+    "name": "ERC20InvalidSpender",
+    "signature": "ERC20InvalidSpender(address)",
+    "inputs": [
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x5bea91fe": {
+    "name": "ERC4626AssetMismatch",
+    "signature": "ERC4626AssetMismatch()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x79012fb2": {
+    "name": "ERC4626ExceededMaxDeposit",
+    "signature": "ERC4626ExceededMaxDeposit(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x284ff667": {
+    "name": "ERC4626ExceededMaxMint",
+    "signature": "ERC4626ExceededMaxMint(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xb94abeec": {
+    "name": "ERC4626ExceededMaxRedeem",
+    "signature": "ERC4626ExceededMaxRedeem(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xfe9cceec": {
+    "name": "ERC4626ExceededMaxWithdraw",
+    "signature": "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x8dfc202b": {
+    "name": "ExpectedPause",
+    "signature": "ExpectedPause()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0xd4f372fa": {
+    "name": "FleetCommanderAlreadyRegistered",
+    "signature": "FleetCommanderAlreadyRegistered()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xfd5bd412": {
+    "name": "FleetCommanderArkAlreadyExists",
+    "signature": "FleetCommanderArkAlreadyExists(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0xca4a18b3": {
+    "name": "FleetCommanderArkAssetsNotZero",
+    "signature": "FleetCommanderArkAssetsNotZero(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x2a4d8fbb": {
+    "name": "FleetCommanderArkDepositCapGreaterThanZero",
+    "signature": "FleetCommanderArkDepositCapGreaterThanZero(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x173967f2": {
+    "name": "FleetCommanderArkDepositCapZero",
+    "signature": "FleetCommanderArkDepositCapZero(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xc80e655f": {
+    "name": "FleetCommanderArkNotActive",
+    "signature": "FleetCommanderArkNotActive(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x2767039f": {
+    "name": "FleetCommanderArkNotFound",
+    "signature": "FleetCommanderArkNotFound(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0xb4975278": {
+    "name": "FleetCommanderAssetMismatch",
+    "signature": "FleetCommanderAssetMismatch()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x55bb2a10": {
+    "name": "FleetCommanderCantUseMaxUintMovingFromBuffer",
+    "signature": "FleetCommanderCantUseMaxUintMovingFromBuffer()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x0e534744": {
+    "name": "FleetCommanderCantUseRebalanceOnBufferArk",
+    "signature": "FleetCommanderCantUseRebalanceOnBufferArk()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x2d34da0c": {
+    "name": "FleetCommanderDirectDepositsClosed",
+    "signature": "FleetCommanderDirectDepositsClosed()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x26af0348": {
+    "name": "FleetCommanderDirectWithdrawalsClosed",
+    "signature": "FleetCommanderDirectWithdrawalsClosed()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x5b816d1c": {
+    "name": "FleetCommanderEffectiveDepositCapExceeded",
+    "signature": "FleetCommanderEffectiveDepositCapExceeded(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "effectiveDepositCap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x05ad819c": {
+    "name": "FleetCommanderExceedsMaxInflow",
+    "signature": "FleetCommanderExceedsMaxInflow(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "fromArk",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceInflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x7d7bf8e1": {
+    "name": "FleetCommanderExceedsMaxOutflow",
+    "signature": "FleetCommanderExceedsMaxOutflow(address,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "fromArk",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceOutflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x3b5391f9": {
+    "name": "FleetCommanderInsufficientBuffer",
+    "signature": "FleetCommanderInsufficientBuffer()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x210e96cb": {
+    "name": "FleetCommanderInvalidArkAddress",
+    "signature": "FleetCommanderInvalidArkAddress()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x6304eb89": {
+    "name": "FleetCommanderInvalidSourceArk",
+    "signature": "FleetCommanderInvalidSourceArk(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xa0394e61": {
+    "name": "FleetCommanderInvalidStakingRewardsManager",
+    "signature": "FleetCommanderInvalidStakingRewardsManager()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x6d998a57": {
+    "name": "FleetCommanderInvalidTipJar",
+    "signature": "FleetCommanderInvalidTipJar()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x39299e22": {
+    "name": "FleetCommanderMaxRebalanceOperationsTooHigh",
+    "signature": "FleetCommanderMaxRebalanceOperationsTooHigh(uint256)",
+    "inputs": [
+      {
+        "name": "newMaxRebalanceOperations",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x61a5f3a0": {
+    "name": "FleetCommanderMovedMoreThanAvailable",
+    "signature": "FleetCommanderMovedMoreThanAvailable()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xff105df9": {
+    "name": "FleetCommanderNoExcessFunds",
+    "signature": "FleetCommanderNoExcessFunds()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xa3625be2": {
+    "name": "FleetCommanderNoFundsMoved",
+    "signature": "FleetCommanderNoFundsMoved()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x430da471": {
+    "name": "FleetCommanderNotRegistered",
+    "signature": "FleetCommanderNotRegistered()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x04a59e3b": {
+    "name": "FleetCommanderPausableMinimumPauseTimeNotElapsed",
+    "signature": "FleetCommanderPausableMinimumPauseTimeNotElapsed()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0xf710d835": {
+    "name": "FleetCommanderPausableMinimumPauseTimeTooShort",
+    "signature": "FleetCommanderPausableMinimumPauseTimeTooShort()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider"
+    ]
+  },
+  "0x285a54ac": {
+    "name": "FleetCommanderRebalanceAmountZero",
+    "signature": "FleetCommanderRebalanceAmountZero(address)",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x26e6e6a8": {
+    "name": "FleetCommanderRebalanceNoOperations",
+    "signature": "FleetCommanderRebalanceNoOperations()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x899a5d81": {
+    "name": "FleetCommanderRebalanceTooManyOperations",
+    "signature": "FleetCommanderRebalanceTooManyOperations(uint256)",
+    "inputs": [
+      {
+        "name": "operationsCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xfa7b70c0": {
+    "name": "FleetCommanderStakingRewardsManagerNotSet",
+    "signature": "FleetCommanderStakingRewardsManagerNotSet()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xec47ea8b": {
+    "name": "FleetCommanderTransfersDisabled",
+    "signature": "FleetCommanderTransfersDisabled()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xc849df70": {
+    "name": "FleetCommanderUnauthorizedRedemption",
+    "signature": "FleetCommanderUnauthorizedRedemption(address,address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x8b27f8ed": {
+    "name": "FleetCommanderUnauthorizedWithdrawal",
+    "signature": "FleetCommanderUnauthorizedWithdrawal(address,address)",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x8cd10964": {
+    "name": "FleetCommanderZeroAmount",
+    "signature": "FleetCommanderZeroAmount()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0xb06577e2": {
+    "name": "InsufficientAssetsReturned",
+    "signature": "InsufficientAssetsReturned(uint256,uint256,uint256)",
+    "inputs": [
+      {
+        "name": "receivedAssets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receivedShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xc590c448": {
+    "name": "InsufficientPendingDeposit",
+    "signature": "InsufficientPendingDeposit()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xfa3505cf": {
+    "name": "InsufficientYield",
+    "signature": "InsufficientYield()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x47bd7c1d": {
+    "name": "InvalidAccessManagerAddress",
+    "signature": "InvalidAccessManagerAddress(address)",
+    "inputs": [
+      {
+        "name": "invalidAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "FleetCommanderConfigProvider",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x5daa61c7": {
+    "name": "InvalidBoardData",
+    "signature": "InvalidBoardData()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x719201ae": {
+    "name": "InvalidDepositAddress",
+    "signature": "InvalidDepositAddress()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk"
+    ]
+  },
+  "0x66218f85": {
+    "name": "InvalidDepositSlippage",
+    "signature": "InvalidDepositSlippage(uint256,uint256)",
+    "inputs": [
+      {
+        "name": "newSlippage",
+        "type": "uint256",
+        "internalType": "Percentage"
+      },
+      {
+        "name": "maxSlippage",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x6ff3cb86": {
+    "name": "InvalidDisembarkData",
+    "signature": "InvalidDisembarkData()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xbd89f426": {
+    "name": "InvalidFleetCommanderAddress",
+    "signature": "InvalidFleetCommanderAddress()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x55210681": {
+    "name": "InvalidOracleAddress",
+    "signature": "InvalidOracleAddress()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xca01bd4e": {
+    "name": "InvalidRedeemAddress",
+    "signature": "InvalidRedeemAddress()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xbc7a4a15": {
+    "name": "InvalidShareTokenAddress",
+    "signature": "InvalidShareTokenAddress()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xa5d3cb3f": {
+    "name": "InvalidSubscribeAddress",
+    "signature": "InvalidSubscribeAddress()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xf97f9d8c": {
+    "name": "InvalidSweepSlippage",
+    "signature": "InvalidSweepSlippage(uint256,uint256)",
+    "inputs": [
+      {
+        "name": "newSlippage",
+        "type": "uint256",
+        "internalType": "Percentage"
+      },
+      {
+        "name": "maxSlippage",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x1d2f8a99": {
+    "name": "InvalidTipJarAddress",
+    "signature": "InvalidTipJarAddress()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x03061201": {
+    "name": "InvalidVaultAddress",
+    "signature": "InvalidVaultAddress()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x6650c752": {
+    "name": "KeeperDataRequired",
+    "signature": "KeeperDataRequired()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x4ef9dfe3": {
+    "name": "MaxDepositPercentageOfTVLTooHigh",
+    "signature": "MaxDepositPercentageOfTVLTooHigh()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x06fb10a9": {
+    "name": "NotAllowlisted",
+    "signature": "NotAllowlisted()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x4bbeab07": {
+    "name": "NotWhitelisted",
+    "signature": "NotWhitelisted(address,address)",
+    "inputs": [
+      {
+        "name": "context",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist"
+    ]
+  },
+  "0x65d67780": {
+    "name": "NoWithdrawalToClaim",
+    "signature": "NoWithdrawalToClaim()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x2633e972": {
+    "name": "OraclePriceNotPositive",
+    "signature": "OraclePriceNotPositive()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x460d15e9": {
+    "name": "PendingDepositActive",
+    "signature": "PendingDepositActive()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x3c8ee868": {
+    "name": "PerformanceFeeRateTooHigh",
+    "signature": "PerformanceFeeRateTooHigh()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist"
+    ]
+  },
+  "0x602f2903": {
+    "name": "ReceivedLessThanExpected",
+    "signature": "ReceivedLessThanExpected()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x3ee5aeb5": {
+    "name": "ReentrancyGuardReentrantCall",
+    "signature": "ReentrancyGuardReentrantCall()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xb76b08ae": {
+    "name": "RouterNotWhitelisted",
+    "signature": "RouterNotWhitelisted()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x5274afe7": {
+    "name": "SafeERC20FailedOperation",
+    "signature": "SafeERC20FailedOperation(address)",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander",
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x61229983": {
+    "name": "SharesNotArrived",
+    "signature": "SharesNotArrived(uint256,uint256)",
+    "inputs": [
+      {
+        "name": "expectedShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualNewShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x850c6f76": {
+    "name": "SlippageTooHigh",
+    "signature": "SlippageTooHigh()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xa887f2d8": {
+    "name": "StaleOraclePrice",
+    "signature": "StaleOraclePrice()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk",
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0xab9a408f": {
+    "name": "TipRateCannotExceedFivePercent",
+    "signature": "TipRateCannotExceedFivePercent()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x5bfbc039": {
+    "name": "UnsupportedStablecoin",
+    "signature": "UnsupportedStablecoin()",
+    "inputs": [],
+    "sources": [
+      "SuperstateSubscribeArk"
+    ]
+  },
+  "0xfb52063b": {
+    "name": "WithdrawalAlreadyRequested",
+    "signature": "WithdrawalAlreadyRequested()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  },
+  "0x71477577": {
+    "name": "WithdrawalAmountExceedsMaxBufferLimit",
+    "signature": "WithdrawalAmountExceedsMaxBufferLimit()",
+    "inputs": [],
+    "sources": [
+      "FleetCommanderWhitelist",
+      "FleetCommander"
+    ]
+  },
+  "0x27fcd9d1": {
+    "name": "WithdrawalFailed",
+    "signature": "WithdrawalFailed()",
+    "inputs": [],
+    "sources": [
+      "SuperstateStandardArk",
+      "SuperstateArk"
+    ]
+  }
+}

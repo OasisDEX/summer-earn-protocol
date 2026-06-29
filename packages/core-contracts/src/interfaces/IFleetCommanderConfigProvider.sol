@@ -45,6 +45,12 @@ interface IFleetCommanderConfigProvider is
      */
     function isArkActiveOrBufferArk(address ark) external view returns (bool);
 
+    /**
+     * @notice Whether this fleet's share-token transfers are enabled.
+     * @return True if share-token transfers are currently permitted.
+     */
+    function transfersEnabled() external view returns (bool);
+
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
 
     /**

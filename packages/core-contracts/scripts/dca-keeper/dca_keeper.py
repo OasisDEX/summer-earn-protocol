@@ -56,8 +56,14 @@ DCA_MANAGER_ABI = json.loads(
           {"name": "targetVault",  "type": "address"},
           {"name": "inAsset",      "type": "address"},
           {"name": "outAsset",     "type": "address"},
-          {"name": "inAssetFeed",  "type": "address"},
-          {"name": "outAssetFeed", "type": "address"},
+          {"name": "inAssetFeed",  "type": "tuple", "components": [
+            {"name": "feed",         "type": "address"},
+            {"name": "maxStaleness", "type": "uint256"}
+          ]},
+          {"name": "outAssetFeed", "type": "tuple", "components": [
+            {"name": "feed",         "type": "address"},
+            {"name": "maxStaleness", "type": "uint256"}
+          ]},
           {"name": "tradeAmount",  "type": "uint256"},
           {"name": "interval",     "type": "uint256"},
           {"name": "slippageBps",  "type": "uint256"},
@@ -88,8 +94,14 @@ DCA_MANAGER_ABI = json.loads(
           {"name": "targetVault",  "type": "address"},
           {"name": "inAsset",      "type": "address"},
           {"name": "outAsset",     "type": "address"},
-          {"name": "inAssetFeed",  "type": "address"},
-          {"name": "outAssetFeed", "type": "address"},
+          {"name": "inAssetFeed",  "type": "tuple", "components": [
+            {"name": "feed",         "type": "address"},
+            {"name": "maxStaleness", "type": "uint256"}
+          ]},
+          {"name": "outAssetFeed", "type": "tuple", "components": [
+            {"name": "feed",         "type": "address"},
+            {"name": "maxStaleness", "type": "uint256"}
+          ]},
           {"name": "tradeAmount",  "type": "uint256"},
           {"name": "interval",     "type": "uint256"},
           {"name": "slippageBps",  "type": "uint256"},
@@ -134,7 +146,9 @@ class StrategyConfig:
     inAsset: str
     outAsset: str
     inAssetFeed: str
+    inAssetFeedStaleness: int
     outAssetFeed: str
+    outAssetFeedStaleness: int
     tradeAmount: int
     interval: int
     slippageBps: int
@@ -158,7 +172,9 @@ class StrategyConfig:
             inAsset=addr(s["inAsset"]),
             outAsset=addr(s["outAsset"]),
             inAssetFeed=addr(s["inAssetFeed"]),
+            inAssetFeedStaleness=int(s["inAssetFeedStaleness"]),
             outAssetFeed=addr(s["outAssetFeed"]),
+            outAssetFeedStaleness=int(s["outAssetFeedStaleness"]),
             tradeAmount=int(s["tradeAmount"]),
             interval=int(s["interval"]),
             slippageBps=int(s["slippageBps"]),
@@ -175,8 +191,8 @@ class StrategyConfig:
             self.targetVault,
             self.inAsset,
             self.outAsset,
-            self.inAssetFeed,
-            self.outAssetFeed,
+            (self.inAssetFeed, self.inAssetFeedStaleness),
+            (self.outAssetFeed, self.outAssetFeedStaleness),
             self.tradeAmount,
             self.interval,
             self.slippageBps,
@@ -204,7 +220,9 @@ query ActiveStrategies($now: BigInt!) {
     inAsset
     outAsset
     inAssetFeed
+    inAssetFeedStaleness
     outAssetFeed
+    outAssetFeedStaleness
     tradeAmount
     interval
     slippageBps

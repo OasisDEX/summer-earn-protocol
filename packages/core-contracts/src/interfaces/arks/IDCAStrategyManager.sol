@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import {IFleetCommander} from "../IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAllowanceTransfer, ISignatureTransfer} from "../permit2/IPermit2.sol";
+import {ChainlinkFeed} from "../../utils/ChainlinkOracleUtils.sol";
 
 interface IDCAStrategyManager {
     /**
@@ -37,10 +38,12 @@ interface IDCAStrategyManager {
         IERC20 inAsset;
         /// @notice Underlying asset of `targetVault`; used for Chainlink price lookups.
         IERC20 outAsset;
-        /// @notice Chainlink AggregatorV3 feed address for `inAsset` (e.g. USDC / USD).
-        address inAssetFeed;
-        /// @notice Chainlink AggregatorV3 feed address for `outAsset` (e.g. ETH / USD).
-        address outAssetFeed;
+        /// @notice In-asset/USD Chainlink feed (e.g. USDC / USD) paired with its
+        ///         staleness tolerance (`maxStaleness == 0` → `MAX_ORACLE_STALENESS`).
+        ChainlinkFeed inAssetFeed;
+        /// @notice Out-asset/USD Chainlink feed (e.g. ETH / USD) paired with its
+        ///         staleness tolerance (`maxStaleness == 0` → `MAX_ORACLE_STALENESS`).
+        ChainlinkFeed outAssetFeed;
         /// @notice Number of `sourceVault` shares sold on each execution.
         uint256 tradeAmount;
         /// @notice Minimum seconds that must elapse between executions. Must be ≥ 1 day.
@@ -122,16 +125,21 @@ interface IDCAStrategyManager {
      *      source-vault shares land in the caller's wallet directly.
      *      The Permit2 sub-allowance for future keeper-driven pulls must still
      *      be granted by the caller separately (`Permit2.approve` or `permit`).
-     *      Reverts with `ZeroDeposit` if `assetAmount == 0`.
+     *      Reverts with `ZeroDeposit` if `assetAmount == 0`, and with
+     *      `DepositSharesBelowMin` if the minted source-vault shares are below
+     *      `expectedMinShares`.
      *      All `createStrategy` validations also apply.
      * @param config Fully populated strategy configuration.
      * @param assetAmount Underlying-asset amount to deposit into `config.sourceVault`
      *                    (denominated in `config.inAsset` native decimals).
+     * @param expectedMinShares Minimum acceptable source-vault shares to mint
+     *                          (caller's off-chain slippage floor; use 0 to skip).
      * @return strategyId The newly assigned strategy identifier.
      */
     function depositAndCreate(
         StrategyConfig calldata config,
-        uint256 assetAmount
+        uint256 assetAmount,
+        uint256 expectedMinShares
     ) external returns (uint256 strategyId);
 
     /**
@@ -165,17 +173,22 @@ interface IDCAStrategyManager {
      *      and `sourceVaultShares.approve(PERMIT2, max)` once each.
      *      Reverts with `ZeroDeposit` if `assetAmount == 0`, with
      *      `InvalidPermit2Spender` / `InvalidPermit2Token` /
-     *      `InvalidPermit2Amount` on any of the four required field mismatches.
+     *      `InvalidPermit2Amount` on any of the four required field mismatches,
+     *      and with `DepositSharesBelowMin` if the minted source-vault shares are
+     *      below `expectedMinShares`.
      *      All `createStrategy` validations also apply.
      * @param config Fully populated strategy configuration.
      * @param assetAmount Underlying-asset amount to deposit into `config.sourceVault`.
      * @param permits Bundle of the two signed Permit2 messages (see `Permit2DepositBundle`).
+     * @param expectedMinShares Minimum acceptable source-vault shares to mint
+     *                          (caller's off-chain slippage floor; use 0 to skip).
      * @return strategyId The newly assigned strategy identifier.
      */
     function depositAndCreateWithPermit2(
         StrategyConfig calldata config,
         uint256 assetAmount,
-        Permit2DepositBundle calldata permits
+        Permit2DepositBundle calldata permits,
+        uint256 expectedMinShares
     ) external returns (uint256 strategyId);
 
     /**
