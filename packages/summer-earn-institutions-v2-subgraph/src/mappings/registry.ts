@@ -10,8 +10,12 @@ import {
 import { Institution, RoundsVault, RoundsVaultPair, Vault } from '../../generated/schema'
 import { RoundsVaultInputTemplate, RoundsVaultOutputTemplate } from '../../generated/templates'
 import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
-import { ROUNDS_VAULT_ROLE_SPECS, matchContractSpecificRole } from '../common/hashHelpers'
-import { getOrCreateRound, getOrCreateToken, getOrCreateVault } from '../common/initializers'
+import {
+  backfillUndecodedRoles,
+  getOrCreateRound,
+  getOrCreateToken,
+  getOrCreateVault,
+} from '../common/initializers'
 
 export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered): void {
   const pairId = event.params.pairId.toHexString()
@@ -44,11 +48,10 @@ export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered
 
   pair.save()
 
-  decodeRoundsVaultRolesForInstitution(
-    institutionId,
-    event.params.inputVault,
-    event.params.outputVault,
-  )
+  const institution = Institution.load(institutionId)
+  if (institution != null) {
+    backfillUndecodedRoles(institution)
+  }
 }
 
 export function handleRoundsVaultPairUpdated(event: RoundsVaultPairUpdated): void {
@@ -80,11 +83,10 @@ export function handleRoundsVaultPairUpdated(event: RoundsVaultPairUpdated): voi
   pair.lastUpdated = event.block.timestamp
   pair.save()
 
-  decodeRoundsVaultRolesForInstitution(
-    pair.institutionId,
-    event.params.inputVault,
-    event.params.outputVault,
-  )
+  const institution = Institution.load(pair.institutionId)
+  if (institution != null) {
+    backfillUndecodedRoles(institution)
+  }
 }
 
 export function handleRoundsVaultPairDeactivated(event: RoundsVaultPairDeactivated): void {
@@ -166,55 +168,4 @@ function createRoundsVault(
   getOrCreateRound(vault, BigIntConstants.ZERO, block)
 
   return vault
-}
-
-// Rounds-vault KEEPER/OPERATOR roles are granted on-chain BEFORE the pair is
-// registered (see deploy-whitelisted-fleet.ts), so handleRoleGranted can't yet
-// know the vault addresses and leaves those roles undecoded (name == raw hash,
-// targetContract == ADDRESS_ZERO). Once we learn the addresses here, back-fill
-// any matching undecoded roles for the institution.
-function decodeRoundsVaultRolesForInstitution(
-  institutionId: string,
-  inputVault: Address,
-  outputVault: Address,
-): void {
-  const roundsVaultAddresses: string[] = []
-  if (inputVault.notEqual(ADDRESS_ZERO)) {
-    roundsVaultAddresses.push(inputVault.toHexString())
-  }
-  if (outputVault.notEqual(ADDRESS_ZERO)) {
-    roundsVaultAddresses.push(outputVault.toHexString())
-  }
-  if (roundsVaultAddresses.length == 0) {
-    return
-  }
-
-  const institution = Institution.load(institutionId)
-  if (institution == null) {
-    return
-  }
-
-  const zero = ADDRESS_ZERO.toHexString()
-  const roles = institution.roles.load()
-  for (let i = 0; i < roles.length; i++) {
-    const role = roles[i]
-    // Only touch still-undecoded roles. Decoded contract-specific roles already
-    // carry a real target; global/whitelist roles either carry a non-rounds
-    // target or a hash that can't match a rounds vault — never reclassify them.
-    if (role.targetContract != zero) {
-      continue
-    }
-    // Role id is `{accessController}-{roleHash}-{account}` — the middle segment
-    // is the on-chain role hash to match against the rounds-vault candidates.
-    const parts = role.id.split('-')
-    if (parts.length < 2) {
-      continue
-    }
-    const match = matchContractSpecificRole(parts[1], roundsVaultAddresses, ROUNDS_VAULT_ROLE_SPECS)
-    if (match) {
-      role.name = match.name
-      role.targetContract = match.target
-      role.save()
-    }
-  }
 }

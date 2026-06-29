@@ -34,7 +34,7 @@ import {
   VaultFeeType,
 } from '../common/constants'
 import {
-  backfillArkCommanderRole,
+  backfillUndecodedRoles,
   createCurationEvent,
   getOrCreateAccount,
   getOrCreateArk,
@@ -75,8 +75,9 @@ export function handleArkAdded(event: ArkAdded): void {
   const ark = getOrCreateArk(event.params.ark, event.block)
   const institution = Institution.load(vault.institution)
   if (institution) {
-    // event.address is the FleetCommander (this template's data source).
-    backfillArkCommanderRole(institution, event.address, event.params.ark)
+    // The new ark is now linked to the vault; resolve any role (its COMMANDER,
+    // and any other still-undecoded institution role) against known targets.
+    backfillUndecodedRoles(institution)
   }
   ark.vault = vault.id
   ark.save()

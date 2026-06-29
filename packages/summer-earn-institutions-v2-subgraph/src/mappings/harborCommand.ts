@@ -3,7 +3,7 @@ import { FleetCommanderEnlisted } from '../../generated/templates/HarborCommand/
 import { Institution, Vault, YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
-  backfillArkCommanderRole,
+  backfillUndecodedRoles,
   getOrCreateAccessController,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
@@ -34,25 +34,15 @@ import { updateVault } from './entities/vault'
 export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
   const accessController = getOrCreateAccessController(event.address.toHexString())
 
-  const vault = getOrCreateVault(
-    event.params.fleetCommander,
-    event.block,
-    accessController.institution,
-  )
+  getOrCreateVault(event.params.fleetCommander, event.block, accessController.institution)
 
-  // addArk emits ArkAdded BEFORE this enlist (and before the FleetCommander
-  // template that handles it exists), so handleArkAdded never fires for the arks
-  // present at enlist. Decode their COMMANDER roles from the snapshot here.
+  // Fleet / ark / rounds-vault roles are commonly granted before enlist, so
+  // handleRoleGranted saw them before their targets were known. Now that this
+  // fleet (and its snapshotted arks/rounds vaults) is known, resolve every
+  // still-undecoded role for the institution.
   const institution = Institution.load(accessController.institution)
   if (institution != null) {
-    const arks = vault.arksArray
-    for (let i = 0; i < arks.length; i++) {
-      backfillArkCommanderRole(
-        institution,
-        event.params.fleetCommander,
-        Address.fromString(arks[i]),
-      )
-    }
+    backfillUndecodedRoles(institution)
   }
 }
 

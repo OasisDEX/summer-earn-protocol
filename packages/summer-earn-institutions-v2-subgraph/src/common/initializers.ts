@@ -51,7 +51,12 @@ import {
 import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { ADDRESS_ZERO, BigIntConstants, RewardTokenType } from './constants'
-import { generateContractSpecificRole } from './hashHelpers'
+import {
+  ARK_ROLE_SPECS,
+  FLEET_ROLE_SPECS,
+  ROUNDS_VAULT_ROLE_SPECS,
+  matchContractSpecificRole,
+} from './hashHelpers'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -998,38 +1003,84 @@ export function getOrCreateRole(id: string): Role {
   return role
 }
 
-// COMMANDER on an ark is granted to the fleet BEFORE the ark is known to this
-// subgraph: addArk requires the fleet to already hold COMMANDER (so the grant
-// precedes addArk), and addArk in turn precedes the HarborCommand enlistment
-// that bootstraps the fleet's data-source template. So the grant's RoleGranted
-// event can't resolve the target and leaves the role undecoded. We resolve it
-// once the ark is known — at enlist bootstrap (initial arks) and in
-// handleArkAdded (arks added later).
-//
-// Resolution is by entity existence only: the grant already created the Role
-// (handleRoleGranted), so we just enhance it when its COMMANDER-on-ark hash
-// matches. No on-chain call — that's deliberate; binding ProtocolAccessManager
-// here would need its ABI in every calling data source's manifest and would
-// halt indexing where it's absent (e.g. HarborCommand). targetContract is the
-// fleet by design, mirroring how CURATOR is stored against the fleet.
-export function backfillArkCommanderRole(
-  institution: Institution,
-  fleet: Address,
-  ark: Address,
-): void {
-  const roleHash = generateContractSpecificRole(
-    constants.ContractSpecificRole.COMMANDER_ROLE,
-    ark.toHexString(),
-  )
-  const id = `${institution.protocolAccessManager}-${roleHash}-${fleet.toHexString()}`
-  const role = Role.load(id)
-  if (role == null) {
-    return
+// Contract-specific roles (fleet CURATOR/KEEPER/OPERATOR, rounds-vault
+// KEEPER/OPERATOR, ark COMMANDER) are frequently granted BEFORE the subgraph
+// knows the target entity — on-chain the grant precedes fleet enlistment /
+// addArk / rounds-vault registration. At grant time handleRoleGranted leaves
+// them undecoded (raw hash, ADDRESS_ZERO target). Call this whenever a target
+// becomes known (fleet enlisted, ark added, rounds-vault pair registered) to
+// resolve every still-undecoded role for the institution against its currently
+// known addresses. Idempotent and free of on-chain calls (matches by hash via
+// already-indexed entities — binding ProtocolAccessManager would require its ABI
+// in every calling data source and would halt where it's absent, e.g.
+// HarborCommand). Ark COMMANDER stores the fleet (the grantee) as target, by
+// design, mirroring how CURATOR is stored against the fleet.
+export function backfillUndecodedRoles(institution: Institution): void {
+  const vaults = institution.vaults.load()
+  const fleetAddresses: string[] = []
+  const arkAddresses: string[] = []
+  const roundsVaultAddresses: string[] = []
+  for (let i = 0; i < vaults.length; i++) {
+    fleetAddresses.push(vaults[i].id)
+    const arks = vaults[i].arks.load()
+    for (let j = 0; j < arks.length; j++) {
+      arkAddresses.push(arks[j].id)
+    }
+    const pairs = vaults[i].roundsVaultPair.load()
+    for (let j = 0; j < pairs.length; j++) {
+      const inputVault = pairs[j].inputVault
+      if (inputVault) {
+        roundsVaultAddresses.push(inputVault!)
+      }
+      const outputVault = pairs[j].outputVault
+      if (outputVault) {
+        roundsVaultAddresses.push(outputVault!)
+      }
+    }
   }
-  role.active = true
-  role.name = constants.RoleName.COMMANDER_ROLE
-  role.targetContract = fleet.toHexString()
-  role.save()
+
+  const zero = ADDRESS_ZERO.toHexString()
+  const roles = institution.roles.load()
+  for (let i = 0; i < roles.length; i++) {
+    const role = roles[i]
+    // Only touch still-undecoded roles; matching is exact hash equality so
+    // decoded/global/whitelist roles are never reclassified.
+    if (role.targetContract != zero) {
+      continue
+    }
+    // Role id is `{accessController}-{roleHash}-{account}`.
+    const parts = role.id.split('-')
+    if (parts.length < 2) {
+      continue
+    }
+    const hash = parts[1]
+
+    const fleetMatch = matchContractSpecificRole(hash, fleetAddresses, FLEET_ROLE_SPECS)
+    if (fleetMatch != null) {
+      role.name = fleetMatch.name
+      role.targetContract = fleetMatch.target
+      role.save()
+      continue
+    }
+    const roundsMatch = matchContractSpecificRole(
+      hash,
+      roundsVaultAddresses,
+      ROUNDS_VAULT_ROLE_SPECS,
+    )
+    if (roundsMatch != null) {
+      role.name = roundsMatch.name
+      role.targetContract = roundsMatch.target
+      role.save()
+      continue
+    }
+    const arkMatch = matchContractSpecificRole(hash, arkAddresses, ARK_ROLE_SPECS)
+    if (arkMatch != null) {
+      // Ark COMMANDER: target is the fleet (the grantee), by design.
+      role.name = arkMatch.name
+      role.targetContract = role.owner
+      role.save()
+    }
+  }
 }
 
 /**
