@@ -109,4 +109,9 @@ interface IDCAStrategyManagerErrors {
     /// @notice Reverts when the Permit2 sub-allowance expiration is earlier than
     ///         the strategy's `endDate`. Only enforced when `endDate > 0`.
     error Permit2ExpirationTooEarly(uint48 expiration, uint256 endDate);
+
+    /// @notice Reverts when `config.tradeAmount` exceeds `type(uint160).max`, the
+    ///         cap imposed by Permit2 AllowanceTransfer. Such a strategy would be
+    ///         created but never executable (the keeper's pull would revert).
+    error TradeAmountTooLarge(uint256 tradeAmount);
 }

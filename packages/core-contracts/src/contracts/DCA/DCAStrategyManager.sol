@@ -284,7 +284,11 @@ contract DCAStrategyManager is
 
         bytes32 oldCommitment = _commitmentHash(oldConfig);
         bytes32 newCommitment = _commitmentHash(newConfig);
-        if (activeCommitments[newCommitment]) revert DuplicateStrategy();
+        if (
+            newCommitment != oldCommitment && activeCommitments[newCommitment]
+        ) {
+            revert DuplicateStrategy();
+        }
 
         if (newCommitment != oldCommitment) {
             activeCommitments[oldCommitment] = false;
@@ -292,7 +296,15 @@ contract DCAStrategyManager is
             strategyCommitments[strategyId] = newCommitment;
         }
 
-        state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
+        // Clamp so a reduced interval (or a long-running strategy) cannot place
+        // the next trigger in the past, which would let the keeper execute
+        // immediately and bypass the interval cadence.
+        uint256 rescheduledTriggerAt = state.lastScheduledAt +
+            newConfig.interval;
+        if (rescheduledTriggerAt < block.timestamp) {
+            rescheduledTriggerAt = block.timestamp;
+        }
+        state.nextTriggerAt = rescheduledTriggerAt;
 
         emit StrategyEdited(strategyId, newConfig);
 
@@ -337,6 +349,18 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
+        // Resuming into an already-terminal condition would strand the strategy
+        // ACTIVE (checkUpkeep signals no trade and it never completes). Mirror the
+        // executeStrategy/editStrategy pre-flight and finalize instead.
+        if (state.tradesExecuted >= config.maxTrades) {
+            _markCompleted(strategyId, state, "max_trades");
+            return;
+        }
+        if (config.endDate > 0 && block.timestamp >= config.endDate) {
+            _markCompleted(strategyId, state, "end_date");
+            return;
+        }
+
         state.status = Status.ACTIVE;
         state.lastScheduledAt = block.timestamp;
         state.nextTriggerAt = block.timestamp + config.interval;
@@ -366,13 +390,7 @@ contract DCAStrategyManager is
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
-    )
-        external
-        onlyKeeper
-        nonReentrant
-        onlyActiveFleetCommander(config.sourceVault, "source")
-        onlyActiveFleetCommander(config.targetVault, "target")
-    {
+    ) external onlyKeeper nonReentrant {
         bytes32 storedCommitment = strategyCommitments[strategyId];
         if (_commitmentHash(config) != storedCommitment) {
             revert CommitmentMismatch(strategyId);
@@ -383,6 +401,9 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
+        // Terminal short-circuit runs BEFORE the active-fleet checks so a strategy
+        // that has reached maxTrades/endDate can still be finalized even if one of
+        // its vaults was later deregistered from HarborCommand.
         if (state.tradesExecuted >= config.maxTrades) {
             _markCompleted(strategyId, state, "max_trades");
             return;
@@ -390,6 +411,24 @@ contract DCAStrategyManager is
         if (config.endDate > 0 && block.timestamp >= config.endDate) {
             _markCompleted(strategyId, state, "end_date");
             return;
+        }
+
+        // A real trade requires both fleets active (source pull + target payout).
+        if (
+            !HARBOR_COMMAND.activeFleetCommanders(address(config.sourceVault))
+        ) {
+            revert InactiveFleetCommander(
+                address(config.sourceVault),
+                "source"
+            );
+        }
+        if (
+            !HARBOR_COMMAND.activeFleetCommanders(address(config.targetVault))
+        ) {
+            revert InactiveFleetCommander(
+                address(config.targetVault),
+                "target"
+            );
         }
 
         if (block.timestamp < state.nextTriggerAt) {
@@ -432,13 +471,17 @@ contract DCAStrategyManager is
         if (state.status != Status.ACTIVE) {
             return (false, performData);
         }
-        if (block.timestamp < state.nextTriggerAt) {
-            return (false, performData);
-        }
+        // Terminal conditions take precedence over the cadence gate. A strategy
+        // whose maxTrades is exhausted, or whose endDate has passed (even with
+        // nextTriggerAt still in the future), needs an `executeStrategy` call to
+        // transition to COMPLETED. Signal upkeep so the keeper triggers that.
         if (state.tradesExecuted >= config.maxTrades) {
-            return (false, performData);
+            return (true, performData);
         }
         if (config.endDate > 0 && block.timestamp >= config.endDate) {
+            return (true, performData);
+        }
+        if (block.timestamp < state.nextTriggerAt) {
             return (false, performData);
         }
 
@@ -660,6 +703,9 @@ contract DCAStrategyManager is
         if (config.tradeAmount == 0) {
             revert ZeroTradeAmount();
         }
+        if (config.tradeAmount > type(uint160).max) {
+            revert TradeAmountTooLarge(config.tradeAmount);
+        }
         if (config.maxTrades == 0) {
             revert ZeroMaxTrades();
         }
@@ -731,10 +777,15 @@ contract DCAStrategyManager is
             uint256 expectedOutShares = config.targetVault.convertToShares(
                 expectedOutAssets
             );
-            if (expectedOutShares == 0) revert ZeroExpectedOutShares();
             minOut = expectedOutShares.subtractBps(
                 BPS.wrap(config.slippageBps)
             );
+            // `subtractBps` floors: a small `expectedOutShares` (e.g. 1) makes
+            // `minOut` round down to 0, which would turn the post-swap
+            // `swappedAmount < minOut` check into `0 < 0` (false) and let a
+            // zero-output swap pass. Reject it. (Covers expectedOutShares == 0
+            // too, since subtractBps(0) == 0.)
+            if (minOut == 0) revert ZeroExpectedOutShares();
         }
 
         uint256 sourceSharesBaseline = IERC20(address(config.sourceVault))

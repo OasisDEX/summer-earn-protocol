@@ -385,19 +385,23 @@ contract DCAStrategyManagerTest is Test {
         dcaManager.createStrategy(config);
     }
 
-    function test_CheckUpkeep_ReturnsFalseOnEndDatePassed() public {
+    function test_CheckUpkeep_ReturnsTrueOnEndDatePassed() public {
+        // F8/F10: terminal conditions now return true so the keeper can finalize
+        // the strategy via executeStrategy (which will call _markCompleted).
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         config.endDate = block.timestamp + 8 days;
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(config);
 
-        // Warp past endDate. The interval gate would otherwise be satisfied
-        // (block.timestamp >= nextTriggerAt) — endDate guard must still flip
-        // checkUpkeep to false.
+        // Warp past endDate (and nextTriggerAt). The terminal endDate condition
+        // must now signal upkeep so the keeper can drive the COMPLETED transition.
         vm.warp(block.timestamp + 9 days);
 
         (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
-        assertFalse(upkeepNeeded, "Upkeep should be false past endDate");
+        assertTrue(
+            upkeepNeeded,
+            "Upkeep should be true past endDate (keeper must finalize)"
+        );
     }
 
     /// @dev Funds `strategyOwner` with source-vault shares and a max Permit2
@@ -1135,16 +1139,27 @@ contract DCAStrategyManagerTest is Test {
         dcaManager.editStrategy(strategyId, wrong, newConfig);
     }
 
-    function test_EditStrategy_RevertsOnSameConfig() public {
-        // Editing to the exact same config must revert with DuplicateStrategy:
-        // the commitment is already active, so the new hash collides.
+    function test_EditStrategy_IdempotentOnSameConfig() public {
+        // F3: Editing to the exact same config must NOT revert DuplicateStrategy —
+        // oldCommitment == newCommitment so the duplicate guard is skipped.
+        // StrategyEdited must still be emitted and the commitment must be unchanged.
         IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(config);
 
+        bytes32 commitmentBefore = dcaManager.strategyCommitments(strategyId);
+
         vm.prank(strategyOwner);
-        vm.expectRevert(IDCAStrategyManagerErrors.DuplicateStrategy.selector);
+        vm.expectEmit(true, false, false, false, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyEdited(strategyId, config);
         dcaManager.editStrategy(strategyId, config, config);
+
+        // Commitment unchanged.
+        assertEq(
+            dcaManager.strategyCommitments(strategyId),
+            commitmentBefore,
+            "commitment must be unchanged after idempotent edit"
+        );
     }
 
     function test_EditStrategy_EmitsStrategyEdited() public {
@@ -1518,6 +1533,157 @@ contract DCAStrategyManagerTest is Test {
             ENSO_ROUTER,
             address(0),
             PERMIT2
+        );
+    }
+
+    // =========================================================
+    // F3 — editStrategy idempotent no-op (same config, no revert)
+    // =========================================================
+
+    /// @dev F3: editing a strategy to its current config (newCommitment == oldCommitment)
+    /// must NOT revert DuplicateStrategy — it is a valid no-op.
+    function test_EditStrategy_IdempotentDoesNotRevertDuplicate() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        bytes32 commitmentBefore = dcaManager.strategyCommitments(strategyId);
+        bool activeBefore = dcaManager.activeCommitments(commitmentBefore);
+
+        // Same-config edit must succeed (no revert).
+        vm.prank(strategyOwner);
+        dcaManager.editStrategy(strategyId, config, config);
+
+        // Commitment and active flag unchanged.
+        assertEq(
+            dcaManager.strategyCommitments(strategyId),
+            commitmentBefore,
+            "commitment must be unchanged after idempotent edit"
+        );
+        assertEq(
+            dcaManager.activeCommitments(commitmentBefore),
+            activeBefore,
+            "activeCommitments flag must be unchanged"
+        );
+    }
+
+    // =========================================================
+    // F4 — editStrategy clamps nextTriggerAt to block.timestamp
+    // =========================================================
+
+    /// @dev F4: if lastScheduledAt + newInterval < block.timestamp, nextTriggerAt
+    /// must be clamped to block.timestamp, not placed in the past.
+    function test_EditStrategy_ClampsNextTriggerAtToBlockTimestamp() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        // interval = 7 days; lastScheduledAt = hour-aligned create time.
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        // Warp far into the future so that lastScheduledAt + ANY valid interval
+        // is still in the past. After 90 days (max interval) + 1 day extra we
+        // are guaranteed to be past any rescheduled trigger.
+        vm.warp(block.timestamp + 91 days);
+
+        // Edit with the minimum allowed interval (1 day); even so,
+        // lastScheduledAt + 1 day is still in the past.
+        IDCAStrategyManager.StrategyConfig memory newConfig = _defaultConfig();
+        newConfig.interval = 1 days;
+
+        vm.prank(strategyOwner);
+        dcaManager.editStrategy(strategyId, config, newConfig);
+
+        IDCAStrategyManager.StrategyState memory state = dcaManager
+            .strategyStates(strategyId);
+        // nextTriggerAt must not be in the past.
+        assertGe(
+            state.nextTriggerAt,
+            block.timestamp,
+            "nextTriggerAt must be clamped to block.timestamp when rescheduled past is in past"
+        );
+    }
+
+    // =========================================================
+    // F7 — resumeStrategy auto-completes terminal strategies
+    // =========================================================
+
+    /// @dev F7: resuming a PAUSED strategy that has already reached maxTrades
+    /// must auto-complete (emit StrategyCompleted, status = COMPLETED) rather
+    /// than becoming ACTIVE.
+    function test_ResumeStrategy_AutoCompletesWhenMaxTradesReached() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.maxTrades = 1;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        // Pause before any execution.
+        vm.prank(strategyOwner);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        // Manually bump tradesExecuted to maxTrades via vm.store.
+        // _strategyStates is at storage slot 2 (confirmed via forge inspect storage-layout).
+        // StrategyState slot-0 layout (packed): status (uint8, bits 0..7) + tradesExecuted (uint248, bits 8..255).
+        // slot for strategyId key = keccak256(abi.encode(strategyId, 2)).
+        bytes32 stateSlot = keccak256(
+            abi.encode(uint256(strategyId), uint256(2))
+        );
+        // Read current word (contains status=PAUSED=1 and tradesExecuted=0).
+        bytes32 currentWord = vm.load(address(dcaManager), stateSlot);
+        // Keep status bits (0..7) and set tradesExecuted=1 in bits 8..255.
+        bytes32 newWord = bytes32(
+            (uint256(currentWord) & 0xFF) | (uint256(1) << 8)
+        );
+        vm.store(address(dcaManager), stateSlot, newWord);
+
+        // Verify tradesExecuted is now >= maxTrades.
+        IDCAStrategyManager.StrategyState memory stateBefore = dcaManager
+            .strategyStates(strategyId);
+        assertEq(
+            stateBefore.tradesExecuted,
+            1,
+            "tradesExecuted must equal maxTrades"
+        );
+
+        vm.prank(strategyOwner);
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCompleted(
+            strategyId,
+            "max_trades"
+        );
+        dcaManager.resumeStrategy(strategyId, config);
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "strategy must be COMPLETED when resuming with tradesExecuted >= maxTrades"
+        );
+    }
+
+    /// @dev F7: resuming a PAUSED strategy whose endDate has already passed
+    /// must auto-complete rather than becoming ACTIVE.
+    function test_ResumeStrategy_AutoCompletesWhenEndDatePassed() public {
+        IDCAStrategyManager.StrategyConfig memory config = _defaultConfig();
+        config.endDate = block.timestamp + 2 days;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        vm.prank(strategyOwner);
+        dcaManager.pauseStrategy(strategyId, config);
+
+        // Warp past endDate while still paused.
+        vm.warp(block.timestamp + 3 days);
+
+        vm.prank(strategyOwner);
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCompleted(
+            strategyId,
+            "end_date"
+        );
+        dcaManager.resumeStrategy(strategyId, config);
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "strategy must be COMPLETED when resuming past endDate"
         );
     }
 }
@@ -2703,25 +2869,21 @@ contract DCAStrategyManagerIntegrationTest is Test {
     }
 
     function test_Execute_RevertsOnAmountOverflowsUint160() public {
-        // tradeAmount above uint160 max is accepted by createStrategy but must
-        // revert with AmountOverflowsUint160 when _pullFunds is reached.
+        // F11: tradeAmount above uint160 max is now rejected at createStrategy time
+        // (TradeAmountTooLarge). The strategy cannot be created at all, so it can
+        // never reach executeStrategy. This test verifies the creation guard fires.
         uint256 endDate = block.timestamp + 365 days;
         IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
         cfg.tradeAmount = uint256(type(uint160).max) + 1;
 
         vm.prank(strategyOwner);
-        uint256 strategyId = dcaManager.createStrategy(cfg);
-
-        vm.warp(block.timestamp + 7 days);
-
-        vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Permit2Consumer.AmountOverflowsUint160.selector,
+                IDCAStrategyManagerErrors.TradeAmountTooLarge.selector,
                 cfg.tradeAmount
             )
         );
-        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+        dcaManager.createStrategy(cfg);
     }
 
     function test_Execute_RevertsOnOutOraclePriceZero() public {
@@ -3802,5 +3964,247 @@ contract DCAStrategyManagerIntegrationTest is Test {
         vm.prank(signer);
         vm.expectRevert(IDCAStrategyManagerErrors.ZeroDeposit.selector);
         dcaManager.depositAndCreateWithPermit2(cfg, 0, permits, 0);
+    }
+
+    // =========================================================
+    // F1 — minOut rounding to zero bypasses slippage floor
+    // =========================================================
+
+    /// @dev F1: when convertToShares returns 1 and slippageBps rounds minOut down
+    /// to 0, executeStrategy must revert ZeroExpectedOutShares (not silently pass).
+    function test_Execute_RevertsWhenMinOutRoundsToZero() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+
+        vm.warp(block.timestamp + 7 days);
+
+        // Mock targetFleet.convertToShares to return 1 so that
+        // subtractBps(BPS.wrap(50)) rounds down to 0. (1 - 0.5% floors to 0.)
+        vm.mockCall(
+            address(targetFleet),
+            abi.encodeWithSignature("convertToShares(uint256)"),
+            abi.encode(uint256(1))
+        );
+
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(keeper);
+        vm.expectRevert(
+            IDCAStrategyManagerErrors.ZeroExpectedOutShares.selector
+        );
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+    }
+
+    // =========================================================
+    // F8/F10 — checkUpkeep terminal conditions return true
+    // =========================================================
+
+    /// @dev F8/F10: checkUpkeep must return true when endDate has passed even if
+    /// nextTriggerAt is still in the future, so the keeper can finalize the strategy.
+    function test_CheckUpkeep_ReturnsTrueWhenEndDatePassedBeforeNextTrigger()
+        public
+    {
+        // endDate = 3 days, interval = 7 days → nextTriggerAt = create + 7 days.
+        // We warp to 4 days: past endDate but before nextTriggerAt.
+        uint256 endDate = block.timestamp + 3 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        // nextTriggerAt = hourAligned + 7 days; warp to 4 days (past endDate, before trigger).
+        vm.warp(block.timestamp + 4 days);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, cfg);
+        assertTrue(
+            upkeepNeeded,
+            "checkUpkeep must return true when endDate has passed (terminal condition)"
+        );
+    }
+
+    /// @dev F8/F10: checkUpkeep must return true when tradesExecuted >= maxTrades
+    /// even if nextTriggerAt is still in the future (strategy needs keeper finalization).
+    function test_CheckUpkeep_ReturnsTrueWhenMaxTradesReachedBeforeNextTrigger()
+        public
+    {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.maxTrades = 1;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        // Execute once to exhaust maxTrades (strategy auto-completes in state).
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        // Strategy is now COMPLETED — checkUpkeep must return false (status gate).
+        // This test validates the case where tradesExecuted == maxTrades but the
+        // status is still ACTIVE (corner case: before the terminal transition ran).
+        // We verify via a fresh strategy manipulated with vm.store to set
+        // tradesExecuted = maxTrades while keeping status ACTIVE.
+        IDCAStrategyManager.StrategyConfig memory cfg2 = _buildConfig(endDate);
+        cfg2.maxTrades = 2;
+        cfg2.endDate = endDate + 1; // ensure different commitment
+        vm.prank(strategyOwner);
+        uint256 strategyId2 = dcaManager.createStrategy(cfg2);
+
+        // Advance state so tradesExecuted = maxTrades via vm.store.
+        // _strategyStates is at storage slot 2 (confirmed via forge inspect storage-layout).
+        bytes32 stateSlot2 = keccak256(
+            abi.encode(uint256(strategyId2), uint256(2))
+        );
+        bytes32 currentWord2 = vm.load(address(dcaManager), stateSlot2);
+        // status = ACTIVE (0) in bits 0..7; tradesExecuted = 2 in bits 8..255.
+        bytes32 newWord2 = bytes32(
+            (uint256(currentWord2) & 0xFF) | (uint256(2) << 8)
+        );
+        vm.store(address(dcaManager), stateSlot2, newWord2);
+
+        // Do NOT advance time past nextTriggerAt — test the "before trigger" scenario.
+        // (nextTriggerAt is at hourAligned + 7 days; we have only advanced 7 days
+        // for the first strategy, but strategyId2 was created fresh so its
+        // nextTriggerAt is still in the future relative to current block.)
+
+        (bool upkeepNeeded2, ) = dcaManager.checkUpkeep(strategyId2, cfg2);
+        assertTrue(
+            upkeepNeeded2,
+            "checkUpkeep must return true when tradesExecuted >= maxTrades (terminal condition)"
+        );
+    }
+
+    // =========================================================
+    // F9 — executeStrategy terminal completes even if vault deregistered
+    // =========================================================
+
+    /// @dev F9: a strategy at maxTrades (terminal) whose source vault was
+    /// deregistered after creation must still finalize via executeStrategy
+    /// (StrategyCompleted emitted) rather than reverting InactiveFleetCommander.
+    function test_Execute_CompletesWhenMaxTradesReachedAndSourceDecommissioned()
+        public
+    {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.maxTrades = 1;
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+
+        // Execute the one allowed trade (increments tradesExecuted to 1 == maxTrades,
+        // auto-completes).
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(keeper);
+        dcaManager.executeStrategy(strategyId, cfg, hex"deadbeef");
+
+        // Strategy is COMPLETED. Confirm status.
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "strategy must be COMPLETED after maxTrades"
+        );
+
+        // ---------------------------------------------------------------
+        // Now build a SECOND strategy with maxTrades=1, decommission the
+        // source vault, then inject tradesExecuted == maxTrades via vm.store
+        // while keeping status == ACTIVE. The next executeStrategy call
+        // must run the terminal short-circuit BEFORE the fleet check, so
+        // it completes successfully even though sourceFleet is inactive.
+        // ---------------------------------------------------------------
+        IDCAStrategyManager.StrategyConfig memory cfg3 = _buildConfig(endDate);
+        cfg3.maxTrades = 1;
+        cfg3.endDate = endDate + 2; // unique commitment
+        vm.prank(strategyOwner);
+        uint256 strategyId3 = dcaManager.createStrategy(cfg3);
+
+        // Decommission source fleet so the inline fleet check would revert if reached.
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(sourceFleet));
+
+        // Inject tradesExecuted = 1 = maxTrades into strategyId3's state.
+        // _strategyStates is at storage slot 2 (confirmed via forge inspect storage-layout).
+        bytes32 stateSlot3 = keccak256(
+            abi.encode(uint256(strategyId3), uint256(2))
+        );
+        bytes32 currentWord3 = vm.load(address(dcaManager), stateSlot3);
+        bytes32 newWord3 = bytes32(
+            (uint256(currentWord3) & 0xFF) | (uint256(1) << 8)
+        );
+        vm.store(address(dcaManager), stateSlot3, newWord3);
+
+        vm.prank(keeper);
+        vm.expectEmit(true, false, false, true, address(dcaManager));
+        emit IDCAStrategyManagerEvents.StrategyCompleted(
+            strategyId3,
+            "max_trades"
+        );
+        dcaManager.executeStrategy(strategyId3, cfg3, hex"deadbeef");
+
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId3).status),
+            uint8(IDCAStrategyManager.Status.COMPLETED),
+            "strategy must be COMPLETED via terminal short-circuit"
+        );
+    }
+
+    /// @dev F9: a NON-terminal strategy with a decommissioned source vault still
+    /// reverts InactiveFleetCommander (the inline fleet check fires after the
+    /// terminal short-circuit does nothing, because it is not terminal).
+    function test_Execute_RevertsWhenSourceDecommissionedAndNotTerminal()
+        public
+    {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(sourceFleet));
+
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                HarborCommandConsumer.InactiveFleetCommander.selector,
+                address(sourceFleet),
+                "source"
+            )
+        );
+        dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
+    }
+
+    // =========================================================
+    // F11 — createStrategy rejects tradeAmount > uint160 max
+    // =========================================================
+
+    /// @dev F11: createStrategy must revert TradeAmountTooLarge when tradeAmount
+    /// exceeds type(uint160).max, catching the error at creation time rather than
+    /// at execute time.
+    function test_CreateStrategy_RevertsOnTradeAmountTooLarge() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.tradeAmount = uint256(type(uint160).max) + 1;
+
+        vm.prank(strategyOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDCAStrategyManagerErrors.TradeAmountTooLarge.selector,
+                cfg.tradeAmount
+            )
+        );
+        dcaManager.createStrategy(cfg);
+    }
+
+    /// @dev F11: createStrategy accepts exactly uint160 max (boundary).
+    function test_CreateStrategy_AcceptsTradeAmountAtUint160Max() public {
+        uint256 endDate = block.timestamp + 365 days;
+        IDCAStrategyManager.StrategyConfig memory cfg = _buildConfig(endDate);
+        cfg.tradeAmount = uint256(type(uint160).max);
+
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(cfg);
+        assertEq(
+            uint8(dcaManager.strategyStates(strategyId).status),
+            uint8(IDCAStrategyManager.Status.ACTIVE),
+            "strategy at uint160 max must be created successfully"
+        );
     }
 }

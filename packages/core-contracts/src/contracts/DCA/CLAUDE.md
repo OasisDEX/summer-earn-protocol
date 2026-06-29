@@ -124,6 +124,7 @@ jq '.abi' out/DCAStrategyManager.sol/DCAStrategyManager.json \
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-29 — claude — audit follow-ups (Run #649 + Sherlock): F1 minOut==0 guard (reuse ZeroExpectedOutShares); F3 idempotent edit no longer reverts DuplicateStrategy; F4 editStrategy clamps nextTriggerAt to block.timestamp; F7 resumeStrategy auto-completes terminal strategies; F8/F10 checkUpkeep evaluates terminal conditions before the cadence gate and returns true so the keeper can finalize (keeper sweep tracked separately); F9 executeStrategy runs the terminal short-circuit before the now-inline active-fleet checks (completes even if a vault was deregistered); F11 new TradeAmountTooLarge error rejects tradeAmount > uint160 max. No struct/commitment/ABI change; checkUpkeep terminal return flipped false→true (behavioral). Tests in DCAsStrategyManager.t.sol.
 - 2026-06-19 — claude — audit VD-1: added `expectedMinShares` parameter to
   `depositAndCreate` and `depositAndCreateWithPermit2` (passed through to
   `_depositPulledAsset`, which reverts `DepositSharesBelowMin` when the minted
