@@ -17,17 +17,23 @@ interface UseRoundsVaultStateProps {
 // the in-flight exchange rate (zero until settle). Uses RoundsVaultInput ABI
 // — output's surface is identical for these reads.
 export function useRoundsVaultState({ roundsVaultAddress, chainId }: UseRoundsVaultStateProps) {
+  // Per-contract chainId — useReadContracts has no top-level chainId. Pins reads
+  // to the institution's chain instead of the wallet's connected chain.
+  const cid = Number(chainId)
+
   const reads = useReadContracts({
     contracts: [
       {
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'getCurrentRound',
+        chainId: cid,
       },
       {
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'minPositionSize',
+        chainId: cid,
       },
     ],
     query: {
@@ -56,18 +62,21 @@ export function useRoundsVaultState({ roundsVaultAddress, chainId }: UseRoundsVa
               abi: roundsVaultInputAbi,
               functionName: 'roundState',
               args: [currentRound],
+              chainId: cid,
             },
             {
               address: roundsVaultAddress,
               abi: roundsVaultInputAbi,
               functionName: 'getExchangeRate',
               args: [currentRound],
+              chainId: cid,
             },
             {
               address: roundsVaultAddress,
               abi: roundsVaultInputAbi,
               functionName: 'totalSupply',
               args: [currentRound],
+              chainId: cid,
             },
           ]
         : [],

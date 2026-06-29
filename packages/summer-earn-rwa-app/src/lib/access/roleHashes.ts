@@ -19,9 +19,23 @@ export type ContractSpecificRoleName =
   | 'COMMANDER_ROLE'
   | 'OPERATOR_ROLE'
 
+// On-chain, contract-specific roles are hashed from the ContractSpecificRoles
+// ENUM (encoded as its uint8 index), NOT the role's string name — see
+// generateRole() and the enum order in IProtocolAccessManager.sol. Hashing the
+// string here produced a role nobody holds, so legitimately-granted KEEPER /
+// CURATOR holders read as unauthorised (only the static SUPER_KEEPER_ROLE worked).
+const CONTRACT_SPECIFIC_ROLE_INDEX: Record<ContractSpecificRoleName, number> = {
+  CURATOR_ROLE: 0,
+  KEEPER_ROLE: 1,
+  COMMANDER_ROLE: 2,
+  OPERATOR_ROLE: 3,
+}
+
 export function generateContractSpecificRole(
   roleName: ContractSpecificRoleName,
   target: `0x${string}`,
 ): `0x${string}` {
-  return keccak256(encodePacked(['string', 'address'], [roleName, target]))
+  return keccak256(
+    encodePacked(['uint8', 'address'], [CONTRACT_SPECIFIC_ROLE_INDEX[roleName], target]),
+  )
 }

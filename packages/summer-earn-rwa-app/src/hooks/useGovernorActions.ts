@@ -41,22 +41,26 @@ export function useGovernorActions({ roundsVaultAddress, chainId }: UseGovernorA
   })
 
   return {
-    emergencyRollbackRound: (roundId: bigint) => {
+    emergencyRollbackRound: async (roundId: bigint) => {
+      if (!(await rollback.ensureChain())) return
       rollback.beginToast()
       return rollback.writeContractAsync({
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'emergencyRollbackRound',
         args: [roundId],
+        chainId: Number(chainId),
       })
     },
-    setMinPositionSize: (size: bigint) => {
+    setMinPositionSize: async (size: bigint) => {
+      if (!(await minSize.ensureChain())) return
       minSize.beginToast()
       return minSize.writeContractAsync({
         address: roundsVaultAddress,
         abi: roundsVaultInputAbi,
         functionName: 'setMinPositionSize',
         args: [size],
+        chainId: Number(chainId),
       })
     },
     pending: {

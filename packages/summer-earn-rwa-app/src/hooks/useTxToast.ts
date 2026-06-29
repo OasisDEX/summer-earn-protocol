@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { BaseError, ContractFunctionRevertedError, type Hex } from 'viem'
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useChainId, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
 import type { ChainId } from '@/types/chain'
 import { txExplorerUrl } from '@/utils/explorer'
@@ -74,6 +74,7 @@ interface UseTxToastResult {
   beginToast: () => void
   endToastOnError: (e: unknown) => void
   resetToast: () => void
+  ensureChain: () => Promise<boolean>
 }
 
 export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
@@ -87,6 +88,25 @@ export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
     isPending: isWriting,
     error: writeError,
   } = useWriteContract()
+
+  const connectedChainId = useChainId()
+  const { switchChainAsync } = useSwitchChain()
+  const targetChainId = Number(opts.chainId)
+
+  // The app has no network switcher and wagmi v3 won't auto-switch, so a write
+  // issued while the wallet sits on another chain throws a ChainMismatchError.
+  // Callers await ensureChain() before writing to move the wallet onto the
+  // institution's chain first; a rejected switch is reported and aborts.
+  async function ensureChain(): Promise<boolean> {
+    if (connectedChainId === targetChainId) return true
+    try {
+      await switchChainAsync({ chainId: targetChainId })
+      return true
+    } catch {
+      toast.error('Switch your wallet to the correct network to continue')
+      return false
+    }
+  }
 
   const {
     isLoading: isMining,
@@ -156,6 +176,7 @@ export function useTxToast(opts: UseTxToastOptions): UseTxToastResult & {
     beginToast,
     endToastOnError,
     resetToast,
+    ensureChain,
     writeContract,
     writeContractAsync,
   }
