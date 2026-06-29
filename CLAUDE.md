@@ -29,6 +29,50 @@ Comprehensive guide for implementing new Ark contracts. Covers:
 Guide for adding new Arks and protocols to the deployment system using Hardhat Ignition and
 interactive scripts.
 
+## Documentation Pipeline
+
+Published docs live in [`gitbook/`](gitbook/) and are split into **generated** and **hand-written**
+trees. Knowing which is which is the single biggest gotcha — editing a generated page is wasted
+work.
+
+- **Generated (do NOT hand-edit):** every `reference/` subtree plus the two library subtrees, i.e.
+  `gitbook/contracts/{core,dutch-auction,access,config,rewards,oracles}/reference/`,
+  `gitbook/contracts/libraries/{percentage,price,math}/`, `gitbook/governance/reference/`, and
+  `gitbook/governance/voting-decay/`. Each is produced by `scripts/docs/assemble.mjs` from
+  `forge doc` output and is **wiped and rewritten on every build** — along with its `_nav.json` and
+  `README.md`. To change one of these pages, edit the Solidity **NatSpec** in the source contract
+  and rerun the build. `gitbook/SUMMARY.md` is likewise generated from
+  `scripts/docs/summary.template.md` (only the template is hand-edited). The package→output mapping
+  lives in `scripts/docs/docs.config.json`.
+- **Hand-written (edit directly):** everything else — `gitbook/introduction/`, `concepts/`, `apis/`,
+  `data/`, `security/`, `internal/`, the prose `governance/` pages (`overview.md`, `sip-process.md`,
+  `staking-and-rewards.md`, `sumr-token.md`, `vesting.md`), and `contracts/architecture.md` /
+  `contracts/ark-catalog.md`.
+
+Commands (root `package.json`): `pnpm docs:gen` (per-package `forge doc` via turbo →
+`docs/generated/`), `pnpm docs:assemble` (clean + assemble into `gitbook/`), `pnpm docs:build`
+(both), `pnpm docs:check` (build then `git diff --exit-code -- gitbook/`). After ANY NatSpec edit,
+run `pnpm docs:build` and commit the regenerated `gitbook/` in the same change.
+
+CI (`.github/workflows/docs.yaml`): PRs run a **drift check** (`pnpm docs:build` must leave
+`gitbook/` clean); pushes to `main` auto-regenerate and commit `[skip ci]` as a safety net. Foundry
+is pinned (`v1.5.1`) because `forge doc` output format can shift between versions and flap the drift
+check.
+
+NatSpec & audit tooling (`scripts/audit/`):
+
+- Each documented contract package needs `extra_output = ["devdoc", "userdoc"]` and a `[doc]` block
+  in its `foundry.toml`, plus a `docs:gen` script — without these `forge doc` / the coverage auditor
+  silently miss content.
+- `natspec-coverage.py` cross-references ABI vs solc devdoc/userdoc (resolves `@inheritdoc`);
+  reports land under `docs/audit/<period>/`.
+- `check-comment-only.py` verifies a NatSpec-only edit is **bytecode-identical** modulo CBOR
+  metadata (compare two `out/` dirs). Use it to prove a doc wave changed no executable code.
+
+Adding a new documented contract package: add it to `scripts/docs/docs.config.json`
+(`{package, section, out}`) AND give its `foundry.toml` the `[doc]` + `extra_output` + `docs:gen`
+scaffolding, then `pnpm docs:build`.
+
 ## Cross-Package Change Checklists
 
 Ordered, file-level checklists for changes that ripple across packages. Address propagation in this
@@ -366,18 +410,39 @@ https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details
 
 ## Build & Test
 
-_Add your build and test commands here_
+pnpm + turbo monorepo (Node 24, pnpm 10.32.1). Run package scripts from the package dir or via turbo
+from the root.
 
 ```bash
-# Example:
-# npm install
-# npm test
+pnpm install              # bootstrap the workspace
+pnpm build                # turbo build across packages (contracts: forge build + ABI copy)
+pnpm test                 # turbo test; Foundry fork tests need <CHAIN>_RPC_URL in repo-root .env
+pnpm format:fix           # ALWAYS run in the edited package before lint/build/commit
+pnpm docs:build           # regenerate gitbook/ reference docs after any NatSpec edit
+pnpm docs:check           # CI drift check: docs:build must leave gitbook/ clean
 ```
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+Summer Earn is a multi-chain yield protocol. Users deposit into a **FleetCommander** (an ERC4626
+vault); a keeper rebalances funds across **Arks** (per-protocol strategy adapters, ~40 of them)
+while a **BufferArk** holds idle liquidity for instant withdrawals. **HarborCommand** is the
+on-chain registry of fleets; **Raft** runs reward/auction harvesting via Dutch auctions. Governance
+(`SummerGovernor` + timelock, `$SUMMER` token with voting decay) is cross-chain over LayerZero.
+Off-chain, several **subgraphs** index protocol/rates/governance state and frontends/services
+consume deployment addresses. The full architecture is documented in
+[`gitbook/contracts/architecture.md`](gitbook/contracts/architecture.md) and the ark catalog in
+[`gitbook/contracts/ark-catalog.md`](gitbook/contracts/ark-catalog.md); see the Package Map below
+for the package layout.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- **Address propagation is manual** — `packages/deployment/config/index.json` is the source of
+  truth; subgraph and app configs are hand-maintained copies. Use the Cross-Package Change
+  Checklists above before any change that crosses package boundaries.
+- **Contracts:** split interface / error / event files (`I<X>Errors.sol`, `I<X>Events.sol`);
+  conservative `_withdrawableTotalAssets()`; fork-test-first. Follow the ark-development skill for
+  any Ark work and run `pnpm format:fix` after edits.
+- **Docs:** generated `gitbook/**/reference/` trees are wiped on every build — edit NatSpec, not the
+  markdown (see Documentation Pipeline above).
+- **No Claude attribution in commit messages.**
