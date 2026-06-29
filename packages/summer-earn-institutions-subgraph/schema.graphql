@@ -490,6 +490,8 @@ type Vault @entity @regularPolling {
 
   tipRate: BigInt!
 
+  performanceFeeRate: BigInt!
+
   aprValues: [BigDecimal!]!
 
   apr7d: BigDecimal!
@@ -1739,10 +1741,13 @@ enum AdminAction {
   VAULT_CAP_CHANGED
   VAULT_MIN_BUFFER_CHANGED
   VAULT_TIP_RATE_CHANGED
+  VAULT_PERFORMANCE_RATE_CHANGED
   ARK_CAP_CHANGED
   ARK_MAX_PCT_TVL_CHANGED
   ARK_MAX_REBALANCE_OUTFLOW_CHANGED
   ARK_MAX_REBALANCE_INFLOW_CHANGED
+  ARK_ADDED
+  ARK_REMOVED
 }
 
 type AccessController @entity {

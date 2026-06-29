@@ -19,6 +19,7 @@ import {
   FleetCommanderStakingRewardsUpdated,
   FleetCommanderWithdrawnFromArks,
   FleetCommanderminimumBufferBalanceUpdated,
+  PerformanceFeeRateUpdated,
   Rebalanced,
   TipAccrued,
   TipRateUpdated,
@@ -98,6 +99,17 @@ export function handleArkAdded(event: ArkAdded): void {
   ark.vault = vault.id
   ark.save()
 
+  // Ark add/remove are not numeric config changes, so valueBefore/valueAfter
+  // carry no meaning; the affected market is recorded in targetContract.
+  createCurationEvent(
+    event,
+    constants.AdminAction.ARK_ADDED,
+    constants.BigIntConstants.ZERO,
+    constants.BigIntConstants.ZERO,
+    vault,
+    ark.id,
+  )
+
   const arksArray = vault.arksArray
   if (!arksArray.includes(ark.id)) {
     arksArray.push(ark.id)
@@ -110,6 +122,16 @@ let _arkAddress: string
 export function handleArkRemoved(event: ArkRemoved): void {
   const vault = getOrCreateVault(event.address, event.block)
   _arkAddress = event.params.ark.toHexString()
+
+  createCurationEvent(
+    event,
+    constants.AdminAction.ARK_REMOVED,
+    constants.BigIntConstants.ZERO,
+    constants.BigIntConstants.ZERO,
+    vault,
+    _arkAddress,
+  )
+
   let previousArrayOfArks = vault.arksArray
   vault.arksArray = previousArrayOfArks.filter((ark) => ark !== _arkAddress)
   vault.save()
@@ -344,6 +366,20 @@ export function handleTipRateUpdated(event: TipRateUpdated): void {
     vault.id,
   )
   vault.tipRate = event.params.newTipRate
+  vault.save()
+}
+
+export function handlePerformanceFeeRateUpdated(event: PerformanceFeeRateUpdated): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  createCurationEvent(
+    event,
+    constants.AdminAction.VAULT_PERFORMANCE_RATE_CHANGED,
+    vault.performanceFeeRate,
+    event.params.newRate,
+    vault,
+    vault.id,
+  )
+  vault.performanceFeeRate = event.params.newRate
   vault.save()
 }
 

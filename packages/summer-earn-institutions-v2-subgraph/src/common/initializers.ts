@@ -430,6 +430,12 @@ export function getOrCreateVault(
       vaultContract.try_tipRate(),
       constants.BigIntConstants.ZERO,
     )
+    // performanceFeeRate only exists on FlexibleTipper-based (whitelist) fleets;
+    // try_ reverts gracefully to ZERO for standard Tipper fleets.
+    vault.performanceFeeRate = utils.readValue<BigInt>(
+      vaultContract.try_performanceFeeRate(),
+      constants.BigIntConstants.ZERO,
+    )
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance

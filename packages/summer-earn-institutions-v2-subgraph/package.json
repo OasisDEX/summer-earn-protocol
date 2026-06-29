@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-institutions-v2-subgraph",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
