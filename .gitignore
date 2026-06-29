@@ -101,6 +101,7 @@ cache_forge/
 .antigravitycli
 .claude/
 .next-docs
+.resources
 
 SYSTEM_PROMPT.md
 myenv
@@ -121,10 +122,6 @@ myenv
 .antigravitycli
 .resources
 
-.x-ray/
-x-ray/
-docs/superstate/
-
 .next-docs
 .claude
 
@@ -134,3 +131,5 @@ gemini_pipe.sh
 
 # forge doc intermediate output (cleaned copies live in gitbook/)
 packages/*/docs/generated/
+.audits/
+x-ray/

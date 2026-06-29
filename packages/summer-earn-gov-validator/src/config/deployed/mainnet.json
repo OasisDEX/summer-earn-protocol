@@ -270,5 +270,6 @@
   "Avantgarde_FleetWhitelist_Avantgarde_Summerfi_Strategic_RWA_Allocation#FleetCommanderCacheLib": "0xaB48C050647c826471c7D0EEe4192d427B6D67Db",
   "Avantgarde_FleetWhitelist_Avantgarde_Summerfi_Strategic_RWA_Allocation#FleetCommanderWhitelist": "0xbafDA316a19fc4A824e14A1EF86f2c57055Df9ec",
   "Avantgarde_RoundsVaultInput_Avantgarde_Summerfi_Strategic_RWA_Allocation#RoundsVaultInput": "0x9322249c4BD4C06f8da62A096ff25bB4c0255a80",
-  "Avantgarde_RoundsVaultOutput_Avantgarde_Summerfi_Strategic_RWA_Allocation#RoundsVaultOutput": "0x8b916d68fDdED0B446EB2FA6D72322D3F1c77BeD"
+  "Avantgarde_RoundsVaultOutput_Avantgarde_Summerfi_Strategic_RWA_Allocation#RoundsVaultOutput": "0x8b916d68fDdED0B446EB2FA6D72322D3F1c77BeD",
+  "DCAStrategyManagerModule_v4#DCAStrategyManager": "0x8044e2df8bF45f32E6021Bd342b4C734ffA64E0B"
 }

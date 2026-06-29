@@ -12,6 +12,7 @@ const META_CHAIN_KEY: Record<ChainName, string[]> = {
   arbitrum: ['arbitrum', 'arbitrum-mainnet'],
   sonic: ['sonic', 'sonic-mainnet'],
   hyperliquid: ['hyperliquid', 'hyperliquid-mainnet'],
+  sepolia: ['sepolia', 'ethereum-testnet-sepolia'], // testnet — no LZ OApp config, present for type completeness
 }
 
 export interface DvnMetadata {

@@ -1,5 +1,5 @@
 import { fallback, http, type Transport } from 'viem'
-import { arbitrum, base, Chain, hyperliquid, mainnet, sonic } from 'viem/chains'
+import { arbitrum, base, Chain, hyperliquid, mainnet, sepolia, sonic } from 'viem/chains'
 
 import { ChainId } from '../types'
 
@@ -9,6 +9,7 @@ export const CHAIN_NAMES: Record<ChainId, string> = {
   [base.id]: 'Base',
   [sonic.id]: 'Sonic',
   [hyperliquid.id]: 'Hyperliquid',
+  [sepolia.id]: 'Sepolia',
 }
 
 export const CHAIN_RPC_URLS: Record<ChainId, string[]> = {
@@ -101,6 +102,12 @@ export const CHAIN_RPC_URLS: Record<ChainId, string[]> = {
     'https://rpc.ankr.com/sonic_mainnet', // Ankr
   ],
   [hyperliquid.id]: [hyperliquid.rpcUrls.default.http[0] as string],
+  [sepolia.id]: [
+    'https://ethereum-sepolia-rpc.publicnode.com', // PublicNode
+    'https://sepolia.drpc.org', // dRPC
+    'https://1rpc.io/sepolia', // 1RPC
+    'https://rpc.sepolia.org', // Sepolia official
+  ],
 }
 
 export const CHAIN_BLOCK_EXPLORERS: Record<ChainId, string> = {
@@ -109,6 +116,7 @@ export const CHAIN_BLOCK_EXPLORERS: Record<ChainId, string> = {
   [base.id]: 'https://basescan.org',
   [sonic.id]: 'https://explorer.sonic.network',
   [hyperliquid.id]: hyperliquid.blockExplorers.default.url,
+  [sepolia.id]: 'https://sepolia.etherscan.io',
 }
 
 export const CHAIN_SUBGRAPH_URLS: Record<ChainId, string> = {
@@ -117,6 +125,7 @@ export const CHAIN_SUBGRAPH_URLS: Record<ChainId, string> = {
   [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates-base',
   [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates-sonic',
   [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-earn-protocol-rates-hyperliquid',
+  [sepolia.id]: '', // No subgraph on Sepolia — fleet data is read directly over RPC
 }
 
 // Institutions subgraphs per chain (staging endpoints by default)
@@ -126,6 +135,7 @@ export const CHAIN_INSTITUTIONS_SUBGRAPH_URLS: Record<ChainId, string> = {
   [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-base',
   [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-sonic',
   [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-institutions-hyperliquid',
+  [sepolia.id]: '', // No subgraph on Sepolia — fleet data is read directly over RPC
 }
 
 export const CHAIN_PROTOCOL_SUBGRAPH_URLS: Record<ChainId, string> = {
@@ -134,6 +144,7 @@ export const CHAIN_PROTOCOL_SUBGRAPH_URLS: Record<ChainId, string> = {
   [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-base',
   [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-sonic',
   [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-hyperliquid',
+  [sepolia.id]: '', // No subgraph on Sepolia — fleet data is read directly over RPC
 }
 
 // Governance subgraphs per chain (staging endpoints by default)
@@ -143,6 +154,7 @@ export const CHAIN_GOVERNANCE_SUBGRAPH_URLS: Record<ChainId, string> = {
   [base.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-base',
   [sonic.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-sonic',
   [hyperliquid.id]: 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-hyperliquid',
+  [sepolia.id]: '', // No subgraph on Sepolia — fleet data is read directly over RPC
 }
 
 export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {
@@ -151,6 +163,7 @@ export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {
   [base.id]: base,
   [sonic.id]: sonic,
   [hyperliquid.id]: hyperliquid,
+  [sepolia.id]: sepolia,
 }
 
 /**

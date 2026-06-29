@@ -76,11 +76,17 @@
         },
         "institutionalVaultRegistry": {
           "address": "0x47926511D8D215A182F3B93c36c94852fb10f5eD"
+        },
+        "institutionalVaultRegistryV2": {
+          "address": "0x3C6203f22cf5DF38638EF65c5F212f102c5FD985"
+        },
+        "roundsVaultRegistry": {
+          "address": "0xE7dcdE48cbF1435b48026a14219F5BC41f4e4015"
         }
       },
       "dca": {
         "dcaStrategyManager": {
-          "address": "0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72"
+          "address": "0x82334fd233430C086ED7B9ED4723a7728d1eF292"
         }
       }
     },
@@ -649,6 +655,11 @@
         },
         "roundsVaultRegistry": {
           "address": "0x4F9990717bCB34BbE1efE7D609A9463dB052E014"
+        }
+      },
+      "dca": {
+        "dcaStrategyManager": {
+          "address": "0x8044e2df8bF45f32E6021Bd342b4C734ffA64E0B"
         }
       }
     },

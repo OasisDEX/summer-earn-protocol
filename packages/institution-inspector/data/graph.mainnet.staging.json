@@ -1,0 +1,883 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-19T08:03:51.659Z",
+  "network": "mainnet",
+  "chainId": 1,
+  "env": "staging",
+  "onchain": {
+    "fetched": true,
+    "blockNumber": "25350305",
+    "rpcOk": true
+  },
+  "nodes": [
+    {
+      "id": "registry:V2",
+      "type": "systemContract",
+      "data": {
+        "label": "InstitutionalVaultRegistry V2",
+        "source": "config",
+        "address": "0xCf1Db43b728d0387D3Ed22B16a38A457d9028aeC",
+        "kind": "Registry"
+      }
+    },
+    {
+      "id": "inst:ExtDemoCorp",
+      "type": "institution",
+      "data": {
+        "label": "ExtDemoCorp",
+        "source": "config+onchain",
+        "institutionId": "ExtDemoCorp",
+        "existsOnChain": false
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "type": "systemContract",
+      "data": {
+        "label": "PAM",
+        "source": "config",
+        "address": "0x496aD01c3aAC1531FD9f117E19EB7B1123Ee7eD7",
+        "kind": "ProtocolAccessManager"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp:TipJar",
+      "type": "systemContract",
+      "data": {
+        "label": "TipJar",
+        "source": "config",
+        "address": "0x27912502177328551319D47CF7c5e83e322Ee568",
+        "kind": "TipJar"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp:ConfigurationManager",
+      "type": "systemContract",
+      "data": {
+        "label": "ConfigurationManager",
+        "source": "config",
+        "address": "0xee40EbF1A086D2375768f4AfD9A3b060591Bf819",
+        "kind": "ConfigurationManager"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp:HarborCommand",
+      "type": "systemContract",
+      "data": {
+        "label": "HarborCommand",
+        "source": "config",
+        "address": "0xC4cd9c4A41c960839cC4284F3Ce3625bF4AA2fB1",
+        "kind": "HarborCommand"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp:AdmiralsQuarters",
+      "type": "systemContract",
+      "data": {
+        "label": "AdmiralsQuarters",
+        "source": "config",
+        "address": "0x0E060a72e2a5a8a41b269233277025DC5315E25c",
+        "kind": "AdmiralsQuarters"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp:Raft",
+      "type": "systemContract",
+      "data": {
+        "label": "Raft",
+        "source": "config",
+        "address": "0x29272547a3fE989187f42d1E554578479CE11CcE",
+        "kind": "Raft"
+      }
+    },
+    {
+      "id": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "type": "roleHolder",
+      "data": {
+        "label": "0xDDc6…98dA",
+        "source": "config",
+        "address": "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA"
+      }
+    },
+    {
+      "id": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "type": "roleHolder",
+      "data": {
+        "label": "0x0f0f…c568",
+        "source": "config",
+        "address": "0x0f0fA89471259433b6955827226f19999D93c568"
+      }
+    },
+    {
+      "id": "fleet:ExtDemoCorp:extDemo_USDC_mainnet",
+      "type": "fleet",
+      "data": {
+        "label": "extDemo_USDC_mainnet",
+        "source": "config",
+        "fleetName": "extDemo_USDC_mainnet",
+        "asset": "USDC",
+        "arkCount": 1
+      }
+    },
+    {
+      "id": "fc:ExtDemoCorp:extDemo_USDC_mainnet",
+      "type": "fleetCommander",
+      "data": {
+        "label": "FleetCommander",
+        "source": "config",
+        "address": "0x80153d7b8d20ED60636262cc10A524D71A8a43BF",
+        "contractName": "FleetCommanderWhitelist",
+        "futureId": "staging_RoundsFleetWhitelist_extDemo_USDC_mainnet#FleetCommanderWhitelist"
+      }
+    },
+    {
+      "id": "buf:ExtDemoCorp:extDemo_USDC_mainnet",
+      "type": "bufferArk",
+      "data": {
+        "label": "BufferArk",
+        "source": "config",
+        "address": "0x436d80397f748d5B07EF71891fC39076AbdFeb45"
+      }
+    },
+    {
+      "id": "ark:ExtDemoCorp:extDemo_USDC_mainnet:0",
+      "type": "ark",
+      "data": {
+        "label": "MapleInstitutionalArk",
+        "source": "config",
+        "address": "0xA0215427e164401df7eba792323d0a0b387bB66d",
+        "contractName": "MapleInstitutionalArk",
+        "protocol": "MapleInstitutional",
+        "futureId": "staging_extDemo_USDC_mainnet_MapleInstitutional_usdc_1_gov#MapleInstitutionalArk"
+      }
+    },
+    {
+      "id": "inst:ExtDemoCorp_3",
+      "type": "institution",
+      "data": {
+        "label": "ExtDemoCorp_3",
+        "source": "config+onchain",
+        "institutionId": "ExtDemoCorp_3",
+        "existsOnChain": false
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "type": "systemContract",
+      "data": {
+        "label": "PAM",
+        "source": "config",
+        "address": "0xeC2651D65431CbfE5EAC7110E383f136a78eC27b",
+        "kind": "ProtocolAccessManager"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:TipJar",
+      "type": "systemContract",
+      "data": {
+        "label": "TipJar",
+        "source": "config",
+        "address": "0x0c6365b54E2500c00E49a81aada464EC240B1004",
+        "kind": "TipJar"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:ConfigurationManager",
+      "type": "systemContract",
+      "data": {
+        "label": "ConfigurationManager",
+        "source": "config",
+        "address": "0x27397DeB4Fbc2aeF29826f58eA5c649A1f9595b2",
+        "kind": "ConfigurationManager"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:HarborCommand",
+      "type": "systemContract",
+      "data": {
+        "label": "HarborCommand",
+        "source": "config",
+        "address": "0xF82E6DC4D242e7C68b9a1dcFCd66a1aD64Ad8a54",
+        "kind": "HarborCommand"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:AdmiralsQuarters",
+      "type": "systemContract",
+      "data": {
+        "label": "AdmiralsQuarters",
+        "source": "config",
+        "address": "0x27d46AeA3f65Cc1D9b8a100C5C0DA1B5f159dF0A",
+        "kind": "AdmiralsQuarters"
+      }
+    },
+    {
+      "id": "sys:ExtDemoCorp_3:Raft",
+      "type": "systemContract",
+      "data": {
+        "label": "Raft",
+        "source": "config",
+        "address": "0x94a07404ab55A7Bcf3380a30E286854c2660C015",
+        "kind": "Raft"
+      }
+    },
+    {
+      "id": "fleet:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "type": "fleet",
+      "data": {
+        "label": "extDemo2_USDC_mainnet",
+        "source": "config",
+        "fleetName": "extDemo2_USDC_mainnet",
+        "asset": "USDC",
+        "arkCount": 3
+      }
+    },
+    {
+      "id": "fc:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "type": "fleetCommander",
+      "data": {
+        "label": "FleetCommander",
+        "source": "config",
+        "address": "0x0655e982a4E48E6CE991c66EDc7B2e3FAEFc7E75"
+      }
+    },
+    {
+      "id": "buf:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "type": "bufferArk",
+      "data": {
+        "label": "BufferArk",
+        "source": "config",
+        "address": "0x5412B9D92C98C4C227ab85F523B472E40dFB634e"
+      }
+    },
+    {
+      "id": "ark:ExtDemoCorp_3:extDemo2_USDC_mainnet:0",
+      "type": "ark",
+      "data": {
+        "label": "Ark",
+        "source": "config",
+        "address": "0xa2a444C3122eA5Cd0600e89B9b7AFFaB93850dD8"
+      }
+    },
+    {
+      "id": "ark:ExtDemoCorp_3:extDemo2_USDC_mainnet:1",
+      "type": "ark",
+      "data": {
+        "label": "Ark",
+        "source": "config",
+        "address": "0xde2AEE51275E758aEB9593d20611A680A5810fAd"
+      }
+    },
+    {
+      "id": "ark:ExtDemoCorp_3:extDemo2_USDC_mainnet:2",
+      "type": "ark",
+      "data": {
+        "label": "Ark",
+        "source": "config",
+        "address": "0x3bddBEA533EE1cE93ACf7BBdeB7D6bAfF02Ebe48"
+      }
+    },
+    {
+      "id": "inst:Orthodox",
+      "type": "institution",
+      "data": {
+        "label": "Orthodox",
+        "source": "config+onchain",
+        "institutionId": "Orthodox",
+        "existsOnChain": true
+      }
+    },
+    {
+      "id": "sys:Orthodox:ProtocolAccessManager",
+      "type": "systemContract",
+      "data": {
+        "label": "PAM",
+        "source": "config+onchain",
+        "address": "0xc098248Ec73DF55c0fb3f9bEfcF62eE4C45097D1",
+        "kind": "ProtocolAccessManager"
+      }
+    },
+    {
+      "id": "sys:Orthodox:TipJar",
+      "type": "systemContract",
+      "data": {
+        "label": "TipJar",
+        "source": "config",
+        "address": "0xCDa1586aDa05330e46075Ed8c58B9f6E8DCf7A7f",
+        "kind": "TipJar"
+      }
+    },
+    {
+      "id": "sys:Orthodox:ConfigurationManager",
+      "type": "systemContract",
+      "data": {
+        "label": "ConfigurationManager",
+        "source": "config+onchain",
+        "address": "0x9d0eBe533D1BEaE6AF0b86AdA16926f9D69e4257",
+        "kind": "ConfigurationManager"
+      }
+    },
+    {
+      "id": "sys:Orthodox:HarborCommand",
+      "type": "systemContract",
+      "data": {
+        "label": "HarborCommand",
+        "source": "config",
+        "address": "0x4357889A5A88005133b46e4174feA13266Fb4a7D",
+        "kind": "HarborCommand"
+      }
+    },
+    {
+      "id": "sys:Orthodox:AdmiralsQuarters",
+      "type": "systemContract",
+      "data": {
+        "label": "AdmiralsQuarters",
+        "source": "config+onchain",
+        "address": "0xc5c96cA7607eCe902092F4080B844AA0Bb5C1Ff4",
+        "kind": "AdmiralsQuarters"
+      }
+    },
+    {
+      "id": "sys:Orthodox:Raft",
+      "type": "systemContract",
+      "data": {
+        "label": "Raft",
+        "source": "config",
+        "address": "0x0f77bb8d65e5238E63e496D94049E4e4C953F704",
+        "kind": "Raft"
+      }
+    },
+    {
+      "id": "tl:Orthodox:GovernorTimelock",
+      "type": "timelock",
+      "data": {
+        "label": "GovernorTimelock",
+        "source": "config",
+        "address": "0x3C8be759Ff177390BF038104a5A1ED7C498f562A",
+        "kind": "GovernorTimelock",
+        "delaySeconds": 0
+      }
+    },
+    {
+      "id": "tl:Orthodox:CuratorTimelock",
+      "type": "timelock",
+      "data": {
+        "label": "CuratorTimelock",
+        "source": "config",
+        "address": "0xd02aC5CAdf26E2E9d6326a51Db5Fe150e9198419",
+        "kind": "CuratorTimelock",
+        "delaySeconds": 0
+      }
+    },
+    {
+      "id": "tl:Orthodox:TreasuryTimelock",
+      "type": "timelock",
+      "data": {
+        "label": "TreasuryTimelock",
+        "source": "config",
+        "address": "0x20aF9545eBb320c80C5736880bAA7a244a75868f",
+        "kind": "TreasuryTimelock",
+        "delaySeconds": 0
+      }
+    },
+    {
+      "id": "role:0x85f9b7408afe6ceb5e46223451f5d4b832b522dc",
+      "type": "roleHolder",
+      "data": {
+        "label": "0x85f9…22dc",
+        "source": "config",
+        "address": "0x85f9b7408afE6CEb5E46223451f5d4b832B522dc"
+      }
+    },
+    {
+      "id": "fleet:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "type": "fleet",
+      "data": {
+        "label": "Orthodox_Summerfi_Strategic_Allocation",
+        "source": "config",
+        "fleetName": "Orthodox_Summerfi_Strategic_Allocation",
+        "asset": "USDC",
+        "arkCount": 1
+      }
+    },
+    {
+      "id": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "type": "fleetCommander",
+      "data": {
+        "label": "FleetCommander",
+        "source": "config",
+        "address": "0x35aE5392cc355686606658d18dff9b9109390E13",
+        "contractName": "FleetCommanderWhitelist",
+        "futureId": "staging_Orthodox_FleetWhitelist_Orthodox_Summerfi_Strategic_Allocation#FleetCommanderWhitelist"
+      }
+    },
+    {
+      "id": "buf:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "type": "bufferArk",
+      "data": {
+        "label": "BufferArk",
+        "source": "config",
+        "address": "0x051c51593EBFfd1797aAcBdB3FABFe6839EA7E40"
+      }
+    },
+    {
+      "id": "ark:Orthodox:Orthodox_Summerfi_Strategic_Allocation:0",
+      "type": "ark",
+      "data": {
+        "label": "SkyUsdsArk",
+        "source": "config",
+        "address": "0x5E09B3f6502b089ca19abB7025a3434F157a15E0",
+        "contractName": "SkyUsdsArk",
+        "protocol": "SkyUsds",
+        "futureId": "staging_Orthodox_Summerfi_Strategic_Allocation_SkyUsds_usdc_1#SkyUsdsArk"
+      }
+    },
+    {
+      "id": "rvin:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "type": "roundsVaultInput",
+      "data": {
+        "label": "RoundsVaultInput",
+        "source": "config+onchain",
+        "address": "0x50D9275348C4C5BB2Bf928473118A63ee95dc467"
+      }
+    },
+    {
+      "id": "rvout:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "type": "roundsVaultOutput",
+      "data": {
+        "label": "RoundsVaultOutput",
+        "source": "config+onchain",
+        "address": "0x7bCFE1371BE235528196Fa0d7e639DB97dDB0Fe6"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "type": "system",
+      "source": "inst:ExtDemoCorp",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager"
+    },
+    {
+      "id": "e1",
+      "type": "system",
+      "source": "inst:ExtDemoCorp",
+      "target": "sys:ExtDemoCorp:TipJar"
+    },
+    {
+      "id": "e2",
+      "type": "system",
+      "source": "inst:ExtDemoCorp",
+      "target": "sys:ExtDemoCorp:ConfigurationManager"
+    },
+    {
+      "id": "e3",
+      "type": "system",
+      "source": "inst:ExtDemoCorp",
+      "target": "sys:ExtDemoCorp:HarborCommand"
+    },
+    {
+      "id": "e4",
+      "type": "system",
+      "source": "inst:ExtDemoCorp",
+      "target": "sys:ExtDemoCorp:AdmiralsQuarters"
+    },
+    {
+      "id": "e5",
+      "type": "system",
+      "source": "inst:ExtDemoCorp",
+      "target": "sys:ExtDemoCorp:Raft"
+    },
+    {
+      "id": "e6",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e7",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e8",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e9",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e10",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "data": {
+        "role": "SUPER_KEEPER_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e11",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp:ProtocolAccessManager",
+      "data": {
+        "role": "WHITELIST_MANAGER_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e12",
+      "type": "contains",
+      "source": "inst:ExtDemoCorp",
+      "target": "fleet:ExtDemoCorp:extDemo_USDC_mainnet"
+    },
+    {
+      "id": "e13",
+      "type": "deploys",
+      "source": "fleet:ExtDemoCorp:extDemo_USDC_mainnet",
+      "target": "fc:ExtDemoCorp:extDemo_USDC_mainnet"
+    },
+    {
+      "id": "e14",
+      "type": "buffer",
+      "source": "fc:ExtDemoCorp:extDemo_USDC_mainnet",
+      "target": "buf:ExtDemoCorp:extDemo_USDC_mainnet"
+    },
+    {
+      "id": "e15",
+      "type": "ark",
+      "source": "fc:ExtDemoCorp:extDemo_USDC_mainnet",
+      "target": "ark:ExtDemoCorp:extDemo_USDC_mainnet:0"
+    },
+    {
+      "id": "e16",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager"
+    },
+    {
+      "id": "e17",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:TipJar"
+    },
+    {
+      "id": "e18",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:ConfigurationManager"
+    },
+    {
+      "id": "e19",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:HarborCommand"
+    },
+    {
+      "id": "e20",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:AdmiralsQuarters"
+    },
+    {
+      "id": "e21",
+      "type": "system",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "sys:ExtDemoCorp_3:Raft"
+    },
+    {
+      "id": "e22",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e23",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e24",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e25",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e26",
+      "type": "hasRole",
+      "source": "role:0x0f0fa89471259433b6955827226f19999d93c568",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "SUPER_KEEPER_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e27",
+      "type": "hasRole",
+      "source": "role:0xddc68f9de415ba2fe2fd84bc62be2d2cff1098da",
+      "target": "sys:ExtDemoCorp_3:ProtocolAccessManager",
+      "data": {
+        "role": "WHITELIST_MANAGER_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e28",
+      "type": "contains",
+      "source": "inst:ExtDemoCorp_3",
+      "target": "fleet:ExtDemoCorp_3:extDemo2_USDC_mainnet"
+    },
+    {
+      "id": "e29",
+      "type": "deploys",
+      "source": "fleet:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "target": "fc:ExtDemoCorp_3:extDemo2_USDC_mainnet"
+    },
+    {
+      "id": "e30",
+      "type": "buffer",
+      "source": "fc:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "target": "buf:ExtDemoCorp_3:extDemo2_USDC_mainnet"
+    },
+    {
+      "id": "e31",
+      "type": "ark",
+      "source": "fc:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "target": "ark:ExtDemoCorp_3:extDemo2_USDC_mainnet:0"
+    },
+    {
+      "id": "e32",
+      "type": "ark",
+      "source": "fc:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "target": "ark:ExtDemoCorp_3:extDemo2_USDC_mainnet:1"
+    },
+    {
+      "id": "e33",
+      "type": "ark",
+      "source": "fc:ExtDemoCorp_3:extDemo2_USDC_mainnet",
+      "target": "ark:ExtDemoCorp_3:extDemo2_USDC_mainnet:2"
+    },
+    {
+      "id": "e34",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "sys:Orthodox:ProtocolAccessManager"
+    },
+    {
+      "id": "e35",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "sys:Orthodox:TipJar"
+    },
+    {
+      "id": "e36",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "sys:Orthodox:ConfigurationManager"
+    },
+    {
+      "id": "e37",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "sys:Orthodox:HarborCommand"
+    },
+    {
+      "id": "e38",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "sys:Orthodox:AdmiralsQuarters"
+    },
+    {
+      "id": "e39",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "sys:Orthodox:Raft"
+    },
+    {
+      "id": "e40",
+      "type": "governs",
+      "source": "tl:Orthodox:GovernorTimelock",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE"
+      }
+    },
+    {
+      "id": "e41",
+      "type": "governs",
+      "source": "tl:Orthodox:CuratorTimelock",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "CURATOR_ROLE"
+      }
+    },
+    {
+      "id": "e42",
+      "type": "governs",
+      "source": "tl:Orthodox:TreasuryTimelock",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "TREASURY_ROLE"
+      }
+    },
+    {
+      "id": "e43",
+      "type": "hasRole",
+      "source": "role:0x85f9b7408afe6ceb5e46223451f5d4b832b522dc",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "GOVERNOR_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "e44",
+      "type": "hasRole",
+      "source": "role:0x85f9b7408afe6ceb5e46223451f5d4b832b522dc",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "GUARDIAN_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e45",
+      "type": "hasRole",
+      "source": "role:0x85f9b7408afe6ceb5e46223451f5d4b832b522dc",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "SUPER_KEEPER_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e46",
+      "type": "hasRole",
+      "source": "role:0x85f9b7408afe6ceb5e46223451f5d4b832b522dc",
+      "target": "sys:Orthodox:ProtocolAccessManager",
+      "data": {
+        "role": "WHITELIST_MANAGER_ROLE",
+        "verifiedOnChain": true,
+        "drift": false
+      }
+    },
+    {
+      "id": "e47",
+      "type": "contains",
+      "source": "inst:Orthodox",
+      "target": "fleet:Orthodox:Orthodox_Summerfi_Strategic_Allocation"
+    },
+    {
+      "id": "e48",
+      "type": "deploys",
+      "source": "fleet:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "target": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation"
+    },
+    {
+      "id": "e49",
+      "type": "buffer",
+      "source": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "target": "buf:Orthodox:Orthodox_Summerfi_Strategic_Allocation"
+    },
+    {
+      "id": "e50",
+      "type": "ark",
+      "source": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "target": "ark:Orthodox:Orthodox_Summerfi_Strategic_Allocation:0"
+    },
+    {
+      "id": "e51",
+      "type": "roundsInput",
+      "source": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "target": "rvin:Orthodox:Orthodox_Summerfi_Strategic_Allocation"
+    },
+    {
+      "id": "e52",
+      "type": "roundsOutput",
+      "source": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "target": "rvout:Orthodox:Orthodox_Summerfi_Strategic_Allocation"
+    },
+    {
+      "id": "e53",
+      "type": "hasRole",
+      "source": "role:0x85f9b7408afe6ceb5e46223451f5d4b832b522dc",
+      "target": "fc:Orthodox:Orthodox_Summerfi_Strategic_Allocation",
+      "data": {
+        "role": "CURATOR_ROLE",
+        "verifiedOnChain": false,
+        "drift": true
+      }
+    },
+    {
+      "id": "eonc-reg-2",
+      "type": "system",
+      "source": "inst:Orthodox",
+      "target": "registry:V2",
+      "data": {
+        "verifiedOnChain": true
+      }
+    }
+  ]
+}

@@ -447,6 +447,7 @@ export async function promptForFleetDeploymentOutput(
 
 const PROTOCOL_ACCESS_MANAGER_V2_ABI = parseAbi([
   'function grantOperatorRole(address fleetCommanderAddress, address account)',
+  'function revokeOperatorRole(address fleetCommanderAddress, address account)',
   'function grantKeeperRole(address fleetCommanderAddress, address account)',
   'function grantCuratorRole(address fleetCommanderAddress, address account)',
   'function grantCommanderRole(address arkAddress, address account)',
@@ -467,6 +468,23 @@ export function buildGrantOperatorRoleAction(
     data: encodeFunctionData({
       abi: PROTOCOL_ACCESS_MANAGER_V2_ABI,
       functionName: 'grantOperatorRole',
+      args: [fleet, operator],
+    }),
+    value: 0n,
+  }
+}
+
+export function buildRevokeOperatorRoleAction(
+  pam: Address,
+  fleet: Address,
+  operator: Address,
+): GovernorAction {
+  return {
+    description: `revokeOperatorRole(${fleet}, ${operator})`,
+    to: pam,
+    data: encodeFunctionData({
+      abi: PROTOCOL_ACCESS_MANAGER_V2_ABI,
+      functionName: 'revokeOperatorRole',
       args: [fleet, operator],
     }),
     value: 0n,

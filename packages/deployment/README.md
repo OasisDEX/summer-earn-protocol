@@ -112,6 +112,39 @@ pnpm generate-merkle-root     # tsx scripts/generate-merkle-root.ts
 8. **Etherscan API keys** are committed in plaintext in `foundry.toml`; hardhat verification uses
    env vars.
 
+## Institution (whitelisted) fleet deployment
+
+Institution fleets are `FleetCommanderWhitelist` fleets scoped to a registered institution. Their
+configs live under `config/institutions/<InstitutionId>/fleets/` and are selected interactively at
+deploy time.
+
+```bash
+NETWORK=base pnpm deploy:institution-fleet      # gates on the V2 institution registry
+NETWORK=base pnpm deploy:institution-fleet-v1   # gates on the legacy V1 institution registry
+```
+
+Both scripts are identical except for the pre-flight gate that verifies the institution is
+registered:
+
+- **`deploy:institution-fleet`** checks `institutionalVaultRegistryV2` (the default for new
+  institutions).
+- **`deploy:institution-fleet-v1`** checks the legacy `institutionalVaultRegistry` (V1) — for
+  institutions that live in the V1 registry and have no V2 registry on the target network (e.g.
+  `ExtDemoCorp_3` on Base). The registry is only a registration gate; the deploy runs on the
+  already-deployed PAM / HarborCommand / AdmiralsQuarters, so the rest of the flow is identical.
+
+The fleet config's `operatorType` selects how users interact with the fleet:
+
+- `admiralsQuarters`: synchronous flow; AdmiralsQuarters is granted the OPERATOR role on the fleet.
+- `roundsVaults`: asynchronous (RWA) flow; the deploy also creates input/output RoundsVaults and
+  grants them the OPERATOR role. Requires a `roundsVaultRegistry` on the target network
+  (`NETWORK=<net> pnpm deploy:rounds-vault-registry`).
+
+If a `roundsVaults` (RWA) fleet was first deployed as `admiralsQuarters` and later retrofitted with
+RoundsVaults, AdmiralsQuarters still holds the OPERATOR role. For RWA, deposits must flow only
+through the input/output vaults, so revoke it with `NETWORK=<net> pnpm gov:revoke-aq-operator`
+(executes directly if the deployer holds `GOVERNOR_ROLE`, otherwise captures a Safe batch).
+
 ## GitBook reference
 
 [Deployment System](../../gitbook/internal/deployment.md) (`gitbook/internal/deployment.md`)

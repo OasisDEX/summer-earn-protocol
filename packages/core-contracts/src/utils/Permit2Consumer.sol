@@ -85,6 +85,13 @@ abstract contract Permit2Consumer {
     error Permit2AllowanceNotSet(uint160 required, uint160 actual);
 
     /**
+     * @notice Reverts when the live Permit2 sub-allowance expires earlier than the
+     *         owner signed for. Checked in the front-run catch path alongside the
+     *         amount, against the on-chain allowance (not the signed message).
+     */
+    error Permit2ExpirationNotSet(uint48 required, uint48 actual);
+
+    /**
      * @param _permit2 Address of the deployed Permit2 singleton. Must be non-zero.
      */
     constructor(address _permit2) {
@@ -138,7 +145,7 @@ abstract contract Permit2Consumer {
             revert InvalidPermit2Spender(address(this), permitSingle.spender);
         }
         try PERMIT2.permit(owner, permitSingle, signature) {} catch {
-            (uint160 amount, , ) = PERMIT2.allowance(
+            (uint160 amount, uint48 expiration, ) = PERMIT2.allowance(
                 owner,
                 permitSingle.details.token,
                 address(this)
@@ -147,6 +154,12 @@ abstract contract Permit2Consumer {
                 revert Permit2AllowanceNotSet(
                     permitSingle.details.amount,
                     amount
+                );
+            }
+            if (expiration < permitSingle.details.expiration) {
+                revert Permit2ExpirationNotSet(
+                    permitSingle.details.expiration,
+                    expiration
                 );
             }
         }

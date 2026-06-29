@@ -27,6 +27,7 @@
     "deploy:staking": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-staking.ts --network $NETWORK",
     "deploy:institution": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-institution-whitelist.ts --network $NETWORK",
     "deploy:institution-fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-whitelisted-fleet.ts --network $NETWORK",
+    "deploy:institution-fleet-v1": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-whitelisted-fleet-v1.ts --network $NETWORK",
     "deploy:institution-handover": "hardhat run scripts/handover-institution-timelock.ts --network $NETWORK",
     "deploy:institution-registry": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-institution-registry.ts --network $NETWORK",
     "deploy:rounds-vault-registry": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-rounds-vault-registry.ts --network $NETWORK",
@@ -38,6 +39,7 @@
     "gov:setup-aq": "hardhat run scripts/governance/setup-admirals-quarters.ts --network $NETWORK",
     "gov:setup-raft": "hardhat run scripts/governance/setup-raft.ts --network $NETWORK",
     "gov:sweep-ark-on-arbitrum": "hardhat run scripts/governance/sweep-ark-on-arbitrum.ts --network $NETWORK",
+    "gov:revoke-aq-operator": "hardhat run scripts/revoke-aq-operator.ts --network $NETWORK",
     "deploy:fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-fleet.ts --network $NETWORK",
     "deploy:ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-ark.ts --network $NETWORK",
     "deploy:aavev3-ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-aavev3-ark.ts --network $NETWORK",
@@ -60,6 +62,7 @@
     "verify:unichain": "hardhat ignition verify chain-130",
     "verify:optimism": "hardhat ignition verify chain-10",
     "verify:base": "hardhat ignition verify chain-8453",
+    "verify:by-filter": "hardhat run scripts/verify/by-future-filter.ts --network $NETWORK",
     "verify:sonic": "hardhat ignition verify chain-146",
     "verify:hyperliquid": "hardhat ignition verify chain-999",
     "verify:all": "pnpm verify:mainnet && pnpm verify:arbitrum && pnpm verify:base && pnpm verify:sonic && pnpm verify:hyperliquid",
@@ -73,6 +76,8 @@
     "configure:new-chain-layerzero": "hardhat run scripts/bridge/configure-new-chain-lz.ts --network $NETWORK --no-compile",
     "gov:submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
     "gov:test-transfer-bummer-tokens": "hardhat run scripts/governance/test-transfer-bummer-tokens.ts --network $NETWORK",
+    "gov:open-fleet-for": "hardhat run scripts/governance/open-fleet-for.ts --network $NETWORK",
+    "gov:grant-fleet-roles": "hardhat run scripts/governance/grant-fleet-roles.ts --network $NETWORK",
     "gov:execute-proposal": "hardhat run scripts/governance/execute-proposal.ts --network $NETWORK",
     "gov:execute-proposal:direct": "hardhat run scripts/governance/execute-proposal-direct.ts --network $NETWORK",
     "gov:execute-timelock": "hardhat run scripts/governance/execute-timelock.ts --network $NETWORK",
@@ -97,7 +102,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --check \"**/*.ts\" --no-error-on-unmatched-pattern",
     "format:fix": "prettier --write \"**/*.ts\" --no-error-on-unmatched-pattern",
-    "decode-safe-tx": "hardhat run scripts/governance/decode-safe-tx.ts"
+    "decode-safe-tx": "hardhat run scripts/governance/decode-safe-tx.ts",
+    "errors:generate": "tsx scripts/decode/generate-fleet-error-registry.ts",
+    "errors:decode": "tsx scripts/decode/decode-fleet-error.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",

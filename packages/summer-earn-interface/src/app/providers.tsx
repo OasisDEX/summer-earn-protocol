@@ -6,12 +6,13 @@ import {
   arbitrum as appkitArbitrum,
   base as appkitBase,
   mainnet as appkitMainnet,
+  sepolia as appkitSepolia,
 } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { WagmiProvider } from 'wagmi'
-import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
+import { arbitrum, base, mainnet, sepolia, sonic } from 'wagmi/chains'
 
 import { CHAIN_RPC_URLS, createRpcTransport } from '@/config/chains'
 import { EnvironmentProvider } from '@/hooks/useEnvironment'
@@ -22,7 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_ID || 'demo'
 
   const appkitNetworks = useMemo(
-    () => [appkitMainnet, appkitArbitrum, appkitBase],
+    () => [appkitMainnet, appkitArbitrum, appkitBase, appkitSepolia],
     [],
   ) as Parameters<typeof createAppKit>[0]['networks']
 
@@ -31,13 +32,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       projectId,
       ssr: true,
       networks: appkitNetworks,
-      chains: [mainnet, arbitrum, base, sonic],
+      chains: [mainnet, arbitrum, base, sonic, sepolia],
 
       transports: {
         [mainnet.id]: createRpcTransport(CHAIN_RPC_URLS[mainnet.id]),
         [arbitrum.id]: createRpcTransport(CHAIN_RPC_URLS[arbitrum.id]),
         [base.id]: createRpcTransport(CHAIN_RPC_URLS[base.id]),
         [sonic.id]: createRpcTransport(CHAIN_RPC_URLS[sonic.id]),
+        [sepolia.id]: createRpcTransport(CHAIN_RPC_URLS[sepolia.id]),
       },
     })
   }, [projectId, appkitNetworks])

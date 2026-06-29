@@ -1,0 +1,20 @@
+{
+  "fleetName": "Ext_Demo_Superstate_USDC",
+  "isBummer": true,
+  "fleetSymbol": "extSuperUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x3ca3E44F4254bcd77394Abb2B97cd10A86a5b38a",
+  "bufferArkAddress": "0x5E1E2Fa429764659ed28b3804EAd5a25A1d2F022",
+  "network": "sepolia_mainnet",
+  "initialMinimumBufferBalance": "10000000",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "1000000000",
+  "initialTipRate": "1000000000000000000",
+  "details": {
+    "name": "ExtDemoCorp_v2_Superstate_USDC_Sepolia",
+    "chainId": 11155111,
+    "asset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "assetSymbol": "USDC",
+    "type": "protocol"
+  }
+}

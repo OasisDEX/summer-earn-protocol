@@ -35,9 +35,9 @@ dataSources:
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
       eventHandlers:
-        - event: StrategyCreated(indexed uint256,(address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
+        - event: StrategyCreated(indexed uint256,(address,address,address,address,address,(address,uint256),(address,uint256),uint256,uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleStrategyCreated
-        - event: StrategyEdited(indexed uint256,(address,address,address,address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256))
+        - event: StrategyEdited(indexed uint256,(address,address,address,address,address,(address,uint256),(address,uint256),uint256,uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleStrategyEdited
         - event: StrategyPaused(indexed uint256,uint256)
           handler: handleStrategyPaused

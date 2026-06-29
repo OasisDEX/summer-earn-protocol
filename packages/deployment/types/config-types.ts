@@ -43,6 +43,7 @@ export enum ArkType {
   HyperlendArk = 'HyperlendArk',
   HypurrArk = 'HypurrArk',
   WisdomTreeArk = 'WisdomTreeArk',
+  SecuritizeArk = 'SecuritizeArk',
   MorphoV2VaultArk = 'MorphoV2VaultArk',
   MapleInstitutionalArk = 'MapleInstitutionalArk',
   UpshiftArk = 'UpshiftArk',
@@ -80,6 +81,7 @@ export const arkTypes = [
   { title: 'HyperlendArk', value: ArkType.HyperlendArk },
   { title: 'HypurrArk', value: ArkType.HypurrArk },
   { title: 'WisdomTreeArk', value: ArkType.WisdomTreeArk },
+  { title: 'SecuritizeArk', value: ArkType.SecuritizeArk },
   { title: 'MapleInstitutionalArk', value: ArkType.MapleInstitutionalArk },
   { title: 'UpshiftArk', value: ArkType.UpshiftArk },
   { title: 'OriginUSDArk', value: ArkType.OriginUSDArk },
@@ -216,13 +218,31 @@ export interface BaseConfig {
         }
       }
     }
-    superstate?: {
+    // Optional: Securitize DSToken funds (e.g. VBILL). Registry is resolved on-chain from the
+    // token, so only the NAV oracle, share token, and custodian wallet are configured here.
+    securitize?: {
       [key in Token]?: {
         [key: string]: {
           oracle: string
           shareToken: string
+          targetWallet: string
+          sweepSlippage: string
+          depositSlippage: string
+        }
+      }
+    }
+    superstate?: {
+      [key in Token]?: {
+        [key: string]: {
+          // 'subscribe' = SuperstateSubscribeArk (USTB-style: SUPERSTATE_SUBSCRIBE + on-chain
+          // RedemptionIdle); 'standard' = SuperstateStandardArk (USCC-style: deposit to the fund
+          // token, off-chain redemption — no redeem contract).
+          variant: 'standard' | 'subscribe'
+          oracle: string
+          shareToken: string
           superstateSubscribe: string
-          superstateRedeem: string
+          // Required for the 'subscribe' variant; unused (may be omitted) for 'standard'.
+          superstateRedeem?: string
           sweepSlippage: string
           depositSlippage: string
         }

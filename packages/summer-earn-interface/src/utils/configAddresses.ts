@@ -23,6 +23,7 @@ function getChainName(chainId: ChainId): string {
     '8453': 'base',
     '146': 'sonic',
     '999': 'hyperliquid',
+    '11155111': 'sepolia',
   }
   return chainIdMap[chainId] || chainId
 }

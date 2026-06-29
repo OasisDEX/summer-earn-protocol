@@ -14,8 +14,22 @@ const STRATEGY_CONFIG_TUPLE_TYPE = {
     { name: 'targetVault', type: 'address' },
     { name: 'inAsset', type: 'address' },
     { name: 'outAsset', type: 'address' },
-    { name: 'inAssetFeed', type: 'address' },
-    { name: 'outAssetFeed', type: 'address' },
+    {
+      name: 'inAssetFeed',
+      type: 'tuple',
+      components: [
+        { name: 'feed', type: 'address' },
+        { name: 'maxStaleness', type: 'uint256' },
+      ],
+    },
+    {
+      name: 'outAssetFeed',
+      type: 'tuple',
+      components: [
+        { name: 'feed', type: 'address' },
+        { name: 'maxStaleness', type: 'uint256' },
+      ],
+    },
     { name: 'tradeAmount', type: 'uint256' },
     { name: 'interval', type: 'uint256' },
     { name: 'slippageBps', type: 'uint256' },

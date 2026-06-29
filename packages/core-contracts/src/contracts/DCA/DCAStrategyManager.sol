@@ -10,7 +10,7 @@ import {IAllowanceTransfer, ISignatureTransfer} from "../../interfaces/permit2/I
 import {Permit2Consumer} from "../../utils/Permit2Consumer.sol";
 import {EnsoRouterSwapper} from "../../utils/EnsoRouterSwapper.sol";
 import {HarborCommandConsumer} from "../../utils/HarborCommandConsumer.sol";
-import {ChainlinkOracleUtils, ChainlinkOraclePrice} from "../../utils/ChainlinkOracleUtils.sol";
+import {ChainlinkOracleUtils, ChainlinkOraclePrice, ChainlinkFeed} from "../../utils/ChainlinkOracleUtils.sol";
 import {BPS, BPS_100} from "@summerfi/percentage-solidity/contracts/BPS.sol";
 import {BpsUtils} from "@summerfi/percentage-solidity/contracts/BpsUtils.sol";
 
@@ -156,7 +156,8 @@ contract DCAStrategyManager is
      */
     function depositAndCreate(
         StrategyConfig calldata config,
-        uint256 assetAmount
+        uint256 assetAmount,
+        uint256 expectedMinShares
     )
         external
         nonReentrant
@@ -175,7 +176,8 @@ contract DCAStrategyManager is
             config.sourceVault,
             inAsset,
             _msgSender(),
-            assetAmount
+            assetAmount,
+            expectedMinShares
         );
     }
 
@@ -214,7 +216,8 @@ contract DCAStrategyManager is
     function depositAndCreateWithPermit2(
         StrategyConfig calldata config,
         uint256 assetAmount,
-        Permit2DepositBundle calldata permits
+        Permit2DepositBundle calldata permits,
+        uint256 expectedMinShares
     )
         external
         nonReentrant
@@ -250,7 +253,8 @@ contract DCAStrategyManager is
             config.sourceVault,
             IERC20(address(config.inAsset)),
             _msgSender(),
-            assetAmount
+            assetAmount,
+            expectedMinShares
         );
     }
 
@@ -438,6 +442,38 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // Funding pre-checks: the keeper's pull (`tradeAmount` source-vault shares
+        // via Permit2) will revert unless the owner still holds the shares and
+        // keeps a live, unexpired sub-allowance covering them. Surface that as
+        // "no upkeep" so the keeper doesn't burn gas on a doomed execution.
+        if (
+            IERC20(address(config.sourceVault)).balanceOf(config.owner) <
+            config.tradeAmount
+        ) {
+            return (false, performData);
+        }
+        (uint160 allowed, uint48 allowedExpiration, ) = PERMIT2.allowance(
+            config.owner,
+            address(config.sourceVault),
+            address(this)
+        );
+        if (
+            uint256(allowed) < config.tradeAmount ||
+            allowedExpiration < block.timestamp
+        ) {
+            return (false, performData);
+        }
+
+        // Both fleets must have share-token transfers enabled: execution pulls
+        // source shares from the owner and forwards target shares back to them —
+        // both are gated transfers that would revert otherwise.
+        if (
+            !config.sourceVault.transfersEnabled() ||
+            !config.targetVault.transfersEnabled()
+        ) {
+            return (false, performData);
+        }
+
         if (config.maxPrice > 0 || config.minPrice > 0) {
             ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
                 ._getPrice(config.inAssetFeed);
@@ -495,16 +531,24 @@ contract DCAStrategyManager is
      *      by this contract, deposits with `shareReceiver` as the recipient,
      *      and resets the allowance to 0 for hygiene. Caller is responsible
      *      for pulling the assets into this contract beforehand.
+     *      Reverts with `DepositSharesBelowMin` when the minted shares are below
+     *      `minShares` — the caller's off-chain slippage floor (the vault's own
+     *      `previewDeposit` is not a usable reference here since `deposit` mints
+     *      exactly that amount in the same call).
      */
     function _depositPulledAsset(
         IFleetCommander sourceVault,
         IERC20 inAsset,
         address shareReceiver,
-        uint256 assetAmount
+        uint256 assetAmount,
+        uint256 minShares
     ) internal {
         inAsset.forceApprove(address(sourceVault), assetAmount);
-        sourceVault.deposit(assetAmount, shareReceiver);
+        uint256 shares = sourceVault.deposit(assetAmount, shareReceiver);
         inAsset.forceApprove(address(sourceVault), 0);
+        if (shares < minShares) {
+            revert DepositSharesBelowMin(minShares, shares);
+        }
     }
 
     /**
@@ -620,8 +664,8 @@ contract DCAStrategyManager is
             revert ZeroMaxTrades();
         }
         if (
-            config.inAssetFeed == address(0) ||
-            config.outAssetFeed == address(0)
+            config.inAssetFeed.feed == address(0) ||
+            config.outAssetFeed.feed == address(0)
         ) {
             revert InvalidFeedAddress();
         }
@@ -664,18 +708,27 @@ contract DCAStrategyManager is
                     config.outAssetFeed
                 );
 
-            uint256 executionPrice = ChainlinkOracleUtils.crossRate(
-                inPrice,
-                outPrice
-            );
-            if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
-                revert PriceAboveCeiling(executionPrice, config.maxPrice);
-            }
-            if (config.minPrice > 0 && executionPrice < config.minPrice) {
-                revert PriceBelowFloor(executionPrice, config.minPrice);
+            // Only the price guard needs the cross-rate; skip it when no bound is
+            // set (mirrors checkUpkeep). `inPrice`/`outPrice` are still required
+            // above for `expectedOutAssets`.
+            if (config.maxPrice > 0 || config.minPrice > 0) {
+                uint256 executionPrice = ChainlinkOracleUtils.crossRate(
+                    inPrice,
+                    outPrice
+                );
+                if (config.maxPrice > 0 && executionPrice > config.maxPrice) {
+                    revert PriceAboveCeiling(executionPrice, config.maxPrice);
+                }
+                if (config.minPrice > 0 && executionPrice < config.minPrice) {
+                    revert PriceBelowFloor(executionPrice, config.minPrice);
+                }
             }
 
-            uint256 expectedOutShares = config.targetVault.previewDeposit(
+            // Use the fee-exclusive exchange rate (`convertToShares`) as the
+            // slippage baseline. `previewDeposit` may bake in a deposit fee per
+            // EIP-4626, which would understate the expected shares and weaken the
+            // minOut floor. (Equal for FleetCommander today; future-proofing.)
+            uint256 expectedOutShares = config.targetVault.convertToShares(
                 expectedOutAssets
             );
             if (expectedOutShares == 0) revert ZeroExpectedOutShares();

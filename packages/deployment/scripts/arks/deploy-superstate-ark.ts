@@ -1,15 +1,21 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { createSuperstateArkModule } from '../../ignition/modules/arks/superstate-ark'
+import {
+  createSuperstateArkModule,
+  SuperstateArkVariant,
+} from '../../ignition/modules/arks/superstate-ark'
 import { BaseConfig } from '../../types/config-types'
 import { BaseArkParams } from '../common/ark-deployment'
 import { getChainId } from '../helpers/get-chainid'
 import { validateArkDetails } from '../helpers/validation'
 
 export type SuperstateArkParams = BaseArkParams & {
+  // 'subscribe' → SuperstateSubscribeArk (uses superstateRedeem); 'standard' → SuperstateStandardArk.
+  variant: SuperstateArkVariant
   shareToken: string
   superstateSubscribe: string
-  superstateRedeem: string
+  // Required for the 'subscribe' variant; ignored for 'standard'.
+  superstateRedeem?: string
   oracle: string
   fundName: string
   sweepSlippage: string
@@ -25,6 +31,7 @@ export async function deploySuperstateArk(config: BaseConfig, params: Superstate
     maxDepositPercentageOfTVL,
     fleetName,
     isBummer,
+    variant,
     shareToken,
     superstateSubscribe,
     superstateRedeem,
@@ -39,7 +46,13 @@ export async function deploySuperstateArk(config: BaseConfig, params: Superstate
   const moduleName = `${envLabel}${fleetName}_${arkName.replace(/-/g, '_')}`
   const protocol = 'Superstate'
 
-  const arkModule = createSuperstateArkModule(moduleName)
+  if (variant === 'subscribe' && !superstateRedeem) {
+    throw new Error(
+      `Superstate fund '${fundName}' is a 'subscribe' ark but no superstateRedeem address was provided`,
+    )
+  }
+
+  const arkModule = createSuperstateArkModule(moduleName, variant)
 
   // Create and validate ark details
 
@@ -64,7 +77,8 @@ export async function deploySuperstateArk(config: BaseConfig, params: Superstate
       [moduleName]: {
         shareToken,
         superstateSubscribe,
-        superstateRedeem,
+        // Only the 'subscribe' module reads superstateRedeem; omit it otherwise.
+        ...(variant === 'subscribe' ? { superstateRedeem } : {}),
         oracle,
         sweepSlippage: sweepSlippage ?? '0',
         depositSlippage: depositSlippage ?? '0',
