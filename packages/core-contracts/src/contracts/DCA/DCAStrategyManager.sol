@@ -496,11 +496,40 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // Mirror executeStrategy's remaining static preconditions so checkUpkeep
+        // never reports a non-terminal trade as ready when executeStrategy would
+        // deterministically revert. Both fleets must still be active in
+        // HarborCommand (executeStrategy calls _requireActiveFleetCommander).
+        if (
+            !HARBOR_COMMAND.activeFleetCommanders(
+                address(config.sourceVault)
+            ) ||
+            !HARBOR_COMMAND.activeFleetCommanders(address(config.targetVault))
+        ) {
+            return (false, performData);
+        }
+
+        // Oracle + slippage floor, mirroring _executeStrategy. The oracle is read
+        // unconditionally — the floor needs it even with no price bound set. A
+        // stale/invalid feed makes this REVERT rather than return false; that still
+        // upholds the invariant (checkUpkeep never returns `true` on a bad read),
+        // and the keeper treats a reverting checkUpkeep as "skip".
+        uint256 intendedInAssets = config.sourceVault.convertToAssets(
+            config.tradeAmount
+        );
+        (
+            uint256 expectedOutAssets,
+            ChainlinkOraclePrice memory inPrice,
+            ChainlinkOraclePrice memory outPrice
+        ) = ChainlinkOracleUtils.convertAmount(
+                intendedInAssets,
+                config.inAsset,
+                config.inAssetFeed,
+                config.outAsset,
+                config.outAssetFeed
+            );
+
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
-                ._getPrice(config.inAssetFeed);
-            ChainlinkOraclePrice memory outPrice = ChainlinkOracleUtils
-                ._getPrice(config.outAssetFeed);
             uint256 executionPrice = ChainlinkOracleUtils.crossRate(
                 inPrice,
                 outPrice
@@ -511,6 +540,15 @@ contract DCAStrategyManager is
             if (config.minPrice > 0 && executionPrice < config.minPrice) {
                 return (false, performData);
             }
+        }
+
+        // Slippage floor must round to a nonzero minOut, else executeStrategy
+        // reverts ZeroExpectedOutShares.
+        uint256 expectedOutShares = config.targetVault.convertToShares(
+            expectedOutAssets
+        );
+        if (expectedOutShares.subtractBps(BPS.wrap(config.slippageBps)) == 0) {
+            return (false, performData);
         }
 
         upkeepNeeded = true;

@@ -435,6 +435,7 @@ contract DCAStrategyManagerTest is Test {
         vm.prank(strategyOwner);
         uint256 strategyId = dcaManager.createStrategy(config);
 
+        // Before the interval: false at the cadence gate (no oracle read needed).
         (bool upkeepNeededBefore, ) = dcaManager.checkUpkeep(
             strategyId,
             config
@@ -446,8 +447,55 @@ contract DCAStrategyManagerTest is Test {
 
         vm.warp(block.timestamp + 7 days);
 
+        // checkUpkeep now reads the oracle on the happy path. The real fork feeds
+        // are access-gated for contract callers, so mock fresh, valid prices
+        // (updatedAt = post-warp block.timestamp so they are not stale).
+        _mockReadyFeeds();
+
         (bool upkeepNeededAfter, ) = dcaManager.checkUpkeep(strategyId, config);
         assertTrue(upkeepNeededAfter, "Upkeep should be true after interval");
+    }
+
+    /// @dev Mocks fresh, valid prices on the real fork feeds used by `_defaultConfig`
+    ///      so checkUpkeep's oracle/minOut path succeeds; the real aggregators are
+    ///      access-gated for contract callers at the pinned block.
+    function _mockReadyFeeds() internal {
+        vm.mockCall(
+            USDC_USD_FEED,
+            abi.encodeWithSelector(
+                AggregatorV3Interface.latestRoundData.selector
+            ),
+            abi.encode(
+                uint80(1),
+                int256(1e8),
+                uint256(0),
+                block.timestamp,
+                uint80(1)
+            )
+        );
+        vm.mockCall(
+            USDC_USD_FEED,
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(uint8(8))
+        );
+        vm.mockCall(
+            ETH_USD_FEED,
+            abi.encodeWithSelector(
+                AggregatorV3Interface.latestRoundData.selector
+            ),
+            abi.encode(
+                uint80(1),
+                int256(3000e8),
+                uint256(0),
+                block.timestamp,
+                uint80(1)
+            )
+        );
+        vm.mockCall(
+            ETH_USD_FEED,
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(uint8(8))
+        );
     }
 
     /// @dev KE-5: checkUpkeep returns false when the source fleet's share-token
@@ -4169,6 +4217,153 @@ contract DCAStrategyManagerIntegrationTest is Test {
             )
         );
         dcaManager.executeStrategy(strategyId, config, hex"deadbeef");
+    }
+
+    // =========================================================
+    // checkUpkeep mirrors executeStrategy's static preconditions
+    // =========================================================
+
+    /// @dev checkUpkeep must return false for a non-terminal trade when the source
+    /// fleet was deregistered (executeStrategy would revert InactiveFleetCommander).
+    function test_CheckUpkeep_ReturnsFalseWhenSourceFleetDecommissioned()
+        public
+    {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        (bool readyBefore, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertTrue(
+            readyBefore,
+            "precondition: should be ready before decommission"
+        );
+
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(sourceFleet));
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(
+            upkeepNeeded,
+            "checkUpkeep must be false when source fleet is decommissioned"
+        );
+    }
+
+    /// @dev checkUpkeep must return false for a non-terminal trade when the target
+    /// fleet was deregistered (executeStrategy would revert InactiveFleetCommander).
+    function test_CheckUpkeep_ReturnsFalseWhenTargetFleetDecommissioned()
+        public
+    {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        (bool readyBefore, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertTrue(
+            readyBefore,
+            "precondition: should be ready before decommission"
+        );
+
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(targetFleet));
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(
+            upkeepNeeded,
+            "checkUpkeep must be false when target fleet is decommissioned"
+        );
+    }
+
+    /// @dev checkUpkeep must return false when the slippage floor rounds to zero
+    /// (executeStrategy would revert ZeroExpectedOutShares).
+    function test_CheckUpkeep_ReturnsFalseWhenMinOutRoundsToZero() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        // Mock targetFleet.convertToShares to return 1 so subtractBps(1, 50bps) == 0.
+        vm.mockCall(
+            address(targetFleet),
+            abi.encodeWithSignature("convertToShares(uint256)"),
+            abi.encode(uint256(1))
+        );
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(
+            upkeepNeeded,
+            "checkUpkeep must be false when minOut rounds to zero"
+        );
+    }
+
+    /// @dev Terminal completion must still return true even if a fleet was
+    /// deregistered — the terminal (endDate) check precedes the active-fleet check,
+    /// so the keeper can still finalize the strategy as COMPLETED.
+    function test_CheckUpkeep_TerminalCompletionStillReturnsTrueEvenIfFleetDecommissioned()
+        public
+    {
+        // endDate soon; warp past it so the strategy is terminal but still ACTIVE.
+        uint256 endDate = block.timestamp + 3 days;
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+        vm.prank(strategyOwner);
+        uint256 strategyId = dcaManager.createStrategy(config);
+
+        vm.warp(block.timestamp + 4 days); // past endDate
+
+        // Deregister the source fleet — must NOT block terminal completion.
+        vm.prank(governor);
+        harborCommand.decommissionFleetCommander(address(sourceFleet));
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertTrue(
+            upkeepNeeded,
+            "terminal completion must return true even if a fleet is decommissioned"
+        );
+    }
+
+    /// @dev Documents the stale-oracle behavior: checkUpkeep reads the oracle on
+    /// the happy path, so a stale feed makes it REVERT (it never returns true on a
+    /// bad read). The keeper treats a reverting checkUpkeep as "skip".
+    function test_CheckUpkeep_RevertsOnStaleOracle() public {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 staleUpdatedAt = block.timestamp -
+            ChainlinkOracleUtils.MAX_ORACLE_STALENESS -
+            1;
+        _mockOraclesWithUpdatedAt(
+            int256(1e8),
+            int256(3000e8),
+            staleUpdatedAt,
+            block.timestamp
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ChainlinkOracleUtils.ChainlinkOracleStalePrice.selector,
+                address(inFeedMock),
+                staleUpdatedAt,
+                block.timestamp
+            )
+        );
+        dcaManager.checkUpkeep(strategyId, config);
     }
 
     // =========================================================
