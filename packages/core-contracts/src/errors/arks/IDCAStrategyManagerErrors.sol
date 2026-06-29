@@ -33,10 +33,14 @@ interface IDCAStrategyManagerErrors {
         uint256 actualOut
     );
 
-    /// @notice Reverts when `targetVault.previewDeposit(expectedOutAssets)` returns
+    /// @notice Reverts when `targetVault.convertToShares(expectedOutAssets)` returns
     ///         zero. With zero expected output, `minOut = 0` and the slippage floor
     ///         is silently disabled — this guard refuses to execute such trades.
     error ZeroExpectedOutShares();
+
+    /// @notice Reverts when `sourceVault.deposit` during a deposit-and-create mints
+    ///         fewer shares than the caller's `expectedMinShares` floor.
+    error DepositSharesBelowMin(uint256 expected, uint256 received);
 
     /// @notice Reverts when the caller is not `config.owner` on an owner-gated function,
     ///         or when `editStrategy` attempts to change `config.owner` (ownership

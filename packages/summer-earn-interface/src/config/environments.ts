@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { arbitrum, base, hyperliquid, mainnet, sonic } from 'viem/chains'
+import { arbitrum, base, hyperliquid, mainnet, sepolia, sonic } from 'viem/chains'
 
 export type Environment = 'production' | 'staging'
 
@@ -17,6 +17,8 @@ export const HARBOR_COMMAND_ADDRESSES: Record<Environment, Record<number, Addres
     [base.id]: '0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF',
     [sonic.id]: '0x5de028b0ED0F1B5A81636eB97445236C6b4b2523',
     [hyperliquid.id]: '0xf5A69789Bf5e62A43C47E4c8d857b8DAE14d4ab0',
+    // Ethereum Sepolia (staging only) — InstitutionWhitelist_ExtDemoCorp_v2 HarborCommand
+    [sepolia.id]: '0x27912502177328551319D47CF7c5e83e322Ee568',
   },
 }
 

@@ -1,0 +1,20 @@
+{
+  "staging_InstitutionRegistryV2#InstitutionalVaultRegistry": "0xfa104a094eF45A09716407a633E263A9c62bb9DB",
+  "staging_RoundsVaultRegistry#RoundsVaultRegistry": "0x021983E824F1c76D956a8f56b12256A8725540d1",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#CuratorTimelock": "0x438cDd87b17fbD8F9771844731E9C29E2c10C602",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#DutchAuctionLibrary": "0x496aD01c3aAC1531FD9f117E19EB7B1123Ee7eD7",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#GovernorTimelock": "0xee40EbF1A086D2375768f4AfD9A3b060591Bf819",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#ProtocolAccessManagerV2": "0xC4cd9c4A41c960839cC4284F3Ce3625bF4AA2fB1",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#TreasuryTimelock": "0x29272547a3fE989187f42d1E554578479CE11CcE",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#ConfigurationManagerWhitelist": "0x0E060a72e2a5a8a41b269233277025DC5315E25c",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#HarborCommand": "0x27912502177328551319D47CF7c5e83e322Ee568",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#Raft": "0x3024Fb277441edC61FE95C1fb74ef6a531e42032",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#AdmiralsQuartersWhitelist": "0x687b6Da69dc2eDaDc124dD5b6f7cC3a51D895A27",
+  "staging_InstitutionWhitelist_ExtDemoCorp_v2#TipJar": "0x5680038C9c587668feA064879d17C513a9AD81D6",
+  "staging_ExtDemoCorp_v2_FleetWhitelist_Ext_Demo_Superstate_USDC#FleetCommanderCacheLib": "0x212DC958251f709f02f37035272667Ce1cBd91fC",
+  "staging_ExtDemoCorp_v2_FleetWhitelist_Ext_Demo_Superstate_USDC#FleetCommanderWhitelist": "0x3ca3E44F4254bcd77394Abb2B97cd10A86a5b38a",
+  "staging_ExtDemoCorp_v2_RoundsVaultInput_Ext_Demo_Superstate_USDC#RoundsVaultInput": "0x48B6e2aF68cce18e3Daeb91571f14cd05be55659",
+  "staging_ExtDemoCorp_v2_RoundsVaultOutput_Ext_Demo_Superstate_USDC#RoundsVaultOutput": "0x19C04F5c592897BdD5D651D7B35ca9238Bf73F1D",
+  "staging_Ext_Demo_Superstate_USDC_Superstate_USTB_usdc_11155111#SuperstateSubscribeArk": "0xB909F4a602ef86C18E695539C99d95023a5Ef260",
+  "staging_Ext_Demo_Superstate_USDC_Superstate_USCC_usdc_11155111#SuperstateStandardArk": "0x5e61B5f59Ca5E0E5434f691872A078B6611Bcf28"
+}

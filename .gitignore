@@ -122,16 +122,12 @@ myenv
 .antigravitycli
 .resources
 
-.x-ray/
-x-ray/
-docs/superstate/
-docs/securitize/
-docs/maple/
-docs/franklin-templeton/
-
 .next-docs
 .claude
 
 cmd.in
 cmd.out
 gemini_pipe.sh
+
+.audits/
+x-ray/

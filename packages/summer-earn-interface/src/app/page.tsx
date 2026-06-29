@@ -14,7 +14,7 @@ import { useSyncWalletChain } from '../hooks/useSyncWalletChain'
 import type { ChainId } from '../types'
 import { formatDecimalOutput } from '../utils/decimals'
 
-const VALID_CHAINS: ChainId[] = ['1', '42161', '8453', '146']
+const VALID_CHAINS: ChainId[] = ['1', '42161', '8453', '146', '11155111']
 
 function HomeContent() {
   const searchParams = useSearchParams()

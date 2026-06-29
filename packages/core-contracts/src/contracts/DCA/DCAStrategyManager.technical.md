@@ -54,7 +54,7 @@ All four addresses are validated non-zero by their respective base constructors.
 | `_MIN_INTERVAL` | `1 days` | Minimum seconds between executions |
 | `_MAX_INTERVAL` | `90 days` | Maximum interval |
 | `_MAX_SLIPPAGE_BPS` | `5000` BPS (50%) | Maximum allowed slippage |
-| `MAX_ORACLE_STALENESS` | `86400` s (24h) | (in `ChainlinkOracleUtils`) max Chainlink round age |
+| `MAX_ORACLE_STALENESS` | `86400` s (24h) | (in `ChainlinkOracleUtils`) **default** max Chainlink round age, used when a feed's `maxStaleness == 0`; set a tighter per-feed value in `StrategyConfig.{in,out}AssetFeed.maxStaleness` |
 
 ---
 
@@ -88,7 +88,7 @@ All four addresses are validated non-zero by their respective base constructors.
   **Allowance is reset to 0 unconditionally**, even on router underspend.
 - **`HarborCommandConsumer`** — `onlyActiveFleetCommander(vault, label)` reverts
   `InactiveFleetCommander` unless `HARBOR_COMMAND.activeFleetCommanders(vault)`.
-- **`ChainlinkOracleUtils`** — `_getPrice` (positive + ≤24h staleness),
+- **`ChainlinkOracleUtils`** — `_getPrice(ChainlinkFeed)` (positive + per-feed staleness, default 24h),
   `convertAmount` (in→out via two USD feeds), `crossRate` (1e18-scaled out/in price).
 
 ---
@@ -198,9 +198,9 @@ commitment = keccak256(abi.encode(config));   // _commitmentHash
 | Function | Extra inputs | Pre-conditions beyond validation |
 |----------|--------------|----------------------------------|
 | `createStrategy(config)` → `id` | — | Caller already set up Permit2 sub-allowance for keeper pulls. |
-| `depositAndCreate(config, assetAmount)` → `id` | `assetAmount > 0` (`ZeroDeposit`) | Caller pre-approved `inAsset → manager` (ERC20). Manager deposits to `sourceVault` with **shares → caller**. |
+| `depositAndCreate(config, assetAmount, expectedMinShares)` → `id` | `assetAmount > 0` (`ZeroDeposit`); minted shares ≥ `expectedMinShares` (`DepositSharesBelowMin`) | Caller pre-approved `inAsset → manager` (ERC20). Manager deposits to `sourceVault` with **shares → caller**. |
 | `createStrategyWithPermit2(config, permitSingle, sig)` → `id` | `permitSingle.details.token == sourceVault` (`InvalidPermit2Token`); spender == manager (`InvalidPermit2Spender`) | Caller pre-approved `sourceVaultShares → Permit2`. Sub-allowance set in-tx. |
-| `depositAndCreateWithPermit2(config, assetAmount, permits)` → `id` | `assetAmount > 0`; `permits.shares.details.token == sourceVault` | Caller pre-approved both `inAsset → Permit2` and `sourceVaultShares → Permit2`. Two signatures. |
+| `depositAndCreateWithPermit2(config, assetAmount, permits, expectedMinShares)` → `id` | `assetAmount > 0`; `permits.shares.details.token == sourceVault`; minted shares ≥ `expectedMinShares` (`DepositSharesBelowMin`) | Caller pre-approved both `inAsset → Permit2` and `sourceVaultShares → Permit2`. Two signatures. |
 
 All four: `nonReentrant`, `ownerOnlySender`, `onlyActiveFleetCommander×2`, run
 `_validateStrategyConfig`, enforce `DuplicateStrategy`, assign
@@ -245,7 +245,7 @@ commitment match → must be `ACTIVE` → if `tradesExecuted ≥ maxTrades` or
 
 **A. Price & minOut (view math, before any transfer):**
 1. `intendedInAssets = sourceVault.convertToAssets(tradeAmount)` — shares → underlying in-asset.
-2. `(expectedOutAssets, inPrice, outPrice) = ChainlinkOracleUtils.convertAmount(intendedInAssets, inAsset, inAssetFeed, outAsset, outAssetFeed)`.
+2. `(expectedOutAssets, inPrice, outPrice) = ChainlinkOracleUtils.convertAmount(intendedInAssets, inAsset, inAssetFeed, outAsset, outAssetFeed)` — `inAssetFeed`/`outAssetFeed` are `ChainlinkFeed{feed, maxStaleness}` structs.
 3. `executionPrice = crossRate(inPrice, outPrice)` — 1e18-scaled out-asset price in in-asset units.
 4. Price guard: revert `PriceAboveCeiling` if `maxPrice > 0 && executionPrice > maxPrice`; revert `PriceBelowFloor` if `minPrice > 0 && executionPrice < minPrice`.
 5. `expectedOutShares = targetVault.previewDeposit(expectedOutAssets)`; if `0` → revert `ZeroExpectedOutShares`.

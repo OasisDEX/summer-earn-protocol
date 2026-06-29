@@ -23,6 +23,7 @@ const CHAIN_ID_TO_NAME: Record<ChainId, string> = {
   '8453': 'base',
   '146': 'sonic',
   '999': 'hyperliquid',
+  '11155111': 'sepolia', // no TipJar deployment — getCore() returns null, which callers handle
 }
 
 const configData: any = configJson

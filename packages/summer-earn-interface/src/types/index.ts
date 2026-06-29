@@ -1,4 +1,5 @@
-export type ChainId = '1' | '42161' | '8453' | '146' | '999'
+// '11155111' = Ethereum Sepolia (testnet, staging only — used for the Superstate demo fleet)
+export type ChainId = '1' | '42161' | '8453' | '146' | '999' | '11155111'
 
 export interface TokenInfo {
   address: string
