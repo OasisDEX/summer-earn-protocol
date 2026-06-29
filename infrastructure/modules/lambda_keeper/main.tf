@@ -32,6 +32,14 @@ resource "aws_ssm_parameter" "secrets" {
   type  = "SecureString"
   value = nonsensitive(each.value) == "" ? "REPLACE_ME_IN_SSM_CONSOLE" : each.value
 
+  # Manage only the parameter's existence, not its value: operators fill the real
+  # secret in the SSM console after first apply, and Terraform must not drift-
+  # correct it back to the placeholder. With the var left empty, the real secret
+  # never enters tfstate.
+  lifecycle {
+    ignore_changes = [value]
+  }
+
   tags = var.tags
 }
 
@@ -74,6 +82,14 @@ data "aws_iam_policy_document" "ssm_read" {
     sid       = "DecryptKeeperSecrets"
     actions   = ["kms:Decrypt"]
     resources = ["*"] # SSM default key (aws/ssm). Scope to a CMK ARN if one is adopted.
+
+    # Restrict to SSM-mediated decryption: the role cannot decrypt arbitrary
+    # KMS-protected data, only SecureString parameters fetched through SSM.
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${data.aws_region.current.region}.amazonaws.com"]
+    }
   }
 }
 

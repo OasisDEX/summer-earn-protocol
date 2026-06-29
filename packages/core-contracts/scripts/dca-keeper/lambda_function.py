@@ -31,6 +31,13 @@ log = logging.getLogger("dca-keeper-lambda")
 _SSM_SECRET_KEYS = ("RPC_URL", "KEEPER_PRIVATE_KEY", "ENSO_API_KEY")
 _OPTIONAL_SECRET_KEYS = frozenset({"ENSO_API_KEY"})
 
+# Unfilled SecureString sentinel written by the Terraform module
+# (infrastructure/modules/lambda_keeper) when a secret var is left empty. Such
+# values must NOT be injected: for the optional ENSO key it would otherwise be
+# sent as a bogus bearer token, and for a required secret it would mask the
+# missing-config error with a nonsense RPC URL / key.
+_SSM_PLACEHOLDER = "REPLACE_ME_IN_SSM_CONSOLE"
+
 
 def _load_secrets_from_ssm() -> None:
     """Fetch the keeper's SecureString secrets and inject them into os.environ.
@@ -48,7 +55,11 @@ def _load_secrets_from_ssm() -> None:
 
     for param in resp["Parameters"]:
         key = param["Name"].rsplit("/", 1)[-1]
-        os.environ[key] = param["Value"]
+        value = param["Value"]
+        # Skip unfilled placeholders / empties (see _SSM_PLACEHOLDER).
+        if not value or value == _SSM_PLACEHOLDER:
+            continue
+        os.environ[key] = value
 
     missing = {n.rsplit("/", 1)[-1] for n in resp.get("InvalidParameters", [])}
     required_missing = missing - _OPTIONAL_SECRET_KEYS

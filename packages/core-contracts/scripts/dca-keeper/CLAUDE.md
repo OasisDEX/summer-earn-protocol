@@ -41,6 +41,12 @@ on-chain manager. MVP scope: one signer, one chain (Base), one process.
   in-memory nonce is re-derived from the chain's `pending` count each run, so
   one-shot invocations are safe; `lambda_keeper` sets
   `reserved_concurrent_executions = 1` so passes never overlap.
+  - **Known limit:** `_tick()` processes every due strategy with no per-run cap,
+    so a large backlog × the per-tx confirmation wait can exceed the Lambda
+    timeout and get hard-killed mid-pass (already-broadcast txs still settle; the
+    next run re-checks). Mitigated by a short `TX_CONFIRMATION_TIMEOUT_SECONDS`
+    and the contract's `nextTriggerAt` guard (a late duplicate reverts). Add a
+    per-invocation strategy/time budget if backlogs grow.
 
 ## Flow per tick
 
@@ -96,6 +102,7 @@ Logs go to stdout at `LOG_LEVEL=INFO` by default. Each strategy logs its
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-29 — claude — keeper Lambda hardening (Codex second-opinion). Handler now skips empty/`REPLACE_ME_IN_SSM_CONSOLE` SSM values, so an unset optional `ENSO_API_KEY` no longer becomes a bogus bearer token (and a forgotten required secret fails clean). SSM SecureString params gained `lifecycle { ignore_changes = [value] }` so a console-set secret isn't drift-reverted and the real value never enters tfstate. IAM tightened: `kms:Decrypt` gated by `kms:ViaService = ssm.<region>` ; OIDC deploy perms scoped to the exact `summer-earn-dca-keeper` function (was `summer-earn-*`). Documented the no-work-cap-vs-timeout limit. (Codex F1 "sensitive for_each" was a false positive — the `secrets` map var is intentionally non-sensitive; `terraform validate` passes.)
 - 2026-06-29 — claude — added one-shot run mode (`--once` / `KEEPER_RUN_ONCE=1` → `run_once()` does a single `_tick()`); `_main(run_once)` branches between one-shot and `run_forever`. New `lambda_function.py` handler (fetches SSM SecureString secrets → `_main(run_once=True)`) + `Dockerfile` for a container Lambda. Scheduled via new Terraform `infrastructure/modules/lambda_keeper` (`module "dca_keeper"`, EventBridge `var.keeper_schedule_expression` default `rate(10 minutes)`, `reserved_concurrent_executions = 1`). Deploy workflow `.github/workflows/deploy-dca-keeper.yaml`; OIDC role gained `lambda:UpdateFunctionCode`. No change to the ABI / `StrategyConfig` tuple / flow.
 - 2026-06-19 — claude — lockstep with contract CL-1: `StrategyConfig` feeds are now
   `ChainlinkFeed (address feed, uint256 maxStaleness)` tuples. Inline `DCA_MANAGER_ABI`

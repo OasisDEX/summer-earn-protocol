@@ -110,7 +110,10 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "lambda:UpdateFunctionCode",
     ]
     resources = [
-      "arn:aws:lambda:*:${data.aws_caller_identity.current.account_id}:function:summer-earn-*"
+      # Scoped to the keeper function only: update-function-code runs
+      # attacker-controlled image code under the function's role + secrets
+      # (the keeper holds a signer key), so this is not a `summer-earn-*` wildcard.
+      "arn:aws:lambda:*:${data.aws_caller_identity.current.account_id}:function:summer-earn-dca-keeper"
     ]
   }
 }
