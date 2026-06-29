@@ -6,8 +6,13 @@ import {
   WhitelistStatusUpdated,
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
 import { Institution, Role, Vault } from '../../generated/schema'
-import { ADDRESS_ZERO, ContractSpecificRole, RoleAction, RoleName } from '../common/constants'
-import { ROLE_MAP, getContractSpecificRoleName, matchRoundsVaultRole } from '../common/hashHelpers'
+import { ADDRESS_ZERO, RoleAction, RoleName } from '../common/constants'
+import {
+  FLEET_ROLE_SPECS,
+  ROLE_MAP,
+  ROUNDS_VAULT_ROLE_SPECS,
+  matchContractSpecificRole,
+} from '../common/hashHelpers'
 import {
   createRoleEvent,
   getOrCreateAccessController,
@@ -29,42 +34,21 @@ export function handleRoleGranted(event: RoleGranted): void {
   const institution = Institution.load(accessController.institution)
   if (ROLE_MAP.has(event.params.role.toHexString())) {
     role.name = ROLE_MAP.get(event.params.role.toHexString())
-  } else {
-    const vaults = institution!.vaults.load()
-    if (vaults) {
-      const vaultAddresses = vaults.map<string>((vault) => vault.id)
-      const maybeCuratorForFleet = getContractSpecificRoleName(
-        event.params.role.toHexString(),
-        ContractSpecificRole.CURATOR_ROLE,
-        vaultAddresses,
-      )
-      if (maybeCuratorForFleet) {
-        role.name = RoleName.CURATOR_ROLE
-        role.targetContract = maybeCuratorForFleet
-      }
-      const maybeKeeperForFleet = getContractSpecificRoleName(
-        event.params.role.toHexString(),
-        ContractSpecificRole.KEEPER_ROLE,
-        vaultAddresses,
-      )
-      if (maybeKeeperForFleet) {
-        role.name = RoleName.KEEPER_ROLE
-        role.targetContract = maybeKeeperForFleet
-      }
-      const maybeOperatorForFleet = getContractSpecificRoleName(
-        event.params.role.toHexString(),
-        ContractSpecificRole.OPERATOR_ROLE,
-        vaultAddresses,
-      )
-      if (maybeOperatorForFleet) {
-        role.name = RoleName.OPERATOR_ROLE
-        role.targetContract = maybeOperatorForFleet
-      }
+  } else if (institution != null) {
+    const roleHash = event.params.role.toHexString()
+    const vaults = institution.vaults.load()
+    const vaultAddresses = vaults.map<string>((vault) => vault.id)
 
-      // Rounds vaults (input/output) also carry KEEPER/OPERATOR roles. Their
+    // FleetCommander CURATOR/KEEPER/OPERATOR.
+    const fleetMatch = matchContractSpecificRole(roleHash, vaultAddresses, FLEET_ROLE_SPECS)
+    if (fleetMatch != null) {
+      role.name = fleetMatch.name
+      role.targetContract = fleetMatch.target
+    } else {
+      // Rounds vaults (input/output) also carry KEEPER/OPERATOR roles; their
       // addresses live on each fleet's RoundsVaultPair (registered separately).
-      // This resolves grants that arrive AFTER pair registration; grants that
-      // land before registration are back-filled by the registry mapping.
+      // Resolves grants that arrive AFTER pair registration; earlier grants are
+      // back-filled by the registry mapping.
       const roundsVaultAddresses: string[] = []
       for (let i = 0; i < vaults.length; i++) {
         const pairs = vaults[i].roundsVaultPair.load()
@@ -79,15 +63,14 @@ export function handleRoleGranted(event: RoleGranted): void {
           }
         }
       }
-      if (roundsVaultAddresses.length > 0) {
-        const maybeRoundsRole = matchRoundsVaultRole(
-          event.params.role.toHexString(),
-          roundsVaultAddresses,
-        )
-        if (maybeRoundsRole) {
-          role.name = maybeRoundsRole.name
-          role.targetContract = maybeRoundsRole.target
-        }
+      const roundsMatch = matchContractSpecificRole(
+        roleHash,
+        roundsVaultAddresses,
+        ROUNDS_VAULT_ROLE_SPECS,
+      )
+      if (roundsMatch != null) {
+        role.name = roundsMatch.name
+        role.targetContract = roundsMatch.target
       }
     }
   }

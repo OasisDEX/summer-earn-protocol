@@ -10,7 +10,7 @@ import {
 import { Institution, RoundsVault, RoundsVaultPair, Vault } from '../../generated/schema'
 import { RoundsVaultInputTemplate, RoundsVaultOutputTemplate } from '../../generated/templates'
 import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
-import { matchRoundsVaultRole } from '../common/hashHelpers'
+import { ROUNDS_VAULT_ROLE_SPECS, matchContractSpecificRole } from '../common/hashHelpers'
 import { getOrCreateRound, getOrCreateToken, getOrCreateVault } from '../common/initializers'
 
 export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered): void {
@@ -210,7 +210,7 @@ function decodeRoundsVaultRolesForInstitution(
     if (parts.length < 2) {
       continue
     }
-    const match = matchRoundsVaultRole(parts[1], roundsVaultAddresses)
+    const match = matchContractSpecificRole(parts[1], roundsVaultAddresses, ROUNDS_VAULT_ROLE_SPECS)
     if (match) {
       role.name = match.name
       role.targetContract = match.target

@@ -57,9 +57,19 @@ export function getContractSpecificRoleName(
   return null
 }
 
-// Result of decoding a contract-specific role against a set of rounds-vault
-// addresses: the human-readable role name and the matched target address.
-export class RoundsVaultRoleMatch {
+// A contract-specific role to look for: the enum used for hashing plus the
+// human-readable name stored when it matches.
+export class ContractSpecificRoleSpec {
+  role: ContractSpecificRole
+  name: string
+  constructor(role: ContractSpecificRole, name: string) {
+    this.role = role
+    this.name = name
+  }
+}
+
+// Decoded result: the role name and the matched target contract address.
+export class ContractSpecificRoleMatch {
   name: string
   target: string
   constructor(name: string, target: string) {
@@ -68,29 +78,35 @@ export class RoundsVaultRoleMatch {
   }
 }
 
-// Rounds vaults carry KEEPER (granted to the keeper EOA) and OPERATOR (granted
-// to the fleet) contract-specific roles. Given a role hash and the candidate
-// rounds-vault addresses, return the decoded name + target, or null if the hash
-// matches none of them. CURATOR does not apply to rounds vaults.
-export function matchRoundsVaultRole(
+// FleetCommanders can hold CURATOR/KEEPER/OPERATOR. Rounds vaults hold KEEPER
+// (granted to the keeper EOA) and OPERATOR (granted to the fleet); CURATOR does
+// not apply to them.
+export const FLEET_ROLE_SPECS: ContractSpecificRoleSpec[] = [
+  new ContractSpecificRoleSpec(ContractSpecificRole.CURATOR_ROLE, RoleName.CURATOR_ROLE),
+  new ContractSpecificRoleSpec(ContractSpecificRole.KEEPER_ROLE, RoleName.KEEPER_ROLE),
+  new ContractSpecificRoleSpec(ContractSpecificRole.OPERATOR_ROLE, RoleName.OPERATOR_ROLE),
+]
+
+export const ROUNDS_VAULT_ROLE_SPECS: ContractSpecificRoleSpec[] = [
+  new ContractSpecificRoleSpec(ContractSpecificRole.KEEPER_ROLE, RoleName.KEEPER_ROLE),
+  new ContractSpecificRoleSpec(ContractSpecificRole.OPERATOR_ROLE, RoleName.OPERATOR_ROLE),
+]
+
+// Single matcher shared by the role-grant handler (fleet + rounds vault) and the
+// registry backfill: try each role spec against the candidate addresses and
+// return the first exact hash match, or null. A role hash matches at most one
+// (role, target), so the first hit is the answer.
+export function matchContractSpecificRole(
   roleHash: string,
-  roundsVaultAddresses: string[],
-): RoundsVaultRoleMatch | null {
-  const keeper = getContractSpecificRoleName(
-    roleHash,
-    ContractSpecificRole.KEEPER_ROLE,
-    roundsVaultAddresses,
-  )
-  if (keeper) {
-    return new RoundsVaultRoleMatch(RoleName.KEEPER_ROLE, keeper)
-  }
-  const operator = getContractSpecificRoleName(
-    roleHash,
-    ContractSpecificRole.OPERATOR_ROLE,
-    roundsVaultAddresses,
-  )
-  if (operator) {
-    return new RoundsVaultRoleMatch(RoleName.OPERATOR_ROLE, operator)
+  addresses: string[],
+  specs: ContractSpecificRoleSpec[],
+): ContractSpecificRoleMatch | null {
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i]
+    const target = getContractSpecificRoleName(roleHash, spec.role, addresses)
+    if (target) {
+      return new ContractSpecificRoleMatch(spec.name, target)
+    }
   }
   return null
 }
