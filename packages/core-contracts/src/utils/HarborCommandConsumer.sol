@@ -50,6 +50,19 @@ abstract contract HarborCommandConsumer {
     }
 
     /**
+     * @dev Whether `vault` is an active FleetCommander in HarborCommand. The
+     *      non-reverting form, for call sites that branch on the result (e.g. a
+     *      keeper's `checkUpkeep`) rather than aborting. Single source of the
+     *      registry read, shared by the modifier and `_requireActiveFleetCommander`.
+     * @param vault The FleetCommander to check.
+     */
+    function _isActiveFleetCommander(
+        IFleetCommander vault
+    ) internal view returns (bool) {
+        return HARBOR_COMMAND.activeFleetCommanders(address(vault));
+    }
+
+    /**
      * @dev Function form of `onlyActiveFleetCommander`, for call sites that must
      *      run the check partway through a function (e.g. after a pre-flight
      *      short-circuit) rather than at function entry. Reverts with
@@ -61,7 +74,7 @@ abstract contract HarborCommandConsumer {
         IFleetCommander vault,
         string memory label
     ) internal view {
-        if (!HARBOR_COMMAND.activeFleetCommanders(address(vault))) {
+        if (!_isActiveFleetCommander(vault)) {
             revert InactiveFleetCommander(address(vault), label);
         }
     }

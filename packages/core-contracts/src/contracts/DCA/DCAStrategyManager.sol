@@ -501,10 +501,8 @@ contract DCAStrategyManager is
         // deterministically revert. Both fleets must still be active in
         // HarborCommand (executeStrategy calls _requireActiveFleetCommander).
         if (
-            !HARBOR_COMMAND.activeFleetCommanders(
-                address(config.sourceVault)
-            ) ||
-            !HARBOR_COMMAND.activeFleetCommanders(address(config.targetVault))
+            !_isActiveFleetCommander(config.sourceVault) ||
+            !_isActiveFleetCommander(config.targetVault)
         ) {
             return (false, performData);
         }
