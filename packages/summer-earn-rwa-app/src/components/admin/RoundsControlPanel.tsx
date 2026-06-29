@@ -15,6 +15,12 @@ import { useRounds } from '@/hooks/useRounds'
 import { useRoundsVaultState } from '@/hooks/useRoundsVaultState'
 import { formatDecimalOutput, parseDecimalInput } from '@/lib/format'
 
+// Disabled-state hints so every greyed-out control explains *why* it's locked.
+// Mirrors the on-chain guards: keeper actions require onlyKeeper, governor
+// actions require onlyGovernor (see useAccess role reads).
+const KEEPER_REQUIRED_HINT = 'Requires KEEPER_ROLE on this vault or SUPER_KEEPER_ROLE'
+const GOVERNOR_REQUIRED_HINT = 'Requires GOVERNOR_ROLE'
+
 interface Props {
   institution: Institution
   fleet: InstitutionFleet
@@ -137,9 +143,7 @@ function VaultControls({
             disabled={!canKeeper || keeper.pending.nextRound}
             loading={keeper.pending.nextRound}
             onClick={() => keeper.nextRound()}
-            title={
-              !canKeeper ? 'Requires KEEPER_ROLE on this vault or SUPER_KEEPER_ROLE' : undefined
-            }
+            title={!canKeeper ? KEEPER_REQUIRED_HINT : undefined}
           >
             Close current round (nextRound)
           </Button>
@@ -168,6 +172,7 @@ function VaultControls({
                       disabled={!canKeeper || keeper.pending.settle}
                       loading={keeper.pending.settle}
                       onClick={() => keeper.setRoundSettled(BigInt(r.roundId))}
+                      title={!canKeeper ? KEEPER_REQUIRED_HINT : undefined}
                     >
                       Settle
                     </Button>
@@ -179,6 +184,13 @@ function VaultControls({
                   disabled={!canKeeper || pickedIds.length === 0 || keeper.pending.settle}
                   loading={keeper.pending.settle}
                   onClick={() => keeper.setRoundSettledBatch(pickedIds)}
+                  title={
+                    !canKeeper
+                      ? KEEPER_REQUIRED_HINT
+                      : pickedIds.length === 0
+                        ? 'Select at least one round in settlement to batch-settle'
+                        : undefined
+                  }
                 >
                   Settle selected ({pickedIds.length})
                 </Button>
@@ -201,6 +213,7 @@ function VaultControls({
                     variant="secondary"
                     disabled={!canKeeper || keeper.pending.retry}
                     onClick={() => keeper.retryRound(BigInt(r.roundId))}
+                    title={!canKeeper ? KEEPER_REQUIRED_HINT : undefined}
                   >
                     Retry
                   </Button>
@@ -231,6 +244,7 @@ function VaultControls({
                   disabled={!canGovernor || governor.pending.minSize}
                   loading={governor.pending.minSize}
                   onClick={() => governor.setMinPositionSize(parsedMin)}
+                  title={!canGovernor ? GOVERNOR_REQUIRED_HINT : undefined}
                 >
                   Set
                 </Button>
@@ -256,6 +270,7 @@ function VaultControls({
                         variant="danger"
                         disabled={!canGovernor || governor.pending.rollback}
                         onClick={() => governor.emergencyRollbackRound(BigInt(r.roundId))}
+                        title={!canGovernor ? GOVERNOR_REQUIRED_HINT : undefined}
                       >
                         Rollback
                       </Button>
