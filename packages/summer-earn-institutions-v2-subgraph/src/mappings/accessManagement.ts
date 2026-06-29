@@ -7,7 +7,7 @@ import {
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
 import { Institution, Role, Vault } from '../../generated/schema'
 import { ADDRESS_ZERO, ContractSpecificRole, RoleAction, RoleName } from '../common/constants'
-import { ROLE_MAP, getContractSpecificRoleName } from '../common/hashHelpers'
+import { ROLE_MAP, getContractSpecificRoleName, matchRoundsVaultRole } from '../common/hashHelpers'
 import {
   createRoleEvent,
   getOrCreateAccessController,
@@ -59,6 +59,35 @@ export function handleRoleGranted(event: RoleGranted): void {
       if (maybeOperatorForFleet) {
         role.name = RoleName.OPERATOR_ROLE
         role.targetContract = maybeOperatorForFleet
+      }
+
+      // Rounds vaults (input/output) also carry KEEPER/OPERATOR roles. Their
+      // addresses live on each fleet's RoundsVaultPair (registered separately).
+      // This resolves grants that arrive AFTER pair registration; grants that
+      // land before registration are back-filled by the registry mapping.
+      const roundsVaultAddresses: string[] = []
+      for (let i = 0; i < vaults.length; i++) {
+        const pairs = vaults[i].roundsVaultPair.load()
+        for (let j = 0; j < pairs.length; j++) {
+          const inputVault = pairs[j].inputVault
+          if (inputVault) {
+            roundsVaultAddresses.push(inputVault!)
+          }
+          const outputVault = pairs[j].outputVault
+          if (outputVault) {
+            roundsVaultAddresses.push(outputVault!)
+          }
+        }
+      }
+      if (roundsVaultAddresses.length > 0) {
+        const maybeRoundsRole = matchRoundsVaultRole(
+          event.params.role.toHexString(),
+          roundsVaultAddresses,
+        )
+        if (maybeRoundsRole) {
+          role.name = maybeRoundsRole.name
+          role.targetContract = maybeRoundsRole.target
+        }
       }
     }
   }

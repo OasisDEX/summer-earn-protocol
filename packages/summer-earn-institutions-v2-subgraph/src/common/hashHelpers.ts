@@ -56,3 +56,41 @@ export function getContractSpecificRoleName(
   }
   return null
 }
+
+// Result of decoding a contract-specific role against a set of rounds-vault
+// addresses: the human-readable role name and the matched target address.
+export class RoundsVaultRoleMatch {
+  name: string
+  target: string
+  constructor(name: string, target: string) {
+    this.name = name
+    this.target = target
+  }
+}
+
+// Rounds vaults carry KEEPER (granted to the keeper EOA) and OPERATOR (granted
+// to the fleet) contract-specific roles. Given a role hash and the candidate
+// rounds-vault addresses, return the decoded name + target, or null if the hash
+// matches none of them. CURATOR does not apply to rounds vaults.
+export function matchRoundsVaultRole(
+  roleHash: string,
+  roundsVaultAddresses: string[],
+): RoundsVaultRoleMatch | null {
+  const keeper = getContractSpecificRoleName(
+    roleHash,
+    ContractSpecificRole.KEEPER_ROLE,
+    roundsVaultAddresses,
+  )
+  if (keeper) {
+    return new RoundsVaultRoleMatch(RoleName.KEEPER_ROLE, keeper)
+  }
+  const operator = getContractSpecificRoleName(
+    roleHash,
+    ContractSpecificRole.OPERATOR_ROLE,
+    roundsVaultAddresses,
+  )
+  if (operator) {
+    return new RoundsVaultRoleMatch(RoleName.OPERATOR_ROLE, operator)
+  }
+  return null
+}
