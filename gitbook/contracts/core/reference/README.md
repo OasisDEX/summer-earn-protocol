@@ -66,6 +66,7 @@ Generated from the NatSpec of [`packages/core-contracts`](https://github.com/Oas
 * [PendlePtOracleArk](contracts/arks/pendle-pt-oracle-ark.md)
 * [Psm3ERC4626Ark](contracts/arks/psm3-erc4626-ark.md)
 * [PsmLiteERC4626Ark](contracts/arks/psm-lite-erc4626-ark.md)
+* [SecuritizeArk](contracts/arks/securitize-ark.md)
 * [SiloManagedVaultArk](contracts/arks/silo-managed-vault-ark.md)
 * [SiloVaultArk](contracts/arks/silo-vault-ark.md)
 * [SiloVaultArkV2](contracts/arks/silo-vault-ark-v2.md)
@@ -149,6 +150,7 @@ Generated from the NatSpec of [`packages/core-contracts`](https://github.com/Oas
 * [IBenjiArk](interfaces/arks/i-benji-ark.md)
 * [IDCAStrategyManager](interfaces/arks/idca-strategy-manager.md)
 * [IPendleBaseArk](interfaces/arks/i-pendle-base-ark.md)
+* [ISecuritizeArk](interfaces/arks/i-securitize-ark.md)
 * [ISuperstateStandardArk](interfaces/arks/i-superstate-standard-ark.md)
 * [ISuperstateSubscribeArk](interfaces/arks/i-superstate-subscribe-ark.md)
 
@@ -268,6 +270,13 @@ Generated from the NatSpec of [`packages/core-contracts`](https://github.com/Oas
 * [IRoundsVaultRegistryErrors](interfaces/rounds-vault/i-rounds-vault-registry-errors.md)
 * [IRoundsVaultRegistryEvents](interfaces/rounds-vault/i-rounds-vault-registry-events.md)
 
+## interfaces/securitize
+
+* [IDSRegistryService](interfaces/securitize/ids-registry-service.md)
+* [IDSToken](interfaces/securitize/ids-token.md)
+* [ISecuritizeNavProvider](interfaces/securitize/i-securitize-nav-provider.md)
+* [ISecuritizeOnRamp](interfaces/securitize/i-securitize-on-ramp.md)
+
 ## interfaces/silo
 
 * [IGaugeHookReceiver](interfaces/silo/i-gauge-hook-receiver.md)
@@ -344,6 +353,7 @@ Generated from the NatSpec of [`packages/core-contracts`](https://github.com/Oas
 * [IBenjiArkEvents](events/arks/i-benji-ark-events.md)
 * [IDCAStrategyManagerEvents](events/arks/idca-strategy-manager-events.md)
 * [IPendleBaseArkEvents](events/arks/i-pendle-base-ark-events.md)
+* [ISecuritizeArkEvents](events/arks/i-securitize-ark-events.md)
 * [ISuperstateArkEvents](events/arks/i-superstate-ark-events.md)
 * [ISuperstateStandardArkEvents](events/arks/i-superstate-standard-ark-events.md)
 
@@ -366,6 +376,7 @@ Generated from the NatSpec of [`packages/core-contracts`](https://github.com/Oas
 * [IBenjiArkErrors](errors/arks/i-benji-ark-errors.md)
 * [IDCAStrategyManagerErrors](errors/arks/idca-strategy-manager-errors.md)
 * [IPendleBaseArkErrors](errors/arks/i-pendle-base-ark-errors.md)
+* [ISecuritizeArkErrors](errors/arks/i-securitize-ark-errors.md)
 * [ISuperstateArkErrors](errors/arks/i-superstate-ark-errors.md)
 * [ISuperstateStandardArkErrors](errors/arks/i-superstate-standard-ark-errors.md)
 * [ISuperstateSubscribeArkErrors](errors/arks/i-superstate-subscribe-ark-errors.md)

@@ -32,9 +32,11 @@ uint256 internal constant PRECISION = 1e18
 
 
 #### MAX_ORACLE_STALENESS
-Maximum age (in seconds) of a Chainlink round before it is
-considered stale. Set to 24 hours to accommodate feeds with
-a 24-hour heartbeat (e.g. USDC/USD on Ethereum mainnet).
+Default maximum age (in seconds) of a Chainlink round before it is
+considered stale, applied when a caller passes `maxStaleness == 0`.
+24 hours accommodates feeds with a 24-hour heartbeat (e.g. USDC/USD
+on Ethereum mainnet); callers should pass a tighter per-feed value
+for feeds with shorter heartbeats.
 
 
 ```solidity
@@ -97,9 +99,9 @@ Reverts with `ChainlinkOraclePriceZero` if either feed returns a non-positive va
 function convertAmount(
     uint256 inAmount,
     IERC20 inAsset,
-    address inFeed,
+    ChainlinkFeed memory inFeed,
     IERC20 outAsset,
-    address outFeed
+    ChainlinkFeed memory outFeed
 )
     internal
     view
@@ -111,9 +113,9 @@ function convertAmount(
 |----|----|-----------|
 |`inAmount`|`uint256`|  Amount of the input asset (in its native token decimals).|
 |`inAsset`|`IERC20`|   Input ERC20 token (used to fetch decimals).|
-|`inFeed`|`address`|    Chainlink AggregatorV3 feed address for the in-asset/USD price.|
+|`inFeed`|`ChainlinkFeed`|    In-asset/USD Chainlink feed paired with its staleness tolerance.|
 |`outAsset`|`IERC20`|  Output ERC20 token (used to fetch decimals).|
-|`outFeed`|`address`|   Chainlink AggregatorV3 feed address for the out-asset/USD price.|
+|`outFeed`|`ChainlinkFeed`|   Out-asset/USD Chainlink feed paired with its staleness tolerance.|
 
 **Returns**
 
@@ -127,13 +129,14 @@ function convertAmount(
 #### _getPrice
 
 Reads a single Chainlink feed, validates the price is positive, and
-validates the round is not older than `MAX_ORACLE_STALENESS`.
+validates the round is not older than `maxStaleness` seconds
+(0 falls back to `MAX_ORACLE_STALENESS`).
 Extracted into its own frame to keep `convertAmount` within the EVM
 16-slot stack limit.
 
 
 ```solidity
-function _getPrice(address feed) internal view returns (ChainlinkOraclePrice memory price);
+function _getPrice(ChainlinkFeed memory chainlinkFeed) internal view returns (ChainlinkOraclePrice memory price);
 ```
 
 ### Errors
@@ -152,6 +155,25 @@ Reverts when a Chainlink feed's last update is older than
 
 ```solidity
 error ChainlinkOracleStalePrice(address feed, uint256 updatedAt, uint256 currentTime);
+```
+
+
+
+## ChainlinkFeed
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/main/packages/core-contracts/src/utils/ChainlinkOracleUtils.sol)
+
+A Chainlink feed paired with its own staleness tolerance, so the two
+always travel as a unit (preventing a feed from being checked against
+the wrong feed's heartbeat). Defined at file level for prefix-free import.
+
+
+```solidity
+struct ChainlinkFeed {
+/// @notice Chainlink AggregatorV3 feed address.
+address feed;
+/// @notice Max acceptable round age in seconds; 0 → `MAX_ORACLE_STALENESS`.
+uint256 maxStaleness;
+}
 ```
 
 

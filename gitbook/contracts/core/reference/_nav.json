@@ -223,6 +223,10 @@
           "file": "contracts/core/reference/contracts/arks/psm-lite-erc4626-ark.md"
         },
         {
+          "title": "SecuritizeArk",
+          "file": "contracts/core/reference/contracts/arks/securitize-ark.md"
+        },
+        {
           "title": "SiloManagedVaultArk",
           "file": "contracts/core/reference/contracts/arks/silo-managed-vault-ark.md"
         },
@@ -497,6 +501,10 @@
         {
           "title": "IPendleBaseArk",
           "file": "contracts/core/reference/interfaces/arks/i-pendle-base-ark.md"
+        },
+        {
+          "title": "ISecuritizeArk",
+          "file": "contracts/core/reference/interfaces/arks/i-securitize-ark.md"
         },
         {
           "title": "ISuperstateStandardArk",
@@ -826,6 +834,27 @@
       ]
     },
     {
+      "dir": "interfaces/securitize",
+      "pages": [
+        {
+          "title": "IDSRegistryService",
+          "file": "contracts/core/reference/interfaces/securitize/ids-registry-service.md"
+        },
+        {
+          "title": "IDSToken",
+          "file": "contracts/core/reference/interfaces/securitize/ids-token.md"
+        },
+        {
+          "title": "ISecuritizeNavProvider",
+          "file": "contracts/core/reference/interfaces/securitize/i-securitize-nav-provider.md"
+        },
+        {
+          "title": "ISecuritizeOnRamp",
+          "file": "contracts/core/reference/interfaces/securitize/i-securitize-on-ramp.md"
+        }
+      ]
+    },
+    {
       "dir": "interfaces/silo",
       "pages": [
         {
@@ -1062,6 +1091,10 @@
           "file": "contracts/core/reference/events/arks/i-pendle-base-ark-events.md"
         },
         {
+          "title": "ISecuritizeArkEvents",
+          "file": "contracts/core/reference/events/arks/i-securitize-ark-events.md"
+        },
+        {
           "title": "ISuperstateArkEvents",
           "file": "contracts/core/reference/events/arks/i-superstate-ark-events.md"
         },
@@ -1134,6 +1167,10 @@
         {
           "title": "IPendleBaseArkErrors",
           "file": "contracts/core/reference/errors/arks/i-pendle-base-ark-errors.md"
+        },
+        {
+          "title": "ISecuritizeArkErrors",
+          "file": "contracts/core/reference/errors/arks/i-securitize-ark-errors.md"
         },
         {
           "title": "ISuperstateArkErrors",

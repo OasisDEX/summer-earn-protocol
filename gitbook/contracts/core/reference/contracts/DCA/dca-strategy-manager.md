@@ -183,14 +183,17 @@ assets, approves `config.sourceVault`, and calls
 source-vault shares land in the caller's wallet directly.
 The Permit2 sub-allowance for future keeper-driven pulls must still
 be granted by the caller separately (`Permit2.approve` or `permit`).
-Reverts with `ZeroDeposit` if `assetAmount == 0`.
+Reverts with `ZeroDeposit` if `assetAmount == 0`, and with
+`DepositSharesBelowMin` if the minted source-vault shares are below
+`expectedMinShares`.
 All `createStrategy` validations also apply.
 
 
 ```solidity
 function depositAndCreate(
     StrategyConfig calldata config,
-    uint256 assetAmount
+    uint256 assetAmount,
+    uint256 expectedMinShares
 )
     external
     nonReentrant
@@ -205,6 +208,7 @@ function depositAndCreate(
 |----|----|-----------|
 |`config`|`StrategyConfig`|Fully populated strategy configuration.|
 |`assetAmount`|`uint256`|Underlying-asset amount to deposit into `config.sourceVault` (denominated in `config.inAsset` native decimals).|
+|`expectedMinShares`|`uint256`|Minimum acceptable source-vault shares to mint (caller's off-chain slippage floor; use 0 to skip).|
 
 **Returns**
 
@@ -267,7 +271,9 @@ caller must have previously called `inAsset.approve(PERMIT2, max)`
 and `sourceVaultShares.approve(PERMIT2, max)` once each.
 Reverts with `ZeroDeposit` if `assetAmount == 0`, with
 `InvalidPermit2Spender` / `InvalidPermit2Token` /
-`InvalidPermit2Amount` on any of the four required field mismatches.
+`InvalidPermit2Amount` on any of the four required field mismatches,
+and with `DepositSharesBelowMin` if the minted source-vault shares are
+below `expectedMinShares`.
 All `createStrategy` validations also apply.
 
 
@@ -275,7 +281,8 @@ All `createStrategy` validations also apply.
 function depositAndCreateWithPermit2(
     StrategyConfig calldata config,
     uint256 assetAmount,
-    Permit2DepositBundle calldata permits
+    Permit2DepositBundle calldata permits,
+    uint256 expectedMinShares
 )
     external
     nonReentrant
@@ -291,6 +298,7 @@ function depositAndCreateWithPermit2(
 |`config`|`StrategyConfig`|Fully populated strategy configuration.|
 |`assetAmount`|`uint256`|Underlying-asset amount to deposit into `config.sourceVault`.|
 |`permits`|`Permit2DepositBundle`|Bundle of the two signed Permit2 messages (see `Permit2DepositBundle`).|
+|`expectedMinShares`|`uint256`|Minimum acceptable source-vault shares to mint (caller's off-chain slippage floor; use 0 to skip).|
 
 **Returns**
 
@@ -534,6 +542,10 @@ Approves `sourceVault` for `assetAmount` of `inAsset` already held
 by this contract, deposits with `shareReceiver` as the recipient,
 and resets the allowance to 0 for hygiene. Caller is responsible
 for pulling the assets into this contract beforehand.
+Reverts with `DepositSharesBelowMin` when the minted shares are below
+`minShares` — the caller's off-chain slippage floor (the vault's own
+`previewDeposit` is not a usable reference here since `deposit` mints
+exactly that amount in the same call).
 
 
 ```solidity
@@ -541,7 +553,8 @@ function _depositPulledAsset(
     IFleetCommander sourceVault,
     IERC20 inAsset,
     address shareReceiver,
-    uint256 assetAmount
+    uint256 assetAmount,
+    uint256 minShares
 )
     internal;
 ```

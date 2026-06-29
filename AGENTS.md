@@ -92,13 +92,13 @@ subgraph configs and app configs are hand-maintained copies.
   (addresses + start blocks, hand-copied from deployment outputs), mustache-templated
   `subgraph.template.yaml`, and `prepare:/build:/deploy:<network>` scripts deploying to Goldsky with
   `$npm_package_version` as the deployment tag.
-- **Apps/services** (`summer-earn-interface`, `summer-earn-rwa-app`, `summer-earn-dca-app`,
-  `summer-earn-auctions-frontend`, `summer-earn-gov-validator`, `summer-earn-gov-alert-bot`,
-  `oracle-cli`, `oracle-dashboard`, `ark-rebalancer`) — consume deployment addresses either via a
-  `pnpm sync-config` script (gov-validator, interface, gov-alert-bot copy from
-  `packages/deployment`) or via fully hand-maintained config files (rwa-app, dca-app,
-  auctions-frontend, oracle-dashboard). Subgraph Goldsky slugs are hand-listed per chain in each
-  app's config.
+- **Apps/services** (`summer-earn-interface`, `summer-earn-rwa-app`, `institution-inspector`,
+  `summer-earn-dca-app`, `summer-earn-auctions-frontend`, `summer-earn-gov-validator`,
+  `summer-earn-gov-alert-bot`, `oracle-cli`, `oracle-dashboard`, `ark-rebalancer`) — consume
+  deployment addresses either via a `pnpm sync-config` script (gov-validator, interface,
+  gov-alert-bot copy from `packages/deployment`) or via fully hand-maintained config files (rwa-app,
+  dca-app, auctions-frontend, oracle-dashboard). Subgraph Goldsky slugs are hand-listed per chain in
+  each app's config.
 - **Shared libs** (`percentage`, `price-utils`, `math-utils`, `voting-decay`, `constants`,
   `external-dependencies`, `legacy-dependencies`, `eslint-config`, `jest-config`,
   `typescript-config`, `tenderly-utils`) — Solidity/TS libraries and base configs consumed by the

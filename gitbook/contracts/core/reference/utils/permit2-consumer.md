@@ -225,3 +225,13 @@ silently; rejects every other permit failure mode.
 ```solidity
 error Permit2AllowanceNotSet(uint160 required, uint160 actual);
 ```
+
+### Permit2ExpirationNotSet
+Reverts when the live Permit2 sub-allowance expires earlier than the
+owner signed for. Checked in the front-run catch path alongside the
+amount, against the on-chain allowance (not the signed message).
+
+
+```solidity
+error Permit2ExpirationNotSet(uint48 required, uint48 actual);
+```

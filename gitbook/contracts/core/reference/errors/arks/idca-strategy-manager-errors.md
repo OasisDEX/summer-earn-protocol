@@ -64,13 +64,22 @@ error SwapOutputBelowMinOut(uint256 strategyId, uint256 minOut, uint256 actualOu
 ```
 
 ### ZeroExpectedOutShares
-Reverts when `targetVault.previewDeposit(expectedOutAssets)` returns
+Reverts when `targetVault.convertToShares(expectedOutAssets)` returns
 zero. With zero expected output, `minOut = 0` and the slippage floor
 is silently disabled — this guard refuses to execute such trades.
 
 
 ```solidity
 error ZeroExpectedOutShares();
+```
+
+### DepositSharesBelowMin
+Reverts when `sourceVault.deposit` during a deposit-and-create mints
+fewer shares than the caller's `expectedMinShares` floor.
+
+
+```solidity
+error DepositSharesBelowMin(uint256 expected, uint256 received);
 ```
 
 ### UnauthorizedAccess

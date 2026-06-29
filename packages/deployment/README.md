@@ -12,7 +12,7 @@ into `config/index.json` (or `config/index.test.json` for staging) via
   `fleet-whitelist.ts`, `institution-whitelist.ts`, and 36 per-ark modules under
   `ignition/modules/arks/`.
 - **Types** (`types/config-types.ts`): `SupportedNetworks` enum (mainnet, base, arbitrum, sonic,
-  hyperliquid), `ArkType` enum (35 types) with a parallel `arkTypes` prompt-choices array,
+  hyperliquid), `ArkType` enum (36 types) with a parallel `arkTypes` prompt-choices array,
   `BaseConfig`, `FleetConfig`, `FleetDeployment`, `ArkConfig`.
 - **Chain helpers**: `SupportedChain` enum and hand-maintained `SUPPORTED_CHAINS` array
   (`scripts/helpers/chain.ts`), `CHAIN_CONFIG_MAP` / `RPC_URL_MAP`

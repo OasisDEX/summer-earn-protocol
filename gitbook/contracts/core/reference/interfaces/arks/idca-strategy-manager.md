@@ -56,12 +56,20 @@ assets, approves `config.sourceVault`, and calls
 source-vault shares land in the caller's wallet directly.
 The Permit2 sub-allowance for future keeper-driven pulls must still
 be granted by the caller separately (`Permit2.approve` or `permit`).
-Reverts with `ZeroDeposit` if `assetAmount == 0`.
+Reverts with `ZeroDeposit` if `assetAmount == 0`, and with
+`DepositSharesBelowMin` if the minted source-vault shares are below
+`expectedMinShares`.
 All `createStrategy` validations also apply.
 
 
 ```solidity
-function depositAndCreate(StrategyConfig calldata config, uint256 assetAmount) external returns (uint256 strategyId);
+function depositAndCreate(
+    StrategyConfig calldata config,
+    uint256 assetAmount,
+    uint256 expectedMinShares
+)
+    external
+    returns (uint256 strategyId);
 ```
 **Parameters**
 
@@ -69,6 +77,7 @@ function depositAndCreate(StrategyConfig calldata config, uint256 assetAmount) e
 |----|----|-----------|
 |`config`|`StrategyConfig`|Fully populated strategy configuration.|
 |`assetAmount`|`uint256`|Underlying-asset amount to deposit into `config.sourceVault` (denominated in `config.inAsset` native decimals).|
+|`expectedMinShares`|`uint256`|Minimum acceptable source-vault shares to mint (caller's off-chain slippage floor; use 0 to skip).|
 
 **Returns**
 
@@ -127,7 +136,9 @@ caller must have previously called `inAsset.approve(PERMIT2, max)`
 and `sourceVaultShares.approve(PERMIT2, max)` once each.
 Reverts with `ZeroDeposit` if `assetAmount == 0`, with
 `InvalidPermit2Spender` / `InvalidPermit2Token` /
-`InvalidPermit2Amount` on any of the four required field mismatches.
+`InvalidPermit2Amount` on any of the four required field mismatches,
+and with `DepositSharesBelowMin` if the minted source-vault shares are
+below `expectedMinShares`.
 All `createStrategy` validations also apply.
 
 
@@ -135,7 +146,8 @@ All `createStrategy` validations also apply.
 function depositAndCreateWithPermit2(
     StrategyConfig calldata config,
     uint256 assetAmount,
-    Permit2DepositBundle calldata permits
+    Permit2DepositBundle calldata permits,
+    uint256 expectedMinShares
 )
     external
     returns (uint256 strategyId);
@@ -147,6 +159,7 @@ function depositAndCreateWithPermit2(
 |`config`|`StrategyConfig`|Fully populated strategy configuration.|
 |`assetAmount`|`uint256`|Underlying-asset amount to deposit into `config.sourceVault`.|
 |`permits`|`Permit2DepositBundle`|Bundle of the two signed Permit2 messages (see `Permit2DepositBundle`).|
+|`expectedMinShares`|`uint256`|Minimum acceptable source-vault shares to mint (caller's off-chain slippage floor; use 0 to skip).|
 
 **Returns**
 
@@ -403,10 +416,12 @@ struct StrategyConfig {
     IERC20 inAsset;
     /// @notice Underlying asset of `targetVault`; used for Chainlink price lookups.
     IERC20 outAsset;
-    /// @notice Chainlink AggregatorV3 feed address for `inAsset` (e.g. USDC / USD).
-    address inAssetFeed;
-    /// @notice Chainlink AggregatorV3 feed address for `outAsset` (e.g. ETH / USD).
-    address outAssetFeed;
+    /// @notice In-asset/USD Chainlink feed (e.g. USDC / USD) paired with its
+    ///         staleness tolerance (`maxStaleness == 0` → `MAX_ORACLE_STALENESS`).
+    ChainlinkFeed inAssetFeed;
+    /// @notice Out-asset/USD Chainlink feed (e.g. ETH / USD) paired with its
+    ///         staleness tolerance (`maxStaleness == 0` → `MAX_ORACLE_STALENESS`).
+    ChainlinkFeed outAssetFeed;
     /// @notice Number of `sourceVault` shares sold on each execution.
     uint256 tradeAmount;
     /// @notice Minimum seconds that must elapse between executions. Must be ≥ 1 day.

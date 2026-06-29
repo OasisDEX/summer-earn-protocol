@@ -87,6 +87,21 @@ function isArkActiveOrBufferArk(address ark) external view returns (bool);
 |`<none>`|`bool`|bool Returns true if the ark is active or the buffer ark, false otherwise.|
 
 
+### transfersEnabled
+
+Whether this fleet's share-token transfers are enabled.
+
+
+```solidity
+function transfersEnabled() external view returns (bool);
+```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|True if share-token transfers are currently permitted.|
+
+
 ### addArk
 
 Adds a new Ark

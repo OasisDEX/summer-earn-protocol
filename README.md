@@ -86,6 +86,7 @@ Apps and services:
 | ------------------------------- | ------------------------------------------------------------------------------------------ |
 | `summer-earn-interface`         | Main Next.js app: fleet browsing, deposits/withdrawals, vesting, staking, rewards          |
 | `summer-earn-rwa-app`           | Next.js app for the institutional/RWA whitelist stack (hand-maintained institution config) |
+| `institution-inspector`         | Next.js graph viewer for institutions, fleets, arks, and roles (static export for Vercel)  |
 | `summer-earn-dca-app`           | Next.js frontend for DCA strategies (Base)                                                 |
 | `summer-earn-auctions-frontend` | Next.js app showing and buying Raft dutch auctions                                         |
 | `summer-earn-gov-validator`     | Next.js app for decoding, validating, and executing governance proposals                   |
