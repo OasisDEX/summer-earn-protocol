@@ -45,9 +45,24 @@ abstract contract HarborCommandConsumer {
         IFleetCommander vault,
         string memory label
     ) {
+        _requireActiveFleetCommander(vault, label);
+        _;
+    }
+
+    /**
+     * @dev Function form of `onlyActiveFleetCommander`, for call sites that must
+     *      run the check partway through a function (e.g. after a pre-flight
+     *      short-circuit) rather than at function entry. Reverts with
+     *      `InactiveFleetCommander` when `vault` is not an active FleetCommander.
+     * @param vault  The FleetCommander to check.
+     * @param label  Human-readable label for the vault role ("source", "target", …).
+     */
+    function _requireActiveFleetCommander(
+        IFleetCommander vault,
+        string memory label
+    ) internal view {
         if (!HARBOR_COMMAND.activeFleetCommanders(address(vault))) {
             revert InactiveFleetCommander(address(vault), label);
         }
-        _;
     }
 }

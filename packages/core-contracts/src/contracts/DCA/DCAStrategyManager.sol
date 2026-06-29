@@ -414,22 +414,11 @@ contract DCAStrategyManager is
         }
 
         // A real trade requires both fleets active (source pull + target payout).
-        if (
-            !HARBOR_COMMAND.activeFleetCommanders(address(config.sourceVault))
-        ) {
-            revert InactiveFleetCommander(
-                address(config.sourceVault),
-                "source"
-            );
-        }
-        if (
-            !HARBOR_COMMAND.activeFleetCommanders(address(config.targetVault))
-        ) {
-            revert InactiveFleetCommander(
-                address(config.targetVault),
-                "target"
-            );
-        }
+        // Same check as the `onlyActiveFleetCommander` modifier, invoked here —
+        // after the terminal short-circuit — so a deregistered vault never blocks
+        // finalization of an already-terminal strategy.
+        _requireActiveFleetCommander(config.sourceVault, "source");
+        _requireActiveFleetCommander(config.targetVault, "target");
 
         if (block.timestamp < state.nextTriggerAt) {
             revert ExecutionWindowNotReached(
