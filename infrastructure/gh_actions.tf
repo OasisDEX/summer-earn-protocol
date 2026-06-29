@@ -101,6 +101,18 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       values   = ["ecs-tasks.amazonaws.com"]
     }
   }
+
+  # Lambda: update the scheduled keeper's image (deploy-dca-keeper workflow)
+  statement {
+    sid = "LambdaDeploy"
+    actions = [
+      "lambda:GetFunction",
+      "lambda:UpdateFunctionCode",
+    ]
+    resources = [
+      "arn:aws:lambda:*:${data.aws_caller_identity.current.account_id}:function:summer-earn-*"
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "github_actions" {

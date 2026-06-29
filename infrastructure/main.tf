@@ -22,6 +22,25 @@ locals {
     TENDERLY_ACCESS_KEY = var.tenderly_access_key
     CRON_SECRET         = var.cron_secret
   }
+
+  # Non-secret DCA keeper config (plain Lambda env vars).
+  keeper_env = {
+    CHAIN_ID                        = tostring(var.keeper_chain_id)
+    DCA_STRATEGY_MANAGER            = var.keeper_dca_strategy_manager
+    SUBGRAPH_URL                    = var.keeper_subgraph_url
+    ENSO_API_URL                    = var.keeper_enso_api_url
+    MAX_CONCURRENT_EXECUTIONS       = tostring(var.keeper_max_concurrent_executions)
+    TX_CONFIRMATION_TIMEOUT_SECONDS = tostring(var.keeper_tx_confirmation_timeout)
+    LOG_LEVEL                       = var.keeper_log_level
+    KEEPER_RUN_ONCE                 = "1"
+  }
+
+  # Secret DCA keeper config (written to SSM SecureStrings, read at runtime).
+  keeper_secrets = {
+    RPC_URL            = var.keeper_rpc_url
+    KEEPER_PRIVATE_KEY = var.keeper_private_key
+    ENSO_API_KEY       = var.keeper_enso_api_key
+  }
 }
 
 module "vpc" {
@@ -110,6 +129,20 @@ module "gov_alert_bot" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
   tags       = local.common_tags
+}
+
+# Scheduled one-shot DCA keeper. Runs the keeper checks (subgraph -> checkUpkeep
+# -> Enso -> executeStrategy) once per invocation; EventBridge fires it on
+# var.keeper_schedule_expression (default every 10 minutes). No VPC needed —
+# RPC/subgraph/Enso are public HTTPS endpoints.
+module "dca_keeper" {
+  source              = "./modules/lambda_keeper"
+  function_name       = "summer-earn-dca-keeper"
+  schedule_expression = var.keeper_schedule_expression
+  ssm_prefix          = "/dca-keeper/summer-earn-dca-keeper"
+  environment         = local.keeper_env
+  secrets             = local.keeper_secrets
+  tags                = local.common_tags
 }
 
 moved {

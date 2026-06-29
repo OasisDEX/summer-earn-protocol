@@ -21,9 +21,26 @@ on-chain manager. MVP scope: one signer, one chain (Base), one process.
 
 - `dca_keeper.py` — entire bot. Self-contained ABI (just `checkUpkeep` +
   `executeStrategy`) so no dependency on the compiled artifact.
-- `requirements.txt` — `web3.py`, `aiohttp`, `eth-account`, `python-dotenv`.
+- `requirements.txt` — `web3.py`, `aiohttp`, `eth-account`, `python-dotenv`,
+  `boto3` (Lambda SSM fetch).
 - `.env.example` — config surface (RPC, manager address, subgraph URL, Enso
   endpoint, signer key, gas caps).
+- `lambda_function.py` — AWS Lambda handler for the **scheduled one-shot** run.
+  Fetches SecureString secrets from SSM (prefix `KEEPER_SSM_PREFIX`) into the
+  env, then runs `_main(run_once=True)`.
+- `Dockerfile` — container image (`public.ecr.aws/lambda/python:3.12`) for the
+  Lambda; infra lives in `infrastructure/modules/lambda_keeper` (cadence =
+  `var.keeper_schedule_expression`, default every 10 min).
+
+## Run modes
+
+- **Continuous** (default; local/host): `python dca_keeper.py` → `run_forever()`
+  loops every `POLL_INTERVAL_SECONDS`.
+- **One-shot** (scheduled Lambda): `python dca_keeper.py --once`, or set
+  `KEEPER_RUN_ONCE=1` → `run_once()` does a single `_tick()` and exits. The
+  in-memory nonce is re-derived from the chain's `pending` count each run, so
+  one-shot invocations are safe; `lambda_keeper` sets
+  `reserved_concurrent_executions = 1` so passes never overlap.
 
 ## Flow per tick
 
@@ -79,6 +96,7 @@ Logs go to stdout at `LOG_LEVEL=INFO` by default. Each strategy logs its
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-29 — claude — added one-shot run mode (`--once` / `KEEPER_RUN_ONCE=1` → `run_once()` does a single `_tick()`); `_main(run_once)` branches between one-shot and `run_forever`. New `lambda_function.py` handler (fetches SSM SecureString secrets → `_main(run_once=True)`) + `Dockerfile` for a container Lambda. Scheduled via new Terraform `infrastructure/modules/lambda_keeper` (`module "dca_keeper"`, EventBridge `var.keeper_schedule_expression` default `rate(10 minutes)`, `reserved_concurrent_executions = 1`). Deploy workflow `.github/workflows/deploy-dca-keeper.yaml`; OIDC role gained `lambda:UpdateFunctionCode`. No change to the ABI / `StrategyConfig` tuple / flow.
 - 2026-06-19 — claude — lockstep with contract CL-1: `StrategyConfig` feeds are now
   `ChainlinkFeed (address feed, uint256 maxStaleness)` tuples. Inline `DCA_MANAGER_ABI`
   feed components nested in both `checkUpkeep`/`executeStrategy`; `StrategyConfig`
