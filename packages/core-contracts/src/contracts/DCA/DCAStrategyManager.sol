@@ -486,6 +486,18 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // The Permit2 sub-allowance above is necessary but not sufficient: the
+        // pull ultimately runs `sourceVault.transferFrom` with PERMIT2 as spender,
+        // so the owner's standard ERC20 approval to PERMIT2 must also cover it.
+        if (
+            IERC20(address(config.sourceVault)).allowance(
+                config.owner,
+                address(PERMIT2)
+            ) < config.tradeAmount
+        ) {
+            return (false, performData);
+        }
+
         // Both fleets must have share-token transfers enabled: execution pulls
         // source shares from the owner and forwards target shares back to them —
         // both are gated transfers that would revert otherwise.

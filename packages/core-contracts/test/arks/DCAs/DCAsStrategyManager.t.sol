@@ -4366,6 +4366,36 @@ contract DCAStrategyManagerIntegrationTest is Test {
         dcaManager.checkUpkeep(strategyId, config);
     }
 
+    /// @dev checkUpkeep must return false when the owner's standard ERC20 approval
+    /// to Permit2 (sourceVault.approve(PERMIT2, ...)) is below tradeAmount: the
+    /// Permit2 sub-allowance can be live yet the pull still reverts because
+    /// PERMIT2.transferFrom runs sourceVault.transferFrom with PERMIT2 as spender.
+    /// (Surfaced by the Codex second-opinion review.)
+    function test_CheckUpkeep_ReturnsFalseWhenPermit2Erc20ApprovalInsufficient()
+        public
+    {
+        uint256 endDate = block.timestamp + 365 days;
+        uint256 strategyId = _createStrategy(endDate);
+        IDCAStrategyManager.StrategyConfig memory config = _buildConfig(
+            endDate
+        );
+
+        vm.warp(block.timestamp + 7 days);
+
+        (bool readyBefore, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertTrue(readyBefore, "precondition: ready with max ERC20 approval");
+
+        // Revoke the underlying ERC20 approval to Permit2; sub-allowance untouched.
+        vm.prank(strategyOwner);
+        IERC20(address(sourceFleet)).approve(PERMIT2, 0);
+
+        (bool upkeepNeeded, ) = dcaManager.checkUpkeep(strategyId, config);
+        assertFalse(
+            upkeepNeeded,
+            "checkUpkeep must be false when the ERC20 approval to Permit2 is insufficient"
+        );
+    }
+
     // =========================================================
     // F11 — createStrategy rejects tradeAmount > uint160 max
     // =========================================================
