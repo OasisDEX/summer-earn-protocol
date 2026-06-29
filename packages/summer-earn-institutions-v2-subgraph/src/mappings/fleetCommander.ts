@@ -76,7 +76,7 @@ export function handleArkAdded(event: ArkAdded): void {
   const institution = Institution.load(vault.institution)
   if (institution) {
     // event.address is the FleetCommander (this template's data source).
-    backfillArkCommanderRole(institution, event.address, event.params.ark, event.block)
+    backfillArkCommanderRole(institution, event.address, event.params.ark)
   }
   ark.vault = vault.id
   ark.save()

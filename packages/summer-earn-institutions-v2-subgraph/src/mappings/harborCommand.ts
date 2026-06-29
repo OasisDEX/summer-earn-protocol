@@ -51,7 +51,6 @@ export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): voi
         institution,
         event.params.fleetCommander,
         Address.fromString(arks[i]),
-        event.block,
       )
     }
   }

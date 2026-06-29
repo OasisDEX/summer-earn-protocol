@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/templates/HarborCommand/ERC20'
 import {
   AccessController,
@@ -51,7 +51,7 @@ import {
 import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { ADDRESS_ZERO, BigIntConstants, RewardTokenType } from './constants'
-import { generateContractSpecificRole, hasRole } from './hashHelpers'
+import { generateContractSpecificRole } from './hashHelpers'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -1004,35 +1004,31 @@ export function getOrCreateRole(id: string): Role {
 // that bootstraps the fleet's data-source template. So the grant's RoleGranted
 // event can't resolve the target and leaves the role undecoded. We resolve it
 // once the ark is known — at enlist bootstrap (initial arks) and in
-// handleArkAdded (arks added later). targetContract is the fleet by design,
-// mirroring how CURATOR is stored against the fleet.
+// handleArkAdded (arks added later).
+//
+// Resolution is by entity existence only: the grant already created the Role
+// (handleRoleGranted), so we just enhance it when its COMMANDER-on-ark hash
+// matches. No on-chain call — that's deliberate; binding ProtocolAccessManager
+// here would need its ABI in every calling data source's manifest and would
+// halt indexing where it's absent (e.g. HarborCommand). targetContract is the
+// fleet by design, mirroring how CURATOR is stored against the fleet.
 export function backfillArkCommanderRole(
   institution: Institution,
   fleet: Address,
   ark: Address,
-  block: ethereum.Block,
 ): void {
-  const pam = institution.protocolAccessManager
   const roleHash = generateContractSpecificRole(
     constants.ContractSpecificRole.COMMANDER_ROLE,
     ark.toHexString(),
   )
-  if (!hasRole(Bytes.fromHexString(roleHash), fleet, Address.fromString(pam))) {
-    return
-  }
-  const id = `${pam}-${roleHash}-${fleet.toHexString()}`
-  let role = Role.load(id)
+  const id = `${institution.protocolAccessManager}-${roleHash}-${fleet.toHexString()}`
+  const role = Role.load(id)
   if (role == null) {
-    role = new Role(id)
-    role.createdTimestamp = block.timestamp
-    role.createdBlockNumber = block.number
+    return
   }
   role.active = true
   role.name = constants.RoleName.COMMANDER_ROLE
-  role.owner = fleet.toHexString()
   role.targetContract = fleet.toHexString()
-  role.accessController = pam
-  role.institution = institution.id
   role.save()
 }
 
