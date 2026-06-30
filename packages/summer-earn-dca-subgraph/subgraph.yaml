@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: DCAStrategyManager
-    network: base
+    network: mainnet
     source:
       abi: DCAStrategyManager
-      address: "0x659d087B158008ce37FabF963Af329Ca59cE952a"
-      startBlock: 48016006
+      address: "0xa0d3E060A43B980E12e688c0607c250F9F53985D"
+      startBlock: 25430408
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -45,11 +45,11 @@ dataSources:
       file: ./src/mappings/dcaStrategyManager.ts
   - kind: ethereum/contract
     name: BootstrapProxyUsdc
-    network: base
+    network: mainnet
     source:
       abi: AggregatorProxy
-      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
-      startBlock: 47411206
+      address: "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6"
+      startBlock: 25329608
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -72,11 +72,11 @@ dataSources:
       file: ./src/mappings/chainlinkProxy.ts
   - kind: ethereum/contract
     name: BootstrapProxyEth
-    network: base
+    network: mainnet
     source:
       abi: AggregatorProxy
-      address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
-      startBlock: 47411206
+      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+      startBlock: 25329608
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -100,7 +100,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: ChainlinkProxy
-    network: base
+    network: mainnet
     source:
       abi: AggregatorProxy
     mapping:
@@ -125,7 +125,7 @@ templates:
       file: ./src/mappings/chainlinkProxy.ts
   - kind: ethereum/contract
     name: ChainlinkAggregator
-    network: base
+    network: mainnet
     source:
       abi: AggregatorV3Interface
     mapping:
