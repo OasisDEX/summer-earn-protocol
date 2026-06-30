@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode,Suspense } from 'react'
+import { type ReactNode, Suspense } from 'react'
 
 import { ChainAwareLink } from '@/components/shell/ChainAwareLink'
 import { ChainSwitcher } from '@/components/shell/ChainSwitcher'
