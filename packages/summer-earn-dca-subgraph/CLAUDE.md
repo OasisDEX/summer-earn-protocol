@@ -14,9 +14,17 @@ Siblings: [contract](../core-contracts/src/contracts/DCA/CLAUDE.md) ·
 
 ---
 
-Goldsky subgraph indexing `DCAStrategyManager` events on Base. Slug:
-`summer-dca-base`. Fronted by the staging proxy
-`https://subgraph.staging.oasisapp.dev/summer-dca-base`.
+Goldsky subgraph indexing `DCAStrategyManager` events. **Multichain**: one
+deployment per chain off the same `subgraph.template.yaml`, selected by
+`config/<network>.json` via `prepare:<network>`.
+
+- **Base** — slug `summer-dca-base`, proxy
+  `https://subgraph.staging.oasisapp.dev/summer-dca-base`.
+- **Ethereum mainnet** — slug `summer-dca`, proxy
+  `https://subgraph.staging.oasisapp.dev/summer-dca`.
+
+`deploy:base` / `deploy:mainnet` / `deploy:all` each render the manifest for
+that chain and push to its slug under the current `package.json` version.
 
 ## Files
 
@@ -142,6 +150,7 @@ pnpm --filter @summerfi/summer-earn-dca-subgraph run deploy:base  # Goldsky CLI
 <!-- One line per material change. Most recent on top.
 Format: YYYY-MM-DD — author — one-sentence summary. -->
 
+- 2026-06-30 — claude — **multichain (Base + Ethereum mainnet) for the v5 manager.** Filled `config/mainnet.json` (was a zero-address placeholder) and re-pointed `config/base.json` off the stale v3 manager; documented both Goldsky slugs (`summer-dca-base`, `summer-dca`). Bumped `package.json` 0.1.4 → 0.2.0 (the version drives the deploy tag). No template/mapping/schema/ABI change — v5 only added an error (already ABI-synced 2026-06-29). **Addresses + start-blocks are interim v4 values to keep the manifest buildable; the real v5 addresses + deploy blocks are swapped in post-deploy** (bd `aphelion-app-4z5`), after `pnpm deploy:dca` writes them to `packages/deployment/config/index.json`. Not built locally — graph CLI absent; run `pnpm run build:base` / `build:mainnet`.
 - 2026-06-29 — claude — ABI-only sync with core-contracts audit follow-ups (PR #875): regenerated `abis/DCAStrategyManager.json` to add the new `TradeAmountTooLarge` error (contract F11). Errors are not indexed, so no mapping/manifest/schema change and no redeploy needed — the regen just keeps the ABI drift-free for the next contract change.
 - 2026-06-19 — claude — lockstep with contract CL-1: `StrategyConfig` feeds are now `ChainlinkFeed (address feed, uint256 maxStaleness)` tuples. Regenerated `abis/DCAStrategyManager.json`; updated the `StrategyCreated`/`StrategyEdited` tuple type in `subgraph.template.yaml` (feeds → `(address,uint256)`); `schema.graphql` gained `Strategy.in/outAssetFeedStaleness: BigInt!`; mappings now read `cfg.{in,out}AssetFeed.feed` / `.maxStaleness` (and `registerFeed(cfg.*.feed)`). **Not verified locally — graph CLI absent; run `pnpm run build:base` to codegen+compile.** Schema/wire break → full re-index on redeploy.
 - 2026-05-28 — claude — ABI sync after contract security fixes. `ExecutionCompleted` event reshaped to `(strategyId, tradesExecuted, inShares, outShares, inAssets, outAssets, nextTriggerAt)` — 7 params, was 5. Manifest event signature updated in lockstep. `Execution` entity renamed `amountIn`/`amountOut` → `inAssets`/`outAssets` (asset-denominated) and gained `inShares`/`outShares` (raw vault-share counts); `Strategy.totalInAssetSwapped` / `totalOutAssetReceived` are now correctly fed with asset amounts (was shares — latent bug). Schema-breaking; requires full re-index from start block on redeploy.
