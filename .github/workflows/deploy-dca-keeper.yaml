@@ -1,0 +1,73 @@
+name: Deploy DCA Keeper to AWS Lambda
+
+# Serialize deploys so a slower older run can't finish after a newer one and
+# roll the Lambda back to a stale image.
+concurrency:
+  group: deploy-dca-keeper
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/core-contracts/scripts/dca-keeper/**'
+
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: summer-earn-dca-keeper
+  LAMBDA_FUNCTION: summer-earn-dca-keeper
+  KEEPER_DIR: packages/core-contracts/scripts/dca-keeper
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            "$KEEPER_DIR"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Update Lambda function code
+        env:
+          IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
+        run: |
+          # On the very first run the function does not exist yet — the image is
+          # pushed above and `terraform apply` creates the function from :latest.
+          if aws lambda get-function --function-name "$LAMBDA_FUNCTION" >/dev/null 2>&1; then
+            aws lambda update-function-code \
+              --function-name "$LAMBDA_FUNCTION" \
+              --image-uri "$IMAGE_URI"
+            aws lambda wait function-updated-v2 --function-name "$LAMBDA_FUNCTION"
+            echo "Updated $LAMBDA_FUNCTION to $IMAGE_URI"
+          else
+            echo "Lambda $LAMBDA_FUNCTION not found (bootstrap). Image pushed; run 'terraform apply' to create it."
+          fi

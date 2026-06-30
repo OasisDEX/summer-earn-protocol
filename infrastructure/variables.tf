@@ -84,3 +84,80 @@ variable "cron_secret" {
   sensitive   = true
   default     = ""
 }
+
+# ---------------------------------------------------------------- DCA keeper Lambda
+
+variable "keeper_schedule_expression" {
+  description = "EventBridge schedule for the DCA keeper Lambda. Change this to adjust the cadence (e.g. 'rate(10 minutes)', 'rate(5 minutes)', 'cron(...)')."
+  type        = string
+  default     = "rate(10 minutes)"
+  nullable    = false
+}
+
+variable "keeper_chain_id" {
+  description = "Chain ID the keeper operates on (Base mainnet = 8453)"
+  type        = number
+  default     = 8453
+  nullable    = false
+}
+
+variable "keeper_dca_strategy_manager" {
+  description = "DCAStrategyManager contract address the keeper executes against"
+  type        = string
+  default     = ""
+}
+
+variable "keeper_subgraph_url" {
+  description = "DCA subgraph GraphQL endpoint the keeper polls"
+  type        = string
+  default     = ""
+}
+
+variable "keeper_enso_api_url" {
+  description = "Enso router API base URL"
+  type        = string
+  default     = "https://api.enso.finance/api/v1"
+  nullable    = false
+}
+
+variable "keeper_max_concurrent_executions" {
+  description = "Max strategies the keeper processes concurrently within a single pass"
+  type        = number
+  default     = 3
+  nullable    = false
+}
+
+variable "keeper_tx_confirmation_timeout" {
+  description = "Seconds the keeper waits for a tx receipt before moving on (kept short for one-shot Lambda runs)"
+  type        = number
+  default     = 60
+  nullable    = false
+}
+
+variable "keeper_log_level" {
+  description = "Keeper log level (DEBUG/INFO/WARNING/ERROR)"
+  type        = string
+  default     = "INFO"
+  nullable    = false
+}
+
+variable "keeper_rpc_url" {
+  description = "RPC endpoint for the keeper's chain (stored as an SSM SecureString)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "keeper_private_key" {
+  description = "Keeper EOA private key (stored as an SSM SecureString)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "keeper_enso_api_key" {
+  description = "Enso API key, optional (stored as an SSM SecureString)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

@@ -17,6 +17,7 @@ Reads config from .env (see .env.example). Run with:
     python dca_keeper.py
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -308,6 +309,16 @@ class DCAKeeper:
             elapsed = time.monotonic() - tick_started
             await asyncio.sleep(max(0.0, self.poll_interval - elapsed))
 
+    async def run_once(self) -> None:
+        """Run a single keeper pass and return. Used by the scheduled Lambda."""
+        log.info(
+            "Keeper one-shot. signer=%s manager=%s chain=%d",
+            self.account.address,
+            self.manager_address,
+            self.chain_id,
+        )
+        await self._tick()
+
     # ------------------------------------------------------------------ tick
 
     async def _tick(self) -> None:
@@ -578,7 +589,7 @@ def _require_env(key: str) -> str:
     return v
 
 
-async def _main() -> None:
+async def _main(run_once: bool = False) -> None:
     load_dotenv()
     rpc_url = _require_env("RPC_URL")
     chain_id = int(_require_env("CHAIN_ID"))
@@ -607,11 +618,32 @@ async def _main() -> None:
         priority_fee_wei=priority_fee_wei,
         tx_timeout=tx_timeout,
     ) as keeper:
-        await keeper.run_forever()
+        if run_once:
+            await keeper.run_once()
+        else:
+            await keeper.run_forever()
+
+
+def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="DCA keeper bot")
+    env_once = os.environ.get("KEEPER_RUN_ONCE", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        default=env_once,
+        help="Do a single keeper pass and exit instead of looping forever. "
+        "Also enabled by KEEPER_RUN_ONCE=1 (used by the scheduled Lambda).",
+    )
+    return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
+    args = _parse_args()
     try:
-        asyncio.run(_main())
+        asyncio.run(_main(run_once=args.once))
     except KeyboardInterrupt:
         log.info("Keeper stopped by user")
