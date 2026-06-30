@@ -40,6 +40,9 @@ export interface WalletSection {
   safeUrl?: string
   // Representative wallet address (Base where available) for display/explorer links.
   address?: string
+  // Full per-chain address map so the view can link to the correct address for the
+  // selected chain (e.g. Sonic/HyperEVM use different timelocks than Base).
+  addresses: Partial<Record<SupportedChainId, string>>
   totalValue: number
   value: string
   holdings: TreasuryHolding[]
@@ -257,6 +260,7 @@ export async function fetchTreasuryBalances(): Promise<TreasuryData> {
         externalUrl: wallet.externalUrl,
         safeUrl: wallet.safeUrl,
         address,
+        addresses: wallet.addresses,
         totalValue,
         value: formatUsd(totalValue),
         holdings,

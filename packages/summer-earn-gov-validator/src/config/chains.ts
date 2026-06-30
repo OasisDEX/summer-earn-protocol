@@ -54,7 +54,9 @@ export const CHAIN_THEMES: Record<string, ChainTheme> = {
 
 export const getChainTheme = (network?: string): ChainTheme => {
   if (!network) return CHAIN_THEMES.base // Default to base as requested
-  const normalized = network.toLowerCase()
+  const lower = network.toLowerCase()
+  // The user-facing label is "HyperEVM" but the theme key is still "hyperliquid".
+  const normalized = lower === 'hyperevm' ? 'hyperliquid' : lower
   return CHAIN_THEMES[normalized] || CHAIN_THEMES.base
 }
 // --- Constants & Config ---
