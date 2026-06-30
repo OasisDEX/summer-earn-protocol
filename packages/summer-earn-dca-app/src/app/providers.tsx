@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createAppKit } from '@reown/appkit'
-import { base as appkitBase } from '@reown/appkit/networks'
+import { base as appkitBase, mainnet as appkitMainnet } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { WagmiProvider } from 'wagmi'
-import { base } from 'wagmi/chains'
+import { base, mainnet } from 'wagmi/chains'
 
 import { CHAIN_RPC_URLS, createRpcTransport } from '@/config/chains'
 import { getWalletConnectProjectId } from '@/config/env'
@@ -27,7 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const projectId = getWalletConnectProjectId()
 
-  const appkitNetworks = useMemo(() => [appkitBase], []) as Parameters<
+  const appkitNetworks = useMemo(() => [appkitBase, appkitMainnet], []) as Parameters<
     typeof createAppKit
   >[0]['networks']
 
@@ -36,9 +36,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       projectId,
       ssr: true,
       networks: appkitNetworks,
-      chains: [base],
+      chains: [base, mainnet],
       transports: {
         [base.id]: createRpcTransport(CHAIN_RPC_URLS[base.id]),
+        [mainnet.id]: createRpcTransport(CHAIN_RPC_URLS[mainnet.id]),
       },
     })
   }, [projectId, appkitNetworks])

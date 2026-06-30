@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 
+import { ChainSwitcher } from '@/components/shell/ChainSwitcher'
+
 export interface Crumb {
   href?: string
   label: string
@@ -41,7 +43,10 @@ export function Topbar({ crumbs, actions }: TopbarProps) {
           )
         })}
       </div>
-      <div className="flex items-center gap-2.5">{actions}</div>
+      <div className="flex items-center gap-2.5">
+        <ChainSwitcher />
+        {actions}
+      </div>
     </div>
   )
 }

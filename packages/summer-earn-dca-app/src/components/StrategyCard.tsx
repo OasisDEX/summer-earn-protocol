@@ -17,7 +17,7 @@ import { useTokenPriceHistory } from '@/hooks/useTokenPriceHistory'
 import { formatDecimalOutput } from '@/lib/format'
 import { toStrategyConfigStruct } from '@/lib/strategy/encode'
 import type { SubgraphStrategy } from '@/lib/subgraph/types'
-import type { ChainId } from '@/types/chain'
+import { type ChainId, chainSlug } from '@/types/chain'
 
 export function StrategyCard({
   chainId,
@@ -138,7 +138,7 @@ export function StrategyCard({
             </Button>
           )}
           <Link
-            href={`/strategy/${strategy.strategyId}`}
+            href={`/strategy/${chainSlug(chainId)}/${strategy.strategyId}`}
             className="rounded-pill border border-[var(--border)] px-3 py-1 text-xs text-[var(--text-2)] transition hover:border-[var(--border-strong)] hover:text-[var(--text)]"
           >
             Open

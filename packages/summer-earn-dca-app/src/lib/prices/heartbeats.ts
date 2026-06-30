@@ -1,5 +1,5 @@
 import { type Address, getAddress } from 'viem'
-import { base } from 'wagmi/chains'
+import { base, mainnet } from 'wagmi/chains'
 
 import type { ChainId } from '@/types/chain'
 
@@ -18,6 +18,12 @@ export const HEARTBEAT_BY_FEED: Record<ChainId, Record<string, number>> = {
     [getAddress('0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70').toLowerCase()]: 1200,
     // USDC/USD — Base proxy, 24h heartbeat
     [getAddress('0x7e860098F58bBFC8648a4311b374B1D669a2bc6B').toLowerCase()]: 86_400,
+  },
+  [mainnet.id]: {
+    // ETH/USD — mainnet proxy, 1h heartbeat
+    [getAddress('0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419').toLowerCase()]: 3600,
+    // USDC/USD — mainnet proxy, 24h heartbeat
+    [getAddress('0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6').toLowerCase()]: 86_400,
   },
 }
 

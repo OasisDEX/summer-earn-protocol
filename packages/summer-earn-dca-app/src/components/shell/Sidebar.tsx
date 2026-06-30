@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { formatUnits } from 'viem'
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
-import { base } from 'wagmi/chains'
 
+import { useActiveChain } from '@/hooks/useActiveChain'
 import { shortAddress } from '@/lib/format'
+import { chainSlug } from '@/types/chain'
 
 interface NavItem {
   href: string
@@ -31,7 +32,9 @@ export function Sidebar() {
   const pathname = usePathname() ?? '/'
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
-  const balance = useBalance({ address, chainId: base.id })
+  const activeChainId = useActiveChain()
+  const slug = chainSlug(activeChainId)
+  const balance = useBalance({ address, chainId: Number(activeChainId) })
 
   return (
     <aside className="sticky top-0 flex h-screen flex-col gap-6 border-r border-[var(--border-faint)] bg-[rgba(8,8,12,0.6)] px-4 py-6 backdrop-blur-[20px]">
@@ -57,10 +60,12 @@ export function Sidebar() {
         </div>
         {NAV.map((item) => {
           const active = item.match(pathname)
-          const href =
+          const base =
             item.href === '/portfolio' && address
               ? `/portfolio/${address.toLowerCase()}`
               : item.href
+          // Carry the active chain so the destination keeps the current chain.
+          const href = `${base}?chain=${slug}`
           return (
             <Link
               key={item.href}
