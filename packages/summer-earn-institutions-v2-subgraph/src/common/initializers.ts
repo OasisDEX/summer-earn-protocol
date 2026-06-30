@@ -734,6 +734,16 @@ export function getOrCreateVaultsPostActionSnapshots(
   return vaultSnapshots
 }
 
+// Convert a position's share (output token) balance into input-token terms.
+// Guards div-by-zero: a vault can have positions while outputTokenSupply == 0
+// (e.g. fully redeemed at the snapshot block); dividing then halts indexing.
+function sharesToInputTokens(outputBalance: BigInt, vault: Vault): BigInt {
+  if (vault.outputTokenSupply.le(constants.BIGINT_ZERO)) {
+    return constants.BIGINT_ZERO
+  }
+  return outputBalance.times(vault.inputTokenBalance).div(vault.outputTokenSupply)
+}
+
 export function getOrCreatePositionHourlySnapshot(
   positionId: string,
   vault: Vault,
@@ -757,19 +767,14 @@ export function getOrCreatePositionHourlySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    position.inputTokenBalance = position.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
-    position.stakedInputTokenBalance = position.stakedOutputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
-    position.unstakedInputTokenBalance = position.unstakedOutputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    position.inputTokenBalance = sharesToInputTokens(position.outputTokenBalance, vault)
+    position.stakedInputTokenBalance = sharesToInputTokens(position.stakedOutputTokenBalance, vault)
+    position.unstakedInputTokenBalance = sharesToInputTokens(
+      position.unstakedOutputTokenBalance,
+      vault,
+    )
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalance = sharesToInputTokens(snapshot.outputTokenBalance, vault)
 
     // Update normalized values
     position.inputTokenBalanceNormalized = utils.formatAmount(
@@ -834,9 +839,7 @@ export function getOrCreatePositionDailySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalance = sharesToInputTokens(snapshot.outputTokenBalance, vault)
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
@@ -877,9 +880,7 @@ export function getOrCreatePositionWeeklySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalance = sharesToInputTokens(snapshot.outputTokenBalance, vault)
 
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
