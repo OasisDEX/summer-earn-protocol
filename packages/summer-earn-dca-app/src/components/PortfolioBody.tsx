@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { useStrategiesByOwner } from '@/hooks/useDcaSubgraph'
 import { shortAddress } from '@/lib/format'
 import type { SubgraphStrategy } from '@/lib/subgraph/types'
-import type { ChainId } from '@/types/chain'
+import { type ChainId, chainSlug } from '@/types/chain'
 
 interface Props {
   chainId: ChainId
@@ -29,9 +29,9 @@ export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props)
   // /portfolio/{address} route so the next paint is server-rendered.
   useEffect(() => {
     if (walletAddr && !urlAddress) {
-      router.replace(`/portfolio/${walletAddr.toLowerCase()}`)
+      router.replace(`/portfolio/${walletAddr.toLowerCase()}?chain=${chainSlug(chainId)}`)
     }
-  }, [walletAddr, urlAddress, router])
+  }, [walletAddr, urlAddress, router, chainId])
 
   const effectiveOwner = urlAddress ?? walletAddr
 
@@ -73,7 +73,7 @@ export function PortfolioBody({ chainId, urlAddress, initialStrategies }: Props)
             Viewing {shortAddress(urlAddress!)} — read-only. Connect as that wallet to edit or pause
             strategies.
           </span>
-          <Link href={`/portfolio/${walletAddr.toLowerCase()}`}>
+          <Link href={`/portfolio/${walletAddr.toLowerCase()}?chain=${chainSlug(chainId)}`}>
             <Button variant="ghost" size="sm">
               View my portfolio
             </Button>

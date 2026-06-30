@@ -1,22 +1,13 @@
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
-# Image registry for the keeper. MUTABLE (unlike ecs_worker, which is IMMUTABLE)
-# because the Lambda is bootstrapped from a stable `:latest` tag the CI workflow
-# re-pushes each deploy; per-deploy traceability uses the immutable `:<sha>` tag
-# that CI passes to update-function-code.
-resource "aws_ecr_repository" "this" {
-  name                 = var.function_name
-  image_tag_mutability = "MUTABLE"
-  force_delete         = var.force_delete
-
-  # Scan pushed images for known CVEs before they reach the production Lambda.
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  tags = var.tags
-}
+# NOTE: this module is instantiated ONCE PER CHAIN (see infrastructure/main.tf's
+# `module "dca_keeper"` for_each over var.keeper_chains). The image registry
+# (ECR) and the secrets CMK are shared singletons created in the root module and
+# passed in via `ecr_repository_url` / `kms_key_arn`, so every chain keeper runs
+# the same image and decrypts against one key. Per-chain isolation lives here:
+# its own Lambda (reserved_concurrency = 1 → nonce safety per chain), schedule,
+# SSM prefix, IAM role, and log group.
 
 resource "aws_cloudwatch_log_group" "this" {
   name              = "/aws/lambda/${var.function_name}"
@@ -25,33 +16,18 @@ resource "aws_cloudwatch_log_group" "this" {
   tags = var.tags
 }
 
-# ---------------------------------------------------------------- secrets (KMS + SSM)
+# ---------------------------------------------------------------- secrets (SSM)
 
-# Customer-managed KMS key for the keeper's SecureString secrets (a signer key).
-# A dedicated CMK isolates it from the shared aws/ssm default key, satisfies
-# CKV_AWS_337, and lets the Lambda role's kms:Decrypt be scoped to this key ARN.
-resource "aws_kms_key" "secrets" {
-  description             = "${var.function_name} SSM SecureString secrets"
-  enable_key_rotation     = true
-  deletion_window_in_days = 7
-
-  tags = var.tags
-}
-
-resource "aws_kms_alias" "secrets" {
-  name          = "alias/${var.function_name}-secrets"
-  target_key_id = aws_kms_key.secrets.key_id
-}
-
-# One SecureString per secret under the keeper's prefix. Mirrors the amplify_app
-# pattern: an empty value writes a REPLACE_ME placeholder so the parameter exists
-# and can be filled in the SSM console without leaking through tfstate.
+# One SecureString per secret under the keeper's per-chain prefix. Mirrors the
+# amplify_app pattern: an empty value writes a REPLACE_ME placeholder so the
+# parameter exists and can be filled in the SSM console without leaking through
+# tfstate. Encrypted with the shared keeper CMK (var.kms_key_arn).
 resource "aws_ssm_parameter" "secrets" {
   for_each = var.secrets
 
   name   = "${var.ssm_prefix}/${each.key}"
   type   = "SecureString"
-  key_id = aws_kms_key.secrets.arn
+  key_id = var.kms_key_arn
   value  = nonsensitive(each.value) == "" ? "REPLACE_ME_IN_SSM_CONSOLE" : each.value
 
   # Manage only the parameter's existence, not its value: operators fill the real
@@ -100,11 +76,11 @@ data "aws_iam_policy_document" "ssm_read" {
     ]
   }
 
-  # Scoped to the keeper's dedicated CMK only (the SSM SecureStrings use it).
+  # Scoped to the shared keeper CMK only (the SSM SecureStrings use it).
   statement {
     sid       = "DecryptKeeperSecrets"
     actions   = ["kms:Decrypt"]
-    resources = [aws_kms_key.secrets.arn]
+    resources = [var.kms_key_arn]
   }
 }
 
@@ -120,7 +96,7 @@ resource "aws_lambda_function" "this" {
   function_name = var.function_name
   role          = aws_iam_role.this.arn
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
+  image_uri     = "${var.ecr_repository_url}:${var.image_tag}"
   architectures = var.architectures
   timeout       = var.timeout
   memory_size   = var.memory_size

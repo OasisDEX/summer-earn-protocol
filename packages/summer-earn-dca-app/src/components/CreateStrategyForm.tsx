@@ -20,7 +20,7 @@ import { shortAddress } from '@/lib/format'
 import { computeCommitment } from '@/lib/strategy/commitment'
 import { buildCreateTuple } from '@/lib/strategy/encode'
 import { INTERVAL_PRESETS, validateInterval } from '@/lib/strategy/intervals'
-import type { ChainId } from '@/types/chain'
+import { type ChainId, chainSlug } from '@/types/chain'
 
 interface CreateStrategyFormProps {
   chainId: ChainId
@@ -139,7 +139,7 @@ export function CreateStrategyForm({ chainId }: CreateStrategyFormProps) {
 
   const actions = useDcaStrategyActions({
     chainId,
-    onCreated: (id) => router.push(`/strategy/${id.toString()}`),
+    onCreated: (id) => router.push(`/strategy/${chainSlug(chainId)}/${id.toString()}`),
   })
 
   const tuple = useMemo(() => {

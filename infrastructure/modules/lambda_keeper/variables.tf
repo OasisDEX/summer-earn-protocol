@@ -1,5 +1,17 @@
 variable "function_name" {
-  description = "Name of the Lambda function (also the ECR repository name)"
+  description = "Name of the Lambda function (per-chain, e.g. summer-earn-dca-keeper-base)"
+  type        = string
+  nullable    = false
+}
+
+variable "ecr_repository_url" {
+  description = "URL of the shared keeper ECR repository (created once in the root module). The Lambda image is this URL joined with image_tag."
+  type        = string
+  nullable    = false
+}
+
+variable "kms_key_arn" {
+  description = "ARN of the shared CMK that encrypts the keeper's SSM SecureString secrets (created once in the root module)."
   type        = string
   nullable    = false
 }
@@ -52,12 +64,6 @@ variable "log_retention_days" {
   default     = 7
 }
 
-variable "force_delete" {
-  description = "Whether to force-delete the ECR repository (including all images) on destroy"
-  type        = bool
-  default     = false
-}
-
 variable "ssm_prefix" {
   description = "SSM Parameter Store path prefix for the keeper's SecureString secrets, e.g. '/dca-keeper/summer-earn-dca-keeper'"
   type        = string
@@ -69,8 +75,9 @@ variable "secrets" {
   type        = map(string)
   default     = {}
   # NOT marked sensitive: the map drives for_each, which forbids sensitive keys.
-  # Values stay sensitive via their source root vars (keeper_rpc_url, …), and
-  # are written to SecureString params. Mirrors the amplify_app secrets pattern.
+  # Values stay sensitive via their source root vars (keeper_private_key, the
+  # per-chain rpc_url, …) and are written to SecureString params. Mirrors the
+  # amplify_app secrets pattern.
 }
 
 variable "environment" {

@@ -1,5 +1,5 @@
 import { type Address, getAddress } from 'viem'
-import { base } from 'wagmi/chains'
+import { base, mainnet } from 'wagmi/chains'
 
 import type { ChainId } from '@/types/chain'
 
@@ -7,21 +7,24 @@ import type { ChainId } from '@/types/chain'
 // (See packages/deployment/scripts/common/constants.ts:7)
 export const PERMIT2_ADDRESS: Address = getAddress('0x000000000022D473030F116dDEE9F6B43aC78BA3')
 
-// DCAStrategyManager deployment per chain.
-// (See packages/deployment/config/index.json — base.dca.dcaStrategyManager)
+// DCAStrategyManager v5 (audited — PR #875), per chain.
+// (See packages/deployment/config/index.json — {base,mainnet}.dca.dcaStrategyManager)
 export const DCA_STRATEGY_MANAGER_ADDRESSES: Record<ChainId, Address> = {
-  [base.id]: getAddress('0xc7de5CFE86ebEfb80b01014549D6eB0041Af9c72'),
+  [base.id]: getAddress('0x659d087B158008ce37FabF963Af329Ca59cE952a'),
+  [mainnet.id]: getAddress('0xa0d3E060A43B980E12e688c0607c250F9F53985D'),
 }
 
 // HarborCommand (active FleetCommander registry).
 // Same address on base + mainnet (per packages/deployment/config/index.json).
 export const HARBOR_COMMAND_ADDRESSES: Record<ChainId, Address> = {
   [base.id]: getAddress('0x09eb323dBFECB43fd746c607A9321dACdfB0140F'),
+  [mainnet.id]: getAddress('0x09eb323dBFECB43fd746c607A9321dACdfB0140F'),
 }
 
 // EnsoRouter — informational only (used by the keeper, not the FE).
 export const ENSO_ROUTER_ADDRESSES: Record<ChainId, Address> = {
   [base.id]: getAddress('0xf75584ef6673ad213a685a1b58cc0330b8ea22cf'),
+  [mainnet.id]: getAddress('0xf75584ef6673ad213a685a1b58cc0330b8ea22cf'),
 }
 
 // Known underlying token addresses on Base. Used to label fleet dropdowns,
@@ -49,6 +52,14 @@ export const KNOWN_TOKEN_ADDRESSES: Record<
     // protocol team finalises the canonical Base wrapper.
     arb: getAddress('0xCF8e54a5af20C99e8DcF45d9D6b41AA6B7B3A2F2'),
     link: getAddress('0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196'),
+  },
+  [mainnet.id]: {
+    weth: getAddress('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'),
+    usdc: getAddress('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'),
+    wbtc: getAddress('0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'),
+    dai: getAddress('0x6B175474E89094C44Da98b954EedeAC495271d0F'),
+    arb: getAddress('0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1'),
+    link: getAddress('0x514910771AF9Ca656af840dff83E8264EcF986CA'),
   },
 }
 
@@ -82,6 +93,33 @@ export const FEED_BY_ASSET_ADDRESS: Record<ChainId, Record<string, Address>> = {
     ),
     [KNOWN_TOKEN_ADDRESSES[base.id].link.toLowerCase()]: getAddress(
       '0x17CAb8FE31E32f08326e5E27412894e49B0f9D65',
+    ),
+  },
+  // Mainnet-native Chainlink feeds (data.chain.link/ethereum-mainnet):
+  //   ETH/USD   : 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+  //   USDC/USD  : 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6
+  //   BTC/USD   : 0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c
+  //   DAI/USD   : 0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9
+  //   ARB/USD   : 0x31697852a68433DbCc2Ff612c516d69E3D9bd08F
+  //   LINK/USD  : 0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c
+  [mainnet.id]: {
+    [KNOWN_TOKEN_ADDRESSES[mainnet.id].weth.toLowerCase()]: getAddress(
+      '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+    ),
+    [KNOWN_TOKEN_ADDRESSES[mainnet.id].usdc.toLowerCase()]: getAddress(
+      '0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6',
+    ),
+    [KNOWN_TOKEN_ADDRESSES[mainnet.id].wbtc.toLowerCase()]: getAddress(
+      '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
+    ),
+    [KNOWN_TOKEN_ADDRESSES[mainnet.id].dai.toLowerCase()]: getAddress(
+      '0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9',
+    ),
+    [KNOWN_TOKEN_ADDRESSES[mainnet.id].arb.toLowerCase()]: getAddress(
+      '0x31697852a68433DbCc2Ff612c516d69E3D9bd08F',
+    ),
+    [KNOWN_TOKEN_ADDRESSES[mainnet.id].link.toLowerCase()]: getAddress(
+      '0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c',
     ),
   },
 }

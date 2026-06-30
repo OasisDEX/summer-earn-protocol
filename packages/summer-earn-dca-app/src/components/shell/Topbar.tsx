@@ -1,7 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+
+import { ChainAwareLink } from '@/components/shell/ChainAwareLink'
+import { ChainSwitcher } from '@/components/shell/ChainSwitcher'
 
 export interface Crumb {
   href?: string
@@ -27,12 +29,12 @@ export function Topbar({ crumbs, actions }: TopbarProps) {
           return (
             <span key={`${crumb.label}-${idx}`} className="flex items-center gap-2.5">
               {crumb.href && !isLast ? (
-                <Link
+                <ChainAwareLink
                   href={crumb.href}
                   className="text-[var(--text-3)] no-underline transition hover:text-[var(--text)]"
                 >
                   {crumb.label}
-                </Link>
+                </ChainAwareLink>
               ) : (
                 <span className={isLast ? 'text-[var(--text)]' : undefined}>{crumb.label}</span>
               )}
@@ -41,7 +43,10 @@ export function Topbar({ crumbs, actions }: TopbarProps) {
           )
         })}
       </div>
-      <div className="flex items-center gap-2.5">{actions}</div>
+      <div className="flex items-center gap-2.5">
+        <ChainSwitcher />
+        {actions}
+      </div>
     </div>
   )
 }
