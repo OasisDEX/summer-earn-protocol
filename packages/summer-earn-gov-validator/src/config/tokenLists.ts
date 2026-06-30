@@ -103,6 +103,15 @@ export const TOKEN_LISTS: Record<SupportedChainId, TokenInfo[]> = {
       logoURI:
         'https://assets.smold.app/api/token/8453/0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb/logo-128.png',
     },
+    {
+      address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631',
+      name: 'Aerodrome',
+      symbol: 'AERO',
+      decimals: 18,
+      chainId: 8453,
+      logoURI:
+        'https://assets.smold.app/api/token/8453/0x940181a94A35A4569E4529A3CDfB74e38FD98631/logo-128.png',
+    },
   ],
   42161: [
     {

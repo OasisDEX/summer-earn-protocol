@@ -64,7 +64,7 @@ export const CHAIN_CONFIG = {
     summerToken: '0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3',
   },
   999: {
-    name: 'Hyperliquid',
+    name: 'HyperEVM',
     timelock: '0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c',
     summerToken: '0x72c527d3efDe2169AA950EFc9573C838cf125D21',
   },

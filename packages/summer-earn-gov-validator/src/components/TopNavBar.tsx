@@ -49,12 +49,6 @@ export function TopNavBar() {
           >
             Delegates
           </Link>
-          <Link
-            href="/cross-chain"
-            className={`${isActive('/cross-chain') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
-          >
-            Cross-Chain
-          </Link>
         </div>
       </div>
       <div className="flex items-center gap-4">

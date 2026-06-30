@@ -22,7 +22,7 @@ type FilterStatus =
   | 'Defeated'
   | 'Canceled'
 
-type FilterChain = 'All' | 'Mainnet' | 'Base' | 'Arbitrum' | 'Sonic' | 'Hyperliquid'
+type FilterChain = 'All' | 'Mainnet' | 'Base' | 'Arbitrum' | 'Sonic' | 'HyperEVM'
 
 const CHAIN_METADATA: Record<
   string,
@@ -56,7 +56,7 @@ const CHAIN_METADATA: Record<
     borderColor: 'border-primary/20',
     accentColor: 'bg-primary',
   },
-  Hyperliquid: {
+  HyperEVM: {
     icon: 'bolt',
     color: 'text-tertiary',
     bgColor: 'bg-tertiary/10',
@@ -78,12 +78,18 @@ export function ProposalsList({
 }: ProposalsListProps) {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('All')
   const [chainFilter, setChainFilter] = useState<FilterChain>('All')
+  const [crossChainOnly, setCrossChainOnly] = useState(false)
   const [visibleCount, setVisibleCount] = useState(6)
+
+  // A proposal's `chain` is a comma-joined list of every chain it touches (satellite
+  // chains + hub), so a comma marks a cross-chain (multi-chain) proposal.
+  const isCrossChain = (p: TransformedProposal) => p.chain.includes(',')
 
   const filteredProposals = initialProposals.filter((p) => {
     const statusMatches = statusFilter === 'All' || p.status === statusFilter
     const chainMatches = chainFilter === 'All' || p.chain.includes(chainFilter)
-    return statusMatches && chainMatches
+    const crossChainMatches = !crossChainOnly || isCrossChain(p)
+    return statusMatches && chainMatches && crossChainMatches
   })
 
   const visibleProposals = filteredProposals.slice(0, visibleCount)
@@ -223,7 +229,7 @@ export function ProposalsList({
             Network
           </span>
           <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1.5 rounded-2xl flex items-center overflow-x-auto no-scrollbar gap-1 shadow-inner max-w-fit">
-            {(['All', 'Ethereum', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid'] as FilterChain[]).map(
+            {(['All', 'Ethereum', 'Base', 'Arbitrum', 'Sonic', 'HyperEVM'] as FilterChain[]).map(
               (chain) => (
                 <button
                   key={chain}
@@ -242,6 +248,27 @@ export function ProposalsList({
               ),
             )}
           </div>
+        </div>
+
+        <div className="space-y-4">
+          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
+            Execution
+          </span>
+          <button
+            onClick={() => {
+              setCrossChainOnly((v) => !v)
+              setVisibleCount(6)
+            }}
+            aria-pressed={crossChainOnly}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-wider whitespace-nowrap transition-all active:scale-95 border ${
+              crossChainOnly
+                ? 'bg-tertiary text-black border-tertiary shadow-neon'
+                : 'bg-surface-container-low/50 border-outline-variant/10 text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">swap_calls</span>
+            Cross-chain only
+          </button>
         </div>
       </div>
 

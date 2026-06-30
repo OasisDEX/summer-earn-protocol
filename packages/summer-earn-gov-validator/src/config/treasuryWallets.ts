@@ -16,8 +16,16 @@ export interface TreasuryWallet {
   addresses: Partial<Record<SupportedChainId, string>>
   // Optional external link (e.g. the Arcadia foundry account page).
   externalUrl?: string
+  // Optional Safe (Gnosis) app link for multisig wallets.
+  safeUrl?: string
   // Optional Aerodrome Slipstream LP positions to value in addition to ERC20s.
   slipstreamPositions?: SlipstreamPositionSource[]
+}
+
+// Build a Safe app link for a multisig deployed on Base (where the protocol's
+// multisigs live). Safes share the same address across chains.
+function baseSafeUrl(address: string): string {
+  return `https://app.safe.global/home?safe=base:${address}`
 }
 
 const SUPPORTED_CHAIN_IDS = Object.keys(CHAIN_CONFIG).map(Number) as SupportedChainId[]
@@ -37,6 +45,7 @@ export const TREASURY_WALLETS: TreasuryWallet[] = [
     key: 'arcadia-control',
     label: 'Arcadia Control Multisig',
     addresses: onAllChains('0x89b39e0007577e5aE3d9f87CAaeaC4d2A3db5B34'),
+    safeUrl: baseSafeUrl('0x89b39e0007577e5aE3d9f87CAaeaC4d2A3db5B34'),
   },
   {
     // AccountV4 spot account (Base) owned by the Arcadia Control Multisig. We sum
@@ -61,15 +70,18 @@ export const TREASURY_WALLETS: TreasuryWallet[] = [
     key: 'aerodrome',
     label: 'Aerodrome Multisig',
     addresses: onAllChains('0x95e346c0c8405C0996bb3d5f51264c92345d68BC'),
+    safeUrl: baseSafeUrl('0x95e346c0c8405C0996bb3d5f51264c92345d68BC'),
   },
   {
     key: 'guardians',
     label: 'Guardians',
     addresses: onAllChains('0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4'),
+    safeUrl: baseSafeUrl('0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4'),
   },
   {
     key: 'delegate-rewards',
     label: 'Delegate Rewards',
     addresses: onAllChains('0x9a218f744EE78E7a84e1C28acbcc2ce5cC72Bb0E'),
+    safeUrl: baseSafeUrl('0x9a218f744EE78E7a84e1C28acbcc2ce5cC72Bb0E'),
   },
 ]

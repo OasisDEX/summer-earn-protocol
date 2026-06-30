@@ -6,13 +6,14 @@ import type { AppKitNetwork } from '@reown/appkit/networks'
 import {
   arbitrum as appkitArbitrum,
   base as appkitBase,
+  hyperliquid as appkitHyperEvm,
   mainnet as appkitMainnet,
   sonic as appkitSonic,
 } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
-import { arbitrum, base, mainnet, sonic } from 'wagmi/chains'
+import { arbitrum, base, hyperliquid, mainnet, sonic } from 'wagmi/chains'
 
 import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/rpc'
 
@@ -23,7 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const appkitNetworks = useMemo(
     () =>
-      [appkitMainnet, appkitArbitrum, appkitBase, appkitSonic] as [
+      [appkitMainnet, appkitArbitrum, appkitBase, appkitSonic, appkitHyperEvm] as [
         AppKitNetwork,
         ...AppKitNetwork[],
       ],
@@ -43,6 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         [arbitrum.id]: createRpcTransport(CHAIN_RPC_URLS[arbitrum.id]),
         [base.id]: createRpcTransport(CHAIN_RPC_URLS[base.id]),
         [sonic.id]: createRpcTransport(CHAIN_RPC_URLS[sonic.id]),
+        [hyperliquid.id]: createRpcTransport(CHAIN_RPC_URLS[hyperliquid.id]),
       },
     })
   }, [projectId, appkitNetworks, chains])

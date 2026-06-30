@@ -84,6 +84,16 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
     .map((section) => ({ ...section, holdings: section.holdings.filter(matchesChain) }))
     .filter((section) => section.holdings.length > 0)
 
+  // Each multisig's share of the whole treasury (unfiltered), so it stays stable
+  // as the chain filter changes.
+  const grandTotal = initialData.wallets.reduce((sum, w) => sum + w.totalValue, 0)
+  const shareOfTotal = (value: number) => (grandTotal > 0 ? (value / grandTotal) * 100 : 0)
+  const truncate = (addr: string) => `${addr.slice(0, 6)}…${addr.slice(-4)}`
+  const sectionLink = (section: (typeof walletSections)[number]) =>
+    section.safeUrl ||
+    section.externalUrl ||
+    (section.address ? `https://basescan.org/address/${section.address}` : undefined)
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto w-full">
       {initialData.error && (
@@ -192,7 +202,7 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
 
       {/* Chain Filter */}
       <div className="flex gap-2">
-        {['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic'].map((chain) => (
+        {['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic', 'HyperEVM'].map((chain) => (
           <button
             key={chain}
             onClick={() => setSelectedChain(chain)}
@@ -230,30 +240,39 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
           </div>
         ) : (
           <div className="space-y-8">
-            {walletSections.map((section) => (
-              <div key={section.key} className="space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-lg font-bold text-on-surface">{section.label}</h4>
-                    {section.externalUrl && (
-                      <a
-                        href={section.externalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-on-surface-variant hover:text-primary transition-colors"
-                        title="View account"
-                      >
-                        <span className="material-symbols-outlined text-base align-middle">
-                          open_in_new
-                        </span>
-                      </a>
-                    )}
+            {walletSections.map((section) => {
+              const link = sectionLink(section)
+              return (
+                <div key={section.key} className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <h4 className="text-lg font-bold text-on-surface">{section.label}</h4>
+                      {section.address && link && (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-primary transition-colors"
+                          title={section.safeUrl ? 'Open in Safe' : 'View account'}
+                        >
+                          {truncate(section.address)}
+                          <span className="material-symbols-outlined text-sm align-middle">
+                            open_in_new
+                          </span>
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                        {shareOfTotal(section.totalValue).toFixed(1)}%
+                      </span>
+                      <span className="text-lg font-black text-primary">{section.value}</span>
+                    </div>
                   </div>
-                  <span className="text-lg font-black text-primary">{section.value}</span>
+                  <HoldingsTable holdings={section.holdings} />
                 </div>
-                <HoldingsTable holdings={section.holdings} />
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

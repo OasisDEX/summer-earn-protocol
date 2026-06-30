@@ -43,7 +43,7 @@ export const CHAIN_THEMES: Record<string, ChainTheme> = {
     icon: 'bolt',
   },
   hyperliquid: {
-    name: 'Hyperliquid',
+    name: 'HyperEVM',
     color: '#00ffa3',
     bg: 'bg-chain-hyperliquid/20',
     border: 'border-chain-hyperliquid/30',
@@ -68,7 +68,7 @@ export const CHAINS = [
   { id: '42161', name: 'Arbitrum', key: 'arbitrum', eID: '30110', tenderlyId: '42161' },
   { id: '1', name: 'Ethereum', key: 'mainnet', eID: '30101', tenderlyId: '1' },
   { id: '146', name: 'Sonic', key: 'sonic', eID: '30332', tenderlyId: '146' },
-  { id: '999', name: 'HyperLiquid', key: 'hyperliquid', eID: '30367', tenderlyId: null },
+  { id: '999', name: 'HyperEVM', key: 'hyperliquid', eID: '30367', tenderlyId: null },
 ]
 export function getChainNameById(id: string) {
   return CHAINS.find((chain) => chain.id === id)?.name || 'Unknown'
