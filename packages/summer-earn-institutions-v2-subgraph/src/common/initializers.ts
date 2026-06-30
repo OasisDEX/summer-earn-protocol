@@ -51,6 +51,12 @@ import {
 import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { ADDRESS_ZERO, BigIntConstants, RewardTokenType } from './constants'
+import {
+  ARK_ROLE_SPECS,
+  FLEET_ROLE_SPECS,
+  ROUNDS_VAULT_ROLE_SPECS,
+  matchContractSpecificRole,
+} from './hashHelpers'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -728,6 +734,16 @@ export function getOrCreateVaultsPostActionSnapshots(
   return vaultSnapshots
 }
 
+// Convert a position's share (output token) balance into input-token terms.
+// Guards div-by-zero: a vault can have positions while outputTokenSupply == 0
+// (e.g. fully redeemed at the snapshot block); dividing then halts indexing.
+function sharesToInputTokens(outputBalance: BigInt, vault: Vault): BigInt {
+  if (vault.outputTokenSupply.le(constants.BIGINT_ZERO)) {
+    return constants.BIGINT_ZERO
+  }
+  return outputBalance.times(vault.inputTokenBalance).div(vault.outputTokenSupply)
+}
+
 export function getOrCreatePositionHourlySnapshot(
   positionId: string,
   vault: Vault,
@@ -751,19 +767,14 @@ export function getOrCreatePositionHourlySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    position.inputTokenBalance = position.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
-    position.stakedInputTokenBalance = position.stakedOutputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
-    position.unstakedInputTokenBalance = position.unstakedOutputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    position.inputTokenBalance = sharesToInputTokens(position.outputTokenBalance, vault)
+    position.stakedInputTokenBalance = sharesToInputTokens(position.stakedOutputTokenBalance, vault)
+    position.unstakedInputTokenBalance = sharesToInputTokens(
+      position.unstakedOutputTokenBalance,
+      vault,
+    )
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalance = sharesToInputTokens(snapshot.outputTokenBalance, vault)
 
     // Update normalized values
     position.inputTokenBalanceNormalized = utils.formatAmount(
@@ -828,9 +839,7 @@ export function getOrCreatePositionDailySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalance = sharesToInputTokens(snapshot.outputTokenBalance, vault)
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
@@ -871,9 +880,7 @@ export function getOrCreatePositionWeeklySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalance = sharesToInputTokens(snapshot.outputTokenBalance, vault)
 
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
@@ -995,6 +1002,86 @@ export function getOrCreateRole(id: string): Role {
     role = new Role(id)
   }
   return role
+}
+
+// Contract-specific roles (fleet CURATOR/KEEPER/OPERATOR, rounds-vault
+// KEEPER/OPERATOR, ark COMMANDER) are frequently granted BEFORE the subgraph
+// knows the target entity — on-chain the grant precedes fleet enlistment /
+// addArk / rounds-vault registration. At grant time handleRoleGranted leaves
+// them undecoded (raw hash, ADDRESS_ZERO target). Call this whenever a target
+// becomes known (fleet enlisted, ark added, rounds-vault pair registered) to
+// resolve every still-undecoded role for the institution against its currently
+// known addresses. Idempotent and free of on-chain calls (matches by hash via
+// already-indexed entities — binding ProtocolAccessManager would require its ABI
+// in every calling data source and would halt where it's absent, e.g.
+// HarborCommand). Ark COMMANDER stores the fleet (the grantee) as target, by
+// design, mirroring how CURATOR is stored against the fleet.
+export function backfillUndecodedRoles(institution: Institution): void {
+  const vaults = institution.vaults.load()
+  const fleetAddresses: string[] = []
+  const arkAddresses: string[] = []
+  const roundsVaultAddresses: string[] = []
+  for (let i = 0; i < vaults.length; i++) {
+    fleetAddresses.push(vaults[i].id)
+    const arks = vaults[i].arks.load()
+    for (let j = 0; j < arks.length; j++) {
+      arkAddresses.push(arks[j].id)
+    }
+    const pairs = vaults[i].roundsVaultPair.load()
+    for (let j = 0; j < pairs.length; j++) {
+      const inputVault = pairs[j].inputVault
+      if (inputVault) {
+        roundsVaultAddresses.push(inputVault!)
+      }
+      const outputVault = pairs[j].outputVault
+      if (outputVault) {
+        roundsVaultAddresses.push(outputVault!)
+      }
+    }
+  }
+
+  const zero = ADDRESS_ZERO.toHexString()
+  const roles = institution.roles.load()
+  for (let i = 0; i < roles.length; i++) {
+    const role = roles[i]
+    // Only touch still-undecoded roles; matching is exact hash equality so
+    // decoded/global/whitelist roles are never reclassified.
+    if (role.targetContract != zero) {
+      continue
+    }
+    // Role id is `{accessController}-{roleHash}-{account}`.
+    const parts = role.id.split('-')
+    if (parts.length < 2) {
+      continue
+    }
+    const hash = parts[1]
+
+    const fleetMatch = matchContractSpecificRole(hash, fleetAddresses, FLEET_ROLE_SPECS)
+    if (fleetMatch != null) {
+      role.name = fleetMatch.name
+      role.targetContract = fleetMatch.target
+      role.save()
+      continue
+    }
+    const roundsMatch = matchContractSpecificRole(
+      hash,
+      roundsVaultAddresses,
+      ROUNDS_VAULT_ROLE_SPECS,
+    )
+    if (roundsMatch != null) {
+      role.name = roundsMatch.name
+      role.targetContract = roundsMatch.target
+      role.save()
+      continue
+    }
+    const arkMatch = matchContractSpecificRole(hash, arkAddresses, ARK_ROLE_SPECS)
+    if (arkMatch != null) {
+      // Ark COMMANDER: target is the fleet (the grantee), by design.
+      role.name = arkMatch.name
+      role.targetContract = role.owner
+      role.save()
+    }
+  }
 }
 
 /**

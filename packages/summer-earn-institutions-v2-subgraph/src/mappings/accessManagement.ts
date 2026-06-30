@@ -6,8 +6,14 @@ import {
   WhitelistStatusUpdated,
 } from '../../generated/InstitutionalVaultRegistry/ProtocolAccessManager'
 import { Institution, Role, Vault } from '../../generated/schema'
-import { ADDRESS_ZERO, ContractSpecificRole, RoleAction, RoleName } from '../common/constants'
-import { ROLE_MAP, getContractSpecificRoleName } from '../common/hashHelpers'
+import { ADDRESS_ZERO, RoleAction, RoleName } from '../common/constants'
+import {
+  ARK_ROLE_SPECS,
+  FLEET_ROLE_SPECS,
+  ROLE_MAP,
+  ROUNDS_VAULT_ROLE_SPECS,
+  matchContractSpecificRole,
+} from '../common/hashHelpers'
 import {
   createRoleEvent,
   getOrCreateAccessController,
@@ -29,36 +35,61 @@ export function handleRoleGranted(event: RoleGranted): void {
   const institution = Institution.load(accessController.institution)
   if (ROLE_MAP.has(event.params.role.toHexString())) {
     role.name = ROLE_MAP.get(event.params.role.toHexString())
-  } else {
-    const vaults = institution!.vaults.load()
-    if (vaults) {
-      const vaultAddresses = vaults.map<string>((vault) => vault.id)
-      const maybeCuratorForFleet = getContractSpecificRoleName(
-        event.params.role.toHexString(),
-        ContractSpecificRole.CURATOR_ROLE,
-        vaultAddresses,
-      )
-      if (maybeCuratorForFleet) {
-        role.name = RoleName.CURATOR_ROLE
-        role.targetContract = maybeCuratorForFleet
+  } else if (institution != null) {
+    const roleHash = event.params.role.toHexString()
+    const vaults = institution.vaults.load()
+    const vaultAddresses = vaults.map<string>((vault) => vault.id)
+
+    // FleetCommander CURATOR/KEEPER/OPERATOR.
+    const fleetMatch = matchContractSpecificRole(roleHash, vaultAddresses, FLEET_ROLE_SPECS)
+    if (fleetMatch != null) {
+      role.name = fleetMatch.name
+      role.targetContract = fleetMatch.target
+    } else {
+      // Rounds vaults (input/output) also carry KEEPER/OPERATOR roles; their
+      // addresses live on each fleet's RoundsVaultPair (registered separately).
+      // Resolves grants that arrive AFTER pair registration; earlier grants are
+      // back-filled by the registry mapping.
+      const roundsVaultAddresses: string[] = []
+      for (let i = 0; i < vaults.length; i++) {
+        const pairs = vaults[i].roundsVaultPair.load()
+        for (let j = 0; j < pairs.length; j++) {
+          const inputVault = pairs[j].inputVault
+          if (inputVault) {
+            roundsVaultAddresses.push(inputVault!)
+          }
+          const outputVault = pairs[j].outputVault
+          if (outputVault) {
+            roundsVaultAddresses.push(outputVault!)
+          }
+        }
       }
-      const maybeKeeperForFleet = getContractSpecificRoleName(
-        event.params.role.toHexString(),
-        ContractSpecificRole.KEEPER_ROLE,
-        vaultAddresses,
+      const roundsMatch = matchContractSpecificRole(
+        roleHash,
+        roundsVaultAddresses,
+        ROUNDS_VAULT_ROLE_SPECS,
       )
-      if (maybeKeeperForFleet) {
-        role.name = RoleName.KEEPER_ROLE
-        role.targetContract = maybeKeeperForFleet
-      }
-      const maybeOperatorForFleet = getContractSpecificRoleName(
-        event.params.role.toHexString(),
-        ContractSpecificRole.OPERATOR_ROLE,
-        vaultAddresses,
-      )
-      if (maybeOperatorForFleet) {
-        role.name = RoleName.OPERATOR_ROLE
-        role.targetContract = maybeOperatorForFleet
+      if (roundsMatch != null) {
+        role.name = roundsMatch.name
+        role.targetContract = roundsMatch.target
+      } else {
+        // Arks carry COMMANDER, granted to the fleet. Resolves grants that arrive
+        // when the ark is already known to the subgraph (e.g. just after enlist);
+        // grants that land before the ark is known are back-filled at enlist
+        // bootstrap / handleArkAdded. targetContract is the fleet (the grantee),
+        // by design — mirroring how CURATOR is stored against the fleet.
+        const arkAddresses: string[] = []
+        for (let i = 0; i < vaults.length; i++) {
+          const arks = vaults[i].arks.load()
+          for (let j = 0; j < arks.length; j++) {
+            arkAddresses.push(arks[j].id)
+          }
+        }
+        const arkMatch = matchContractSpecificRole(roleHash, arkAddresses, ARK_ROLE_SPECS)
+        if (arkMatch != null) {
+          role.name = arkMatch.name
+          role.targetContract = event.params.account.toHexString()
+        }
       }
     }
   }
