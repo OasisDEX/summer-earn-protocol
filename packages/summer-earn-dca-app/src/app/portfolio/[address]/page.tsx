@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { type Address, getAddress, isAddress } from 'viem'
 
 import { PortfolioBody } from '@/components/PortfolioBody'
+import { ChainAwareLink } from '@/components/shell/ChainAwareLink'
 import { Topbar } from '@/components/shell/Topbar'
 import { PortfolioSkeleton } from '@/components/skeletons/PortfolioSkeleton'
 import { Button } from '@/components/ui/Button'
@@ -22,9 +22,9 @@ export default function PortfolioByAddressPage({
       <Topbar
         crumbs={[{ label: 'Portfolio' }]}
         actions={
-          <Link href="/create">
+          <ChainAwareLink href="/create">
             <Button>New strategy</Button>
-          </Link>
+          </ChainAwareLink>
         }
       />
       <Suspense fallback={<PortfolioSkeleton />}>

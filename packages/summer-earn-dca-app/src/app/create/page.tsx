@@ -14,7 +14,7 @@ export default function CreatePage({
 }) {
   return (
     <>
-      <Topbar crumbs={[{ href: '/', label: 'Portfolio' }, { label: 'New strategy' }]} />
+      <Topbar crumbs={[{ href: '/portfolio', label: 'Portfolio' }, { label: 'New strategy' }]} />
       <div className="page">
         <h1 className="h1 mb-6">New strategy</h1>
         <Suspense>
