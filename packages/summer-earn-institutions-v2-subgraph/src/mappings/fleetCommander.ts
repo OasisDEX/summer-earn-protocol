@@ -73,14 +73,18 @@ export function handleRebalance(event: Rebalanced): void {
 export function handleArkAdded(event: ArkAdded): void {
   const vault = getOrCreateVault(event.address, event.block)
   const ark = getOrCreateArk(event.params.ark, event.block)
-  const institution = Institution.load(vault.institution)
-  if (institution) {
-    // The new ark is now linked to the vault; resolve any role (its COMMANDER,
-    // and any other still-undecoded institution role) against known targets.
-    backfillUndecodedRoles(institution)
-  }
+
+  // Link the ark to the vault FIRST so vault.arks includes it, then resolve its
+  // COMMANDER role (and any other still-undecoded institution role). Order
+  // matters: backfillUndecodedRoles reads vault.arks.load(), which is derived
+  // from Ark.vault — running it before this save would miss the new ark.
   ark.vault = vault.id
   ark.save()
+
+  const institution = Institution.load(vault.institution)
+  if (institution) {
+    backfillUndecodedRoles(institution)
+  }
 
   // Ark add/remove are not numeric config changes, so valueBefore/valueAfter
   // carry no meaning; the affected market is recorded in targetContract.
