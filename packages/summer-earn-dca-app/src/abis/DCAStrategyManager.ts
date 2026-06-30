@@ -2665,6 +2665,17 @@ export const dcaStrategyManagerAbi = [
   },
   {
     type: 'error',
+    name: 'TradeAmountTooLarge',
+    inputs: [
+      {
+        name: 'tradeAmount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+  },
+  {
+    type: 'error',
     name: 'UnauthorizedAccess',
     inputs: [
       {

@@ -284,7 +284,11 @@ contract DCAStrategyManager is
 
         bytes32 oldCommitment = _commitmentHash(oldConfig);
         bytes32 newCommitment = _commitmentHash(newConfig);
-        if (activeCommitments[newCommitment]) revert DuplicateStrategy();
+        if (
+            newCommitment != oldCommitment && activeCommitments[newCommitment]
+        ) {
+            revert DuplicateStrategy();
+        }
 
         if (newCommitment != oldCommitment) {
             activeCommitments[oldCommitment] = false;
@@ -292,7 +296,13 @@ contract DCAStrategyManager is
             strategyCommitments[strategyId] = newCommitment;
         }
 
-        state.nextTriggerAt = state.lastScheduledAt + newConfig.interval;
+        // Clamp to now so a reduced interval can't backdate the trigger (cadence bypass).
+        uint256 rescheduledTriggerAt = state.lastScheduledAt +
+            newConfig.interval;
+        if (rescheduledTriggerAt < block.timestamp) {
+            rescheduledTriggerAt = block.timestamp;
+        }
+        state.nextTriggerAt = rescheduledTriggerAt;
 
         emit StrategyEdited(strategyId, newConfig);
 
@@ -337,6 +347,16 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
+        // Resuming past a terminal condition would strand it ACTIVE — finalize instead.
+        if (state.tradesExecuted >= config.maxTrades) {
+            _markCompleted(strategyId, state, "max_trades");
+            return;
+        }
+        if (config.endDate > 0 && block.timestamp >= config.endDate) {
+            _markCompleted(strategyId, state, "end_date");
+            return;
+        }
+
         state.status = Status.ACTIVE;
         state.lastScheduledAt = block.timestamp;
         state.nextTriggerAt = block.timestamp + config.interval;
@@ -366,13 +386,7 @@ contract DCAStrategyManager is
         uint256 strategyId,
         StrategyConfig calldata config,
         bytes calldata ensoData
-    )
-        external
-        onlyKeeper
-        nonReentrant
-        onlyActiveFleetCommander(config.sourceVault, "source")
-        onlyActiveFleetCommander(config.targetVault, "target")
-    {
+    ) external onlyKeeper nonReentrant {
         bytes32 storedCommitment = strategyCommitments[strategyId];
         if (_commitmentHash(config) != storedCommitment) {
             revert CommitmentMismatch(strategyId);
@@ -383,6 +397,8 @@ contract DCAStrategyManager is
             revert StrategyNotActive(strategyId);
         }
 
+        // Terminal short-circuit runs before the active-fleet checks so a strategy can
+        // still finalize even if a vault was later deregistered from HarborCommand.
         if (state.tradesExecuted >= config.maxTrades) {
             _markCompleted(strategyId, state, "max_trades");
             return;
@@ -391,6 +407,10 @@ contract DCAStrategyManager is
             _markCompleted(strategyId, state, "end_date");
             return;
         }
+
+        // A real trade requires both fleets active (source pull + target payout).
+        _requireActiveFleetCommander(config.sourceVault, "source");
+        _requireActiveFleetCommander(config.targetVault, "target");
 
         if (block.timestamp < state.nextTriggerAt) {
             revert ExecutionWindowNotReached(
@@ -432,13 +452,15 @@ contract DCAStrategyManager is
         if (state.status != Status.ACTIVE) {
             return (false, performData);
         }
-        if (block.timestamp < state.nextTriggerAt) {
-            return (false, performData);
-        }
+        // Terminal conditions take precedence over the cadence gate: signal upkeep so
+        // the keeper calls executeStrategy and drives the auto-COMPLETED transition.
         if (state.tradesExecuted >= config.maxTrades) {
-            return (false, performData);
+            return (true, performData);
         }
         if (config.endDate > 0 && block.timestamp >= config.endDate) {
+            return (true, performData);
+        }
+        if (block.timestamp < state.nextTriggerAt) {
             return (false, performData);
         }
 
@@ -464,6 +486,18 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // The Permit2 sub-allowance above is necessary but not sufficient: the
+        // pull ultimately runs `sourceVault.transferFrom` with PERMIT2 as spender,
+        // so the owner's standard ERC20 approval to PERMIT2 must also cover it.
+        if (
+            IERC20(address(config.sourceVault)).allowance(
+                config.owner,
+                address(PERMIT2)
+            ) < config.tradeAmount
+        ) {
+            return (false, performData);
+        }
+
         // Both fleets must have share-token transfers enabled: execution pulls
         // source shares from the owner and forwards target shares back to them —
         // both are gated transfers that would revert otherwise.
@@ -474,11 +508,38 @@ contract DCAStrategyManager is
             return (false, performData);
         }
 
+        // Mirror executeStrategy's remaining static preconditions so checkUpkeep
+        // never reports a non-terminal trade as ready when executeStrategy would
+        // deterministically revert. Both fleets must still be active in
+        // HarborCommand (executeStrategy calls _requireActiveFleetCommander).
+        if (
+            !_isActiveFleetCommander(config.sourceVault) ||
+            !_isActiveFleetCommander(config.targetVault)
+        ) {
+            return (false, performData);
+        }
+
+        // Oracle + slippage floor, mirroring _executeStrategy. The oracle is read
+        // unconditionally — the floor needs it even with no price bound set. A
+        // stale/invalid feed makes this REVERT rather than return false; that still
+        // upholds the invariant (checkUpkeep never returns `true` on a bad read),
+        // and the keeper treats a reverting checkUpkeep as "skip".
+        uint256 intendedInAssets = config.sourceVault.convertToAssets(
+            config.tradeAmount
+        );
+        (
+            uint256 expectedOutAssets,
+            ChainlinkOraclePrice memory inPrice,
+            ChainlinkOraclePrice memory outPrice
+        ) = ChainlinkOracleUtils.convertAmount(
+                intendedInAssets,
+                config.inAsset,
+                config.inAssetFeed,
+                config.outAsset,
+                config.outAssetFeed
+            );
+
         if (config.maxPrice > 0 || config.minPrice > 0) {
-            ChainlinkOraclePrice memory inPrice = ChainlinkOracleUtils
-                ._getPrice(config.inAssetFeed);
-            ChainlinkOraclePrice memory outPrice = ChainlinkOracleUtils
-                ._getPrice(config.outAssetFeed);
             uint256 executionPrice = ChainlinkOracleUtils.crossRate(
                 inPrice,
                 outPrice
@@ -489,6 +550,15 @@ contract DCAStrategyManager is
             if (config.minPrice > 0 && executionPrice < config.minPrice) {
                 return (false, performData);
             }
+        }
+
+        // Slippage floor must round to a nonzero minOut, else executeStrategy
+        // reverts ZeroExpectedOutShares.
+        uint256 expectedOutShares = config.targetVault.convertToShares(
+            expectedOutAssets
+        );
+        if (expectedOutShares.subtractBps(BPS.wrap(config.slippageBps)) == 0) {
+            return (false, performData);
         }
 
         upkeepNeeded = true;
@@ -660,6 +730,9 @@ contract DCAStrategyManager is
         if (config.tradeAmount == 0) {
             revert ZeroTradeAmount();
         }
+        if (config.tradeAmount > type(uint160).max) {
+            revert TradeAmountTooLarge(config.tradeAmount);
+        }
         if (config.maxTrades == 0) {
             revert ZeroMaxTrades();
         }
@@ -731,10 +804,12 @@ contract DCAStrategyManager is
             uint256 expectedOutShares = config.targetVault.convertToShares(
                 expectedOutAssets
             );
-            if (expectedOutShares == 0) revert ZeroExpectedOutShares();
             minOut = expectedOutShares.subtractBps(
                 BPS.wrap(config.slippageBps)
             );
+            // `subtractBps` floors: a tiny `expectedOutShares` rounds `minOut` to 0,
+            // which would make the post-swap `swappedAmount < minOut` floor a no-op.
+            if (minOut == 0) revert ZeroExpectedOutShares();
         }
 
         uint256 sourceSharesBaseline = IERC20(address(config.sourceVault))
