@@ -33,9 +33,12 @@ interface IDCAStrategyManagerErrors {
         uint256 actualOut
     );
 
-    /// @notice Reverts when `targetVault.convertToShares(expectedOutAssets)` returns
-    ///         zero. With zero expected output, `minOut = 0` and the slippage floor
-    ///         is silently disabled — this guard refuses to execute such trades.
+    /// @notice Reverts when the slippage-adjusted minimum output `minOut` is zero —
+    ///         either because `targetVault.convertToShares(expectedOutAssets)` is
+    ///         zero, or because a tiny `expectedOutShares` floors to zero under
+    ///         `subtractBps`. With `minOut == 0` the post-swap `swappedAmount < minOut`
+    ///         check is `0 < 0` (false) and the slippage floor is silently disabled —
+    ///         this guard refuses to execute such trades.
     error ZeroExpectedOutShares();
 
     /// @notice Reverts when `sourceVault.deposit` during a deposit-and-create mints
@@ -109,4 +112,9 @@ interface IDCAStrategyManagerErrors {
     /// @notice Reverts when the Permit2 sub-allowance expiration is earlier than
     ///         the strategy's `endDate`. Only enforced when `endDate > 0`.
     error Permit2ExpirationTooEarly(uint48 expiration, uint256 endDate);
+
+    /// @notice Reverts when `config.tradeAmount` exceeds `type(uint160).max`, the
+    ///         cap imposed by Permit2 AllowanceTransfer. Such a strategy would be
+    ///         created but never executable (the keeper's pull would revert).
+    error TradeAmountTooLarge(uint256 tradeAmount);
 }
