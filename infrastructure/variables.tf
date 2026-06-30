@@ -94,9 +94,8 @@ variable "keeper_chains" {
     running the one shared image. Add a chain by adding a map entry. `rpc_url` is
     written to an SSM SecureString — leave it "" to get a REPLACE_ME placeholder
     you fill in the console (so the real endpoint never lands in tfstate).
-    `dca_strategy_manager` defaults to the interim v4 address per chain and is
-    swapped to v5 post-deploy (bd aphelion-app-4z5). Set `enabled = false` to
-    pause/skip a chain without removing it.
+    `dca_strategy_manager` defaults to the audited v5 address per chain. Set
+    `enabled = false` to pause/skip a chain without removing it.
   EOT
   type = map(object({
     chain_id             = number
@@ -109,12 +108,12 @@ variable "keeper_chains" {
   default = {
     base = {
       chain_id             = 8453
-      dca_strategy_manager = "0x82334fd233430C086ED7B9ED4723a7728d1eF292" # interim v4 -> v5 post-deploy
+      dca_strategy_manager = "0x659d087B158008ce37FabF963Af329Ca59cE952a" # v5 (audited)
       subgraph_url         = "https://subgraph.staging.oasisapp.dev/summer-dca-base"
     }
     mainnet = {
       chain_id             = 1
-      dca_strategy_manager = "0x8044e2df8bF45f32E6021Bd342b4C734ffA64E0B" # interim v4 -> v5 post-deploy
+      dca_strategy_manager = "0xa0d3E060A43B980E12e688c0607c250F9F53985D" # v5 (audited)
       subgraph_url         = "https://subgraph.staging.oasisapp.dev/summer-dca"
     }
   }

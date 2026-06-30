@@ -1,8 +1,8 @@
 {
   "network": "base",
-  "dca-strategy-manager-address": "0x82334fd233430C086ED7B9ED4723a7728d1eF292",
-  "dca-strategy-manager-start-block": 47808822,
-  "feed-start-block": 47204022,
+  "dca-strategy-manager-address": "0x659d087B158008ce37FabF963Af329Ca59cE952a",
+  "dca-strategy-manager-start-block": 48016006,
+  "feed-start-block": 47411206,
   "usdc-feed-proxy": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
   "eth-feed-proxy": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
   "enable-grafting": false,

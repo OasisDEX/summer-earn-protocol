@@ -7,12 +7,11 @@ import type { ChainId } from '@/types/chain'
 // (See packages/deployment/scripts/common/constants.ts:7)
 export const PERMIT2_ADDRESS: Address = getAddress('0x000000000022D473030F116dDEE9F6B43aC78BA3')
 
-// DCAStrategyManager deployment per chain.
-// NOTE: BOTH base + mainnet entries below are interim v4 addresses — they will
-// be swapped to the audited v5 addresses post-deploy (bd aphelion-app-4z5).
+// DCAStrategyManager v5 (audited — PR #875), per chain.
+// (See packages/deployment/config/index.json — {base,mainnet}.dca.dcaStrategyManager)
 export const DCA_STRATEGY_MANAGER_ADDRESSES: Record<ChainId, Address> = {
-  [base.id]: getAddress('0x82334fd233430C086ED7B9ED4723a7728d1eF292'),
-  [mainnet.id]: getAddress('0x8044e2df8bF45f32E6021Bd342b4C734ffA64E0B'),
+  [base.id]: getAddress('0x659d087B158008ce37FabF963Af329Ca59cE952a'),
+  [mainnet.id]: getAddress('0xa0d3E060A43B980E12e688c0607c250F9F53985D'),
 }
 
 // HarborCommand (active FleetCommander registry).

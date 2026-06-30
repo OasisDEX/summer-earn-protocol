@@ -8,8 +8,8 @@ dataSources:
     network: base
     source:
       abi: DCAStrategyManager
-      address: "0x82334fd233430C086ED7B9ED4723a7728d1eF292"
-      startBlock: 47808822
+      address: "0x659d087B158008ce37FabF963Af329Ca59cE952a"
+      startBlock: 48016006
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -49,7 +49,7 @@ dataSources:
     source:
       abi: AggregatorProxy
       address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
-      startBlock: 47204022
+      startBlock: 47411206
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -76,7 +76,7 @@ dataSources:
     source:
       abi: AggregatorProxy
       address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
-      startBlock: 47204022
+      startBlock: 47411206
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
