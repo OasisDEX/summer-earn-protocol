@@ -27,6 +27,31 @@ const FRIENDLY_REVERT_LABELS: Record<string, string> = {
     'Permit2 allowance is too small for the full strategy (tradeAmount × maxTrades). Sign a larger permit.',
   Permit2ExpirationTooEarly:
     'Permit2 allowance expires before the strategy end date. Sign a permit with a later expiration.',
+  // create/edit validation reverts
+  TradeAmountTooLarge: 'Trade amount is too large (exceeds the Permit2 uint160 limit). Lower it.',
+  ZeroTradeAmount: 'Trade amount must be greater than zero.',
+  ZeroMaxTrades: 'Max trades must be at least 1.',
+  InvalidSlippage: 'Slippage cap cannot exceed 50% (5000 BPS). Lower it.',
+  InvalidOwner: 'Owner cannot be the zero address.',
+  SameAsset: 'Source and target must be different assets and vaults.',
+  IntervalTooShort: 'Execution interval must be at least 1 day.',
+  IntervalTooLong: 'Execution interval cannot exceed 90 days.',
+  InvalidFeedAddress: 'Chainlink feed address cannot be the zero address.',
+  UnauthorizedOwner: 'You can only create strategies for your own address.',
+  InactiveFleetCommander:
+    'One of the vaults is no longer active. Pick live source and target vaults.',
+  // deposit-and-create reverts
+  ZeroDeposit: 'Deposit amount must be greater than zero.',
+  DepositSharesBelowMin:
+    'Deposit minted fewer vault shares than your minimum. Try again or lower the minimum.',
+  // keeper-execution reverts (surfaced for completeness)
+  PriceAboveCeiling:
+    'Current price is above your max-price guardrail; execution waits until it falls.',
+  PriceBelowFloor:
+    'Current price is below your min-price guardrail; execution waits until it rises.',
+  ExecutionWindowNotReached: 'The next execution time has not been reached yet.',
+  SwapOutputBelowMinOut:
+    'Swap returned less than the slippage-adjusted minimum; execution was skipped.',
 }
 
 function friendlyRevertLabel(error: unknown): string | undefined {
