@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-19T08:03:51.659Z",
+  "generatedAt": "2026-06-30T08:18:06.551Z",
   "network": "mainnet",
   "chainId": 1,
   "env": "staging",
   "onchain": {
     "fetched": true,
-    "blockNumber": "25350305",
+    "blockNumber": "25429247",
     "rpcOk": true
   },
   "nodes": [
