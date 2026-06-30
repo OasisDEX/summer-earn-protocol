@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 
 import { ChainAwareLink } from '@/components/shell/ChainAwareLink'
 import { ChainSwitcher } from '@/components/shell/ChainSwitcher'
@@ -29,12 +29,17 @@ export function Topbar({ crumbs, actions }: TopbarProps) {
           return (
             <span key={`${crumb.label}-${idx}`} className="flex items-center gap-2.5">
               {crumb.href && !isLast ? (
-                <ChainAwareLink
-                  href={crumb.href}
-                  className="text-[var(--text-3)] no-underline transition hover:text-[var(--text)]"
-                >
-                  {crumb.label}
-                </ChainAwareLink>
+                // ChainAwareLink reads the active chain (usePathname/useSearchParams),
+                // which is request-time under cacheComponents → must sit inside a
+                // <Suspense>. Fallback: the plain (non-chain-aware) label/link text.
+                <Suspense fallback={<span className="text-[var(--text-3)]">{crumb.label}</span>}>
+                  <ChainAwareLink
+                    href={crumb.href}
+                    className="text-[var(--text-3)] no-underline transition hover:text-[var(--text)]"
+                  >
+                    {crumb.label}
+                  </ChainAwareLink>
+                </Suspense>
               ) : (
                 <span className={isLast ? 'text-[var(--text)]' : undefined}>{crumb.label}</span>
               )}
@@ -44,8 +49,13 @@ export function Topbar({ crumbs, actions }: TopbarProps) {
         })}
       </div>
       <div className="flex items-center gap-2.5">
-        <ChainSwitcher />
-        {actions}
+        {/* ChainSwitcher reads request-time location; `actions` may contain a
+            chain-aware link too. Both must render under <Suspense> so the static
+            shell can prerender around them (cacheComponents). */}
+        <Suspense fallback={null}>
+          <ChainSwitcher />
+          {actions}
+        </Suspense>
       </div>
     </div>
   )
