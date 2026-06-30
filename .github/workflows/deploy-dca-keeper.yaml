@@ -18,7 +18,8 @@ on:
 env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: summer-earn-dca-keeper
-  LAMBDA_FUNCTION: summer-earn-dca-keeper
+  # One shared image; one Lambda per chain runs it. Space-separated list.
+  LAMBDA_FUNCTIONS: summer-earn-dca-keeper-base summer-earn-dca-keeper-mainnet
   KEEPER_DIR: packages/core-contracts/scripts/dca-keeper
 
 jobs:
@@ -56,18 +57,21 @@ jobs:
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Update Lambda function code
+      - name: Update Lambda function code (per chain)
         env:
           IMAGE_URI: ${{ steps.build-image.outputs.image_uri }}
         run: |
-          # On the very first run the function does not exist yet — the image is
-          # pushed above and `terraform apply` creates the function from :latest.
-          if aws lambda get-function --function-name "$LAMBDA_FUNCTION" >/dev/null 2>&1; then
-            aws lambda update-function-code \
-              --function-name "$LAMBDA_FUNCTION" \
-              --image-uri "$IMAGE_URI"
-            aws lambda wait function-updated-v2 --function-name "$LAMBDA_FUNCTION"
-            echo "Updated $LAMBDA_FUNCTION to $IMAGE_URI"
-          else
-            echo "Lambda $LAMBDA_FUNCTION not found (bootstrap). Image pushed; run 'terraform apply' to create it."
-          fi
+          # One image, N per-chain Lambdas. On the very first run a function may
+          # not exist yet — the image is pushed above and `terraform apply`
+          # creates each function from :latest. Update only those that exist.
+          for fn in $LAMBDA_FUNCTIONS; do
+            if aws lambda get-function --function-name "$fn" >/dev/null 2>&1; then
+              aws lambda update-function-code \
+                --function-name "$fn" \
+                --image-uri "$IMAGE_URI"
+              aws lambda wait function-updated-v2 --function-name "$fn"
+              echo "Updated $fn to $IMAGE_URI"
+            else
+              echo "Lambda $fn not found (bootstrap). Image pushed; run 'terraform apply' to create it."
+            fi
+          done
