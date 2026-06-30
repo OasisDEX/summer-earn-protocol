@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-19T08:03:49.809Z",
+  "generatedAt": "2026-06-30T08:18:04.793Z",
   "network": "base",
   "chainId": 8453,
   "env": "production",
   "onchain": {
     "fetched": true,
-    "blockNumber": "47533441",
+    "blockNumber": "48009068",
     "rpcOk": true
   },
   "nodes": [

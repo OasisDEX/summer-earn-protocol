@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-19T08:03:52.007Z",
+  "generatedAt": "2026-06-30T08:18:06.982Z",
   "network": "sepolia_mainnet",
   "chainId": 11155111,
   "env": "staging",
   "onchain": {
     "fetched": true,
-    "blockNumber": "11092924",
+    "blockNumber": "11171411",
     "rpcOk": true
   },
   "nodes": [
@@ -181,7 +181,7 @@
       "data": {
         "label": "SuperstateStandardArk",
         "source": "config",
-        "address": "0x5e61B5f59Ca5E0E5434f691872A078B6611Bcf28",
+        "address": "0x0A06C8fa5Cc7f96174C2Ebbd52a74286E4575988",
         "contractName": "SuperstateStandardArk",
         "protocol": "SuperstateStandard",
         "futureId": "staging_Ext_Demo_Superstate_USDC_Superstate_USCC_usdc_11155111#SuperstateStandardArk"

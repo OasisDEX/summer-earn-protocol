@@ -1,8 +1,9 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/templates/HarborCommand/HarborCommand'
-import { Vault, YieldAggregator } from '../../generated/schema'
+import { Institution, Vault, YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
+  backfillUndecodedRoles,
   getOrCreateAccessController,
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
@@ -34,6 +35,15 @@ export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): voi
   const accessController = getOrCreateAccessController(event.address.toHexString())
 
   getOrCreateVault(event.params.fleetCommander, event.block, accessController.institution)
+
+  // Fleet / ark / rounds-vault roles are commonly granted before enlist, so
+  // handleRoleGranted saw them before their targets were known. Now that this
+  // fleet (and its snapshotted arks/rounds vaults) is known, resolve every
+  // still-undecoded role for the institution.
+  const institution = Institution.load(accessController.institution)
+  if (institution != null) {
+    backfillUndecodedRoles(institution)
+  }
 }
 
 function updateArkData(vault: Vault, arkAddress: Address, block: ethereum.Block): void {
