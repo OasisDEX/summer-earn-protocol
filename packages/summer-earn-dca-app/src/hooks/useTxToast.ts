@@ -40,11 +40,12 @@ const FRIENDLY_REVERT_LABELS: Record<string, string> = {
   UnauthorizedOwner: 'You can only create strategies for your own address.',
   InactiveFleetCommander:
     'One of the vaults is no longer active. Pick live source and target vaults.',
-  // deposit-and-create reverts
+  // depositAndCreate / keeper-execution reverts — NOT triggered by the app's
+  // current actions (create/edit/pause/resume/cancel); kept so the map is a
+  // complete contract-error dictionary (cf. ZeroExpectedOutShares / Permit2* above).
   ZeroDeposit: 'Deposit amount must be greater than zero.',
   DepositSharesBelowMin:
     'Deposit minted fewer vault shares than your minimum. Try again or lower the minimum.',
-  // keeper-execution reverts (surfaced for completeness)
   PriceAboveCeiling:
     'Current price is above your max-price guardrail; execution waits until it falls.',
   PriceBelowFloor:
