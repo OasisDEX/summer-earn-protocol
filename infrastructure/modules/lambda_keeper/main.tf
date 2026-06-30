@@ -10,6 +10,11 @@ resource "aws_ecr_repository" "this" {
   image_tag_mutability = "MUTABLE"
   force_delete         = var.force_delete
 
+  # Scan pushed images for known CVEs before they reach the production Lambda.
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
   tags = var.tags
 }
 
@@ -20,7 +25,23 @@ resource "aws_cloudwatch_log_group" "this" {
   tags = var.tags
 }
 
-# ---------------------------------------------------------------- secrets (SSM)
+# ---------------------------------------------------------------- secrets (KMS + SSM)
+
+# Customer-managed KMS key for the keeper's SecureString secrets (a signer key).
+# A dedicated CMK isolates it from the shared aws/ssm default key, satisfies
+# CKV_AWS_337, and lets the Lambda role's kms:Decrypt be scoped to this key ARN.
+resource "aws_kms_key" "secrets" {
+  description             = "${var.function_name} SSM SecureString secrets"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+
+  tags = var.tags
+}
+
+resource "aws_kms_alias" "secrets" {
+  name          = "alias/${var.function_name}-secrets"
+  target_key_id = aws_kms_key.secrets.key_id
+}
 
 # One SecureString per secret under the keeper's prefix. Mirrors the amplify_app
 # pattern: an empty value writes a REPLACE_ME placeholder so the parameter exists
@@ -28,9 +49,10 @@ resource "aws_cloudwatch_log_group" "this" {
 resource "aws_ssm_parameter" "secrets" {
   for_each = var.secrets
 
-  name  = "${var.ssm_prefix}/${each.key}"
-  type  = "SecureString"
-  value = nonsensitive(each.value) == "" ? "REPLACE_ME_IN_SSM_CONSOLE" : each.value
+  name   = "${var.ssm_prefix}/${each.key}"
+  type   = "SecureString"
+  key_id = aws_kms_key.secrets.arn
+  value  = nonsensitive(each.value) == "" ? "REPLACE_ME_IN_SSM_CONSOLE" : each.value
 
   # Manage only the parameter's existence, not its value: operators fill the real
   # secret in the SSM console after first apply, and Terraform must not drift-
@@ -78,18 +100,11 @@ data "aws_iam_policy_document" "ssm_read" {
     ]
   }
 
+  # Scoped to the keeper's dedicated CMK only (the SSM SecureStrings use it).
   statement {
     sid       = "DecryptKeeperSecrets"
     actions   = ["kms:Decrypt"]
-    resources = ["*"] # SSM default key (aws/ssm). Scope to a CMK ARN if one is adopted.
-
-    # Restrict to SSM-mediated decryption: the role cannot decrypt arbitrary
-    # KMS-protected data, only SecureString parameters fetched through SSM.
-    condition {
-      test     = "StringEquals"
-      variable = "kms:ViaService"
-      values   = ["ssm.${data.aws_region.current.region}.amazonaws.com"]
-    }
+    resources = [aws_kms_key.secrets.arn]
   }
 }
 

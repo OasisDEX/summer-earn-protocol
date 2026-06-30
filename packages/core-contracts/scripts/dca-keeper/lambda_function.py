@@ -53,15 +53,26 @@ def _load_secrets_from_ssm() -> None:
     names = [f"{prefix}/{key}" for key in _SSM_SECRET_KEYS]
     resp = boto3.client("ssm").get_parameters(Names=names, WithDecryption=True)
 
+    invalid_or_placeholder = set()
     for param in resp["Parameters"]:
         key = param["Name"].rsplit("/", 1)[-1]
         value = param["Value"]
-        # Skip unfilled placeholders / empties (see _SSM_PLACEHOLDER).
+        # Empty / unfilled placeholder (see _SSM_PLACEHOLDER) → treat as absent.
         if not value or value == _SSM_PLACEHOLDER:
+            invalid_or_placeholder.add(key)
             continue
         os.environ[key] = value
 
-    missing = {n.rsplit("/", 1)[-1] for n in resp.get("InvalidParameters", [])}
+    # Params SSM didn't return, plus the empty/placeholder ones. Clear any stale
+    # value a warm Lambda container may still hold from a prior invocation, so the
+    # keeper never runs with a stale signer key / RPC URL (and a missing required
+    # secret makes _main() fail fast rather than reuse the old one).
+    missing = {
+        name.rsplit("/", 1)[-1] for name in resp.get("InvalidParameters", [])
+    } | invalid_or_placeholder
+    for key in missing:
+        os.environ.pop(key, None)
+
     required_missing = missing - _OPTIONAL_SECRET_KEYS
     if required_missing:
         # Surface clearly; _main() will also exit on the missing required vars.

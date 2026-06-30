@@ -1,5 +1,11 @@
 name: Deploy DCA Keeper to AWS Lambda
 
+# Serialize deploys so a slower older run can't finish after a newer one and
+# roll the Lambda back to a stale image.
+concurrency:
+  group: deploy-dca-keeper
+  cancel-in-progress: true
+
 on:
   push:
     branches:
