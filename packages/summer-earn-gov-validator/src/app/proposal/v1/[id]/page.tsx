@@ -50,7 +50,8 @@ async function V1ProposalDetailServer({ params }: PageProps) {
   const proposal = transformProposal(fullProposal)
 
   const voterAddresses = proposal.votes.map((v) => v.voter)
-  const ensMap = await getEnsNamesCached(voterAddresses)
+  // Normalize (dedupe + sort) so the ENS cache key is independent of voter order.
+  const ensMap = await getEnsNamesCached([...new Set(voterAddresses)].sort())
   const voterMetadata: Record<
     string,
     { name: string; picture: string | null; twitter: string | null }

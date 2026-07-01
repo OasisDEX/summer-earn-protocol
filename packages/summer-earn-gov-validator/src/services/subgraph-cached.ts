@@ -22,7 +22,7 @@ export async function getProposalByIdCached(
 ): Promise<ProposalWithCrossChain | null> {
   cacheLife({ stale: 300, revalidate: 900, expire: 3600 })
   cacheTag('proposals', `proposal:${id}`, isV1 ? 'proposals:v1' : 'proposals:v2')
-  return fetchProposalById(id)
+  return fetchProposalById(id, isV1)
 }
 
 export async function getDelegatesCached(): Promise<SubgraphDelegate[]> {

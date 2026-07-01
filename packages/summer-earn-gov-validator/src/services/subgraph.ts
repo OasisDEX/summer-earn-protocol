@@ -205,26 +205,35 @@ export async function fetchAllProposals(
 // Fetch a single proposal (with its votes) by id, plus only its own cross-chain
 // proposals. Avoids pulling all ~1000 proposals + every satellite's full list just to
 // render one detail page.
-export async function fetchProposalById(id: string): Promise<ProposalWithCrossChain | null> {
-  try {
-    const baseClient = getSubgraphClient(SUBGRAPH_ENDPOINTS.base)
-    const { proposal } = await requestWithRetry<SingleProposalResponse>(
-      baseClient,
-      SINGLE_PROPOSAL_QUERY,
-      { id },
-    )
-    if (!proposal) return null
+//
+// Errors are intentionally NOT swallowed into `null`: doing so would let the caching
+// layer store a bogus "not found" on a transient failure. `null` is returned only when
+// the proposal genuinely doesn't exist (or belongs to the other governor set); a
+// transient error propagates so it isn't cached and the next request retries.
+export async function fetchProposalById(
+  id: string,
+  isV1: boolean = false,
+): Promise<ProposalWithCrossChain | null> {
+  const baseClient = getSubgraphClient(SUBGRAPH_ENDPOINTS.base)
+  const { proposal } = await requestWithRetry<SingleProposalResponse>(
+    baseClient,
+    SINGLE_PROPOSAL_QUERY,
+    { id },
+  )
+  if (!proposal) return null
 
-    const dstIds = proposal.dstIds ?? []
-    // Only hit the satellite subgraphs when the proposal actually has cross-chain targets.
-    const allCrossChain = dstIds.length > 0 ? await fetchCrossChainProposals(dstIds) : []
-    const crossChainProposals = allCrossChain.filter((ccp) => dstIds.includes(ccp.id))
+  // The entity id is the bare proposalId (not governor-scoped), so preserve the V1/V2
+  // partition: `/proposal/[id]` serves hub (V2) proposals and `/proposal/v1/[id]` the
+  // rest. A proposal from the wrong governor set is treated as not found.
+  const isHub = proposal.governor?.toLowerCase() === HUB_GOVERNOR
+  if (isV1 === isHub) return null
 
-    return { baseProposal: proposal, crossChainProposals }
-  } catch (error) {
-    console.error('Error fetching proposal with cross-chain data:', error)
-    return null
-  }
+  const dstIds = proposal.dstIds ?? []
+  // Only hit the satellite subgraphs when the proposal actually has cross-chain targets.
+  const allCrossChain = dstIds.length > 0 ? await fetchCrossChainProposals(dstIds) : []
+  const crossChainProposals = allCrossChain.filter((ccp) => dstIds.includes(ccp.id))
+
+  return { baseProposal: proposal, crossChainProposals }
 }
 
 interface DelegatesResponse {
