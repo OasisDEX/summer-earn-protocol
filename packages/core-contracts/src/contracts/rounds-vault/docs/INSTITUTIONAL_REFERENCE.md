@@ -17,8 +17,8 @@
 | 5 | [AdmiralsQuartersWhitelist (Path 1)](#5-admiralsquarterswhitelist-path-1--synchronous) | `AdmiralsQuartersWhitelist.sol`, `ProtectedMulticallWhitelist.sol` |
 | 6 | [RoundsVault (Path 2)](#6-roundsvault-path-2--asynchronous) | `RoundsVaultBase.sol`, `RoundsVaultInput.sol`, `RoundsVaultOutput.sol`, `ERC4626MultiTokenWrapper.sol`, `ERC1155FullSupply.sol` |
 | 7 | [RoundsVaultRegistry](#7-roundsvaultregistry) | `RoundsVaultRegistry.sol`, `IRoundsVaultRegistry.sol` |
-| 8 | [WisdomTreeArk (T+1 connector)](#8-wisdomtreeark-t1-connector) | `arks/WisdomTreeArk.sol`, `ArkWithWithdrawalRequest.sol` |
-| 9 | [End-to-End Flows by Role](#9-end-to-end-flows-by-role) | — |
+| 8 | [WisdomTreeArk + RWA Ark family](#8-wisdomtreeark-t1-connector) | `arks/WisdomTreeArk.sol`, `arks/SecuritizeArk.sol`, `arks/BenjiArk.sol`, `ArkWithWithdrawalRequest.sol` |
+| 9 | [End-to-End Flows by Role](#9-end-to-end-flows-by-role) (incl. Securitize §9.8, Benji §9.9) | — |
 | 10 | [Entry Point Catalog](#10-entry-point-catalog) | All of the above |
 | 11 | [Systemic Risks & Operational Limits](#11-systemic-risks--operational-limits) | — |
 | 12 | [Configuration & Deployment Checklist](#12-configuration--deployment-checklist) | — |
@@ -790,6 +790,80 @@ off-chain:
 | `emergencySweep`, `emergencyClearPendingDeposit` | `onlyGovernor` |
 | `totalAssets`, `sharesToAssets`, `assetsInWithdrawalQueue`, `withdrawalRequestId`, `isWithdrawalClaimRequired` | view |
 
+### 8.9 The RWA Ark family — WisdomTree · Securitize · Benji (product view)
+
+`WisdomTreeArk` (§8) is one of **three** real-world-asset (RWA) connectors a Fleet
+can hold. All three do the same job — turn the Fleet's USDC into a regulated
+fund token and back — but they settle in three different shapes. This subsection
+is the plain-language, product-level view; §9.8–9.9 give the on-chain sequences.
+
+**The front half is identical for all three.** A whitelisted user always:
+
+1. Deposits **USDC into the Fleet** (Path 1 AdmiralsQuarters, or Path 2
+   RoundsVault). The USDC lands in the **Buffer Ark**.
+2. The **Curator / Fund Manager** decides how much of the Fleet's cash to place
+   into a given RWA product. The **Keeper** (automation) carries out that
+   decision by rebalancing `Buffer → the product's Ark`.
+
+**The back half is where they differ** — what happens when the money reaches the
+Ark, and how the user gets their money out.
+
+```mermaid
+flowchart TB
+    U([Whitelisted User]) -->|deposit USDC| RV[RoundsVault<br/><i>entry / exit queue</i>]
+    RV -->|USDC| FC[Fleet<br/><i>USDC pooled in the Buffer</i>]
+
+    FC -->|allocate USDC| WTA[WisdomTree Ark]
+    FC -->|allocate USDC| SEA[Securitize Ark]
+    FC -->|allocate USDC| BEA[Benji Ark]
+
+    WTA -->|"USDC → custodian<br/>(off-chain · T+1)"| WTP[(WisdomTree fund<br/>WTGXX · CRDYX)]
+    SEA -->|"USDC → on-ramp<br/>(instant · on-chain)"| SEP[(Securitize fund<br/>VBILL · ACRED · STAC)]
+    BEA -->|"USDC → SwapPool<br/>(instant · on-chain)"| BEP[(Franklin Templeton<br/>BENJI)]
+```
+
+*Arrows show the flow of USDC only. The **Fleet → Ark** step is **decided by the
+Curator / Fund Manager** and **executed by the Keeper** (`rebalance`) — neither
+holds the funds, so neither is a box on the path. Money returns along the reverse
+path (product → Ark → Fleet → RoundsVault → user): the exit is **instant** for
+Benji and **T+1 / off-chain** for WisdomTree and Securitize (see the table below).
+AdmiralsQuarters is the alternative synchronous entry that skips the RoundsVault
+queue.*
+
+| What a product person asks | WisdomTree | Securitize | Benji |
+| --- | --- | --- | --- |
+| **Funds** | WTGXX (money-market), CRDYX (credit) | VBILL, ACRED, STAC | BENJI (FOBXX gov't money-market) |
+| **Buying** (USDC → fund token) | **Off-chain, T+1.** USDC is wired to the fund's custodian; shares are minted off-chain and recognized the next business day. | **Instant, on-chain.** The Securitize on-ramp pulls the USDC and mints the fund token to the Ark **in the same transaction**. | **Instant, on-chain.** A Franklin Templeton SwapPool swaps USDC → BENJI **1:1 in the same transaction**. |
+| **Selling** (fund token → USDC) | **Off-chain, T+1.** Token to custodian; USDC wired back the next business day. | **Off-chain, T+1.** Token to custodian; USDC wired back later. *There is no on-chain sell.* | **Instant, on-chain.** SwapPool swaps BENJI → USDC **1:1 in the same transaction**. |
+| **Where the USDC physically goes** | Off-chain custodian wallet | Fund custodian (routed by the on-chain on-ramp) | On-chain SwapPool |
+| **Priced by** | Chainlink NAV oracle (1 share → USDC) | RedStone NAV oracle (per-share NAV) | None — fixed **$1 par**, always 1:1 |
+| **What the Keeper needs per allocation** | Nothing extra (custodian is fixed) | A **Securitize-signed authorization**, fetched from Securitize's API off-chain, relayed as board data | The whitelisted **SwapPool address**, passed as board data |
+| **Needs the async RoundsVault layer?** | **Yes — both legs** (buy and sell are T+1) | **Sell leg only** (the buy settles instantly) | **No** — both legs are instant, so Path 1 (AdmiralsQuarters) is enough |
+
+**In one sentence each:**
+
+- **WisdomTree** — the fully off-chain model this document is shaped around. Money
+  leaves the chain to a custodian on both legs and comes back a day later at the
+  NAV strike. The RoundsVault exists to batch users through that T+1 wait fairly.
+- **Securitize** — a **half-and-half** model. Buying is atomic on-chain: the
+  Securitize on-ramp mints the fund token to the Ark in the same transaction the
+  USDC leaves (the Keeper first fetches a Securitize-signed authorization
+  off-chain). Selling has no on-chain path, so it behaves exactly like WisdomTree:
+  token to custodian, USDC back T+1.
+- **Benji** — the **fully on-chain** model. Franklin Templeton runs an on-chain
+  SwapPool that swaps USDC ⇄ BENJI 1:1 with no fee and no NAV oracle, so both
+  buying and selling are instant. No custodian, no T+1, no async layer needed
+  (though the Curator / Fund Manager can still route it through a Fleet like any
+  other Ark). If a SwapPool is ever paused, the Keeper can still exit BENJI on a
+  whitelisted DEX via `withdrawUsingSwap`.
+
+> **Who does what.** The **Curator / Fund Manager** owns the *decision* — which
+> products the Fleet holds and how much goes where — and sets each Ark's caps
+> (`depositCap`, `maxDepositPercentageOfTVL`, rebalance in/out limits). The
+> **Keeper** is the automation that *executes* those decisions on-chain
+> (`rebalance`, and the per-Ark settlement calls). A user is never exposed to
+> which product their money sits in beyond the Fleet's reported share price.
+
 ---
 
 ## 9. End-to-End Flows by Role
@@ -985,6 +1059,106 @@ These contracts hold `OPERATOR_ROLE` on the Fleet via
 - They are still bound by per-Ark caps, per-Fleet pause state, and the Fleet's
   fee accrual.
 
+### 9.8 User (whitelisted, has USDC) — Securitize product (`SecuritizeArk`)
+
+Buying is **synchronous on-chain** (the on-ramp mints the fund token to the Ark
+in the same transaction); selling is **asynchronous off-chain** (no on-chain
+off-ramp), so the sell leg reuses the WisdomTree-style `requestWithdrawal` →
+`sweep` cycle and the RoundsVault Output path.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Whitelisted User
+    participant FC as Fleet + Buffer
+    participant CFM as Curator / Fund Manager
+    participant K as Keeper
+    participant SA as SecuritizeArk
+    participant OR as Securitize on-ramp
+    participant CUST as Fund custodian (off-chain)
+
+    Note over U,FC: Buy — settles instantly, no T+1
+    U->>FC: deposit USDC (via AQ or RoundsVault)
+    Note over FC: USDC sits in the Buffer Ark
+    CFM-->>K: direct allocation of n USDC into the Securitize fund
+    K->>OR: (off-chain) fetch Securitize-signed subscription payload
+    K->>FC: rebalance(Buffer -> SecuritizeArk, n, signedPayload)
+    FC->>SA: _board(n, signedPayload)
+    SA->>OR: executePreApprovedTransaction(sig, txData)
+    OR->>CUST: USDC (minus on-ramp fee)
+    OR-->>SA: mint DSToken to the Ark (same transaction)
+
+    Note over U,CUST: Sell — asynchronous (off-chain redemption, T+1)
+    CFM-->>K: direct redemption of n USDC-worth
+    K->>SA: requestWithdrawal(amount)
+    SA->>CUST: DSToken -> custodian for off-chain redemption
+    CUST-->>SA: USDC wired back (next business day)
+    K->>SA: sweep()
+    SA->>FC: USDC -> Buffer Ark
+    U->>FC: withdraw USDC (RoundsVault Output round, then AQ)
+```
+
+Key differences vs the WisdomTree flow in §9.2/§9.3:
+
+- The buy has **no `clearPendingDeposit` step and no pending-deposit round** — the
+  DSToken arrives in the same `_board` transaction, so a deposit round can settle
+  in the same rebalance. `_disembark` reverts (`DisembarkDisabled`); the Ark
+  exits **only** through the async `requestWithdrawal`/`sweep` cycle.
+- The Keeper must obtain a **Securitize-signed payload off-chain** before it can
+  allocate, and relays it as board data (`requiresKeeperData = true`). The Ark
+  verifies the payload subscribes to itself for exactly the boarded amount before
+  relaying it.
+
+### 9.9 User (whitelisted, has USDC) — Benji product (`BenjiArk`)
+
+Both legs are **synchronous on-chain** via the Franklin Templeton SwapPool, so
+there is **no custodian, no NAV oracle, and no async RoundsVault layer** on the
+happy path — Path 1 (AdmiralsQuarters) is sufficient end-to-end.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Whitelisted User
+    participant FC as Fleet + Buffer
+    participant CFM as Curator / Fund Manager
+    participant K as Keeper
+    participant BA as BenjiArk
+    participant SP as Franklin Templeton SwapPool
+
+    Note over U,FC: Buy — instant, on-chain
+    U->>FC: deposit USDC (via AQ)
+    Note over FC: USDC in the Buffer Ark
+    CFM-->>K: direct allocation of n USDC into BENJI
+    K->>FC: rebalance(Buffer -> BenjiArk, n, poolAddress)
+    FC->>BA: _board(n, poolAddress)
+    BA->>SP: swap(USDC -> BENJI) 1:1 (same transaction)
+    SP-->>BA: BENJI delivered to the Ark
+
+    Note over U,SP: Sell — instant, on-chain
+    CFM-->>K: direct redemption of n USDC-worth
+    K->>FC: rebalance(BenjiArk -> Buffer, n, poolAddress)
+    FC->>BA: _disembark(n, poolAddress)
+    BA->>SP: swap(BENJI -> USDC) 1:1 (same transaction)
+    SP-->>BA: USDC to the Ark -> Buffer Ark
+    U->>FC: withdraw USDC (via AQ) — no waiting
+
+    Note over BA,SP: Escape hatch — SwapPool paused / illiquid
+    K->>BA: withdrawUsingSwap(amount, dexRouterData)
+    BA->>BA: sell BENJI on a whitelisted DEX, proceeds -> Buffer
+```
+
+Key differences vs WisdomTree / Securitize:
+
+- **No off-chain leg at all** on the happy path — the SwapPool settles both
+  directions atomically at 1:1 par, so there is no custodian wallet, no
+  `requestWithdrawal`/`sweep`, and no `clearPendingDeposit`. `BenjiArk` extends
+  the swap machinery only (not the async-withdrawal base).
+- **No NAV oracle** — value is fixed at $1 par with decimal normalization, so
+  there is no `depositSlippage`/staleness surface for the SwapPool path.
+- The Keeper passes only the **whitelisted SwapPool address** as board/disembark
+  data (the Curator / Fund Manager whitelists eligible pools via
+  `whitelistSwapPool`).
+
 ---
 
 ## 10. Entry Point Catalog
@@ -1161,4 +1335,4 @@ when a sub-call left tokens in AQ without a `withdrawTokens` after it.
 authoritative. Treat this reference as a navigation aid that explains how the
 pieces fit together, not as a replacement for reading the contracts.*
 
-Last update: 2026-05-27
+Last update: 2026-07-01

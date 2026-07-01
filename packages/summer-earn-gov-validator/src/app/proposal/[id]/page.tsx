@@ -11,7 +11,7 @@ import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { ProposalVotingInfo } from '@/components/ProposalVotingInfo'
 import { RecentVotes } from '@/components/RecentVotes'
 import { getProposalResourceLinks } from '@/config/proposalLinks'
-import { resolveEnsNames } from '@/services/ens'
+import { getEnsNamesCached } from '@/services/ens-cached'
 import { getProposalByIdCached } from '@/services/subgraph-cached'
 import { SupportedNetworks } from '@/services/validation'
 import { transformProposal } from '@/utils/proposal-transformer'
@@ -53,7 +53,8 @@ async function ProposalDetailServer({ params }: PageProps) {
   const proposal = transformProposal(fullProposal)
 
   const voterAddresses = proposal.votes.map((v) => v.voter)
-  const ensMap = await resolveEnsNames(voterAddresses)
+  // Normalize (dedupe + sort) so the ENS cache key is independent of voter order.
+  const ensMap = await getEnsNamesCached([...new Set(voterAddresses)].sort())
   const voterMetadata: Record<
     string,
     { name: string; picture: string | null; twitter: string | null }
