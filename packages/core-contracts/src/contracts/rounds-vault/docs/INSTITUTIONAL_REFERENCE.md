@@ -810,25 +810,25 @@ Ark, and how the user gets their money out.
 
 ```mermaid
 flowchart TB
-    U([Whitelisted User]):::user -->|"1 - deposit USDC"| FC[Fleet<br/>pooled USDC in Buffer]
-    CFM{{Curator / Fund Manager<br/>decides allocation}}:::mgr -.->|"2 - directs"| K[Keeper bot<br/>executes rebalance]
-    FC --> K
+    U([Whitelisted User]) -->|deposit USDC| RV[RoundsVault<br/><i>entry / exit queue</i>]
+    RV -->|USDC| FC[Fleet<br/><i>USDC pooled in the Buffer</i>]
 
-    K -->|"allocate USDC"| WTA[WisdomTree Ark]
-    K -->|"allocate USDC"| SEA[Securitize Ark]
-    K -->|"allocate USDC"| BEA[Benji Ark]
+    FC -->|allocate USDC| WTA[WisdomTree Ark]
+    FC -->|allocate USDC| SEA[Securitize Ark]
+    FC -->|allocate USDC| BEA[Benji Ark]
 
-    WTA -->|"USDC wired to custodian (off-chain)"| WTP[(WisdomTree fund<br/>WTGXX · CRDYX)]
-    WTP -.->|"shares minted off-chain,<br/>recognized next day (T+1)"| WTA
-
-    SEA -->|"USDC to fund custodian<br/>via on-ramp — same tx"| SEP[(Securitize fund<br/>VBILL · ACRED · STAC)]
-    SEP -->|"fund token minted to Ark<br/>— same tx (instant buy)"| SEA
-
-    BEA <-->|"swap USDC ⇄ BENJI 1:1<br/>on-chain — same tx (instant both ways)"| BEP[(Franklin Templeton<br/>BENJI)]
-
-    classDef user fill:#e6f2ff,stroke:#0366d6;
-    classDef mgr fill:#fff5e6,stroke:#d68000;
+    WTA -->|"USDC → custodian<br/>(off-chain · T+1)"| WTP[(WisdomTree fund<br/>WTGXX · CRDYX)]
+    SEA -->|"USDC → on-ramp<br/>(instant · on-chain)"| SEP[(Securitize fund<br/>VBILL · ACRED · STAC)]
+    BEA -->|"USDC → SwapPool<br/>(instant · on-chain)"| BEP[(Franklin Templeton<br/>BENJI)]
 ```
+
+*Arrows show the flow of USDC only. The **Fleet → Ark** step is **decided by the
+Curator / Fund Manager** and **executed by the Keeper** (`rebalance`) — neither
+holds the funds, so neither is a box on the path. Money returns along the reverse
+path (product → Ark → Fleet → RoundsVault → user): the exit is **instant** for
+Benji and **T+1 / off-chain** for WisdomTree and Securitize (see the table below).
+AdmiralsQuarters is the alternative synchronous entry that skips the RoundsVault
+queue.*
 
 | What a product person asks | WisdomTree | Securitize | Benji |
 | --- | --- | --- | --- |
