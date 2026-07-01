@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, Bytes, store } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, store } from '@graphprotocol/graph-ts'
 import { Institution, Role, VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
@@ -33,8 +33,8 @@ import {
   ContractSpecificRole,
   VaultFeeType,
 } from '../common/constants'
-import { generateContractSpecificRole, hasRole } from '../common/hashHelpers'
 import {
+  backfillUndecodedRoles,
   createCurationEvent,
   getOrCreateAccount,
   getOrCreateArk,
@@ -73,28 +73,18 @@ export function handleRebalance(event: Rebalanced): void {
 export function handleArkAdded(event: ArkAdded): void {
   const vault = getOrCreateVault(event.address, event.block)
   const ark = getOrCreateArk(event.params.ark, event.block)
-  const institution = Institution.load(vault.institution)
-  if (institution) {
-    const role = generateContractSpecificRole(
-      ContractSpecificRole.COMMANDER_ROLE,
-      event.params.ark.toHexString(),
-    )
-    const roleApplied = hasRole(
-      Bytes.fromHexString(role),
-      event.address,
-      Address.fromString(institution.protocolAccessManager),
-    )
-    const id = `${institution.protocolAccessManager}-${role}-${event.address.toHexString()}`
-    const roleEntity = getOrCreateRole(id)
-    if (roleApplied) {
-      roleEntity.active = true
-      roleEntity.name = `COMMANDER_ROLE`
-      roleEntity.targetContract = event.address.toHexString()
-      roleEntity.save()
-    }
-  }
+
+  // Link the ark to the vault FIRST so vault.arks includes it, then resolve its
+  // COMMANDER role (and any other still-undecoded institution role). Order
+  // matters: backfillUndecodedRoles reads vault.arks.load(), which is derived
+  // from Ark.vault — running it before this save would miss the new ark.
   ark.vault = vault.id
   ark.save()
+
+  const institution = Institution.load(vault.institution)
+  if (institution) {
+    backfillUndecodedRoles(institution)
+  }
 
   // Ark add/remove are not numeric config changes, so valueBefore/valueAfter
   // carry no meaning; the affected market is recorded in targetContract.

@@ -102,7 +102,8 @@ export function transformProposal(
     values: proposal.values || [],
     calldatas: proposal.calldatas || [],
     eta: proposal.eta,
-    votes: proposal.votes,
+    // The list query omits individual votes; only the detail query includes them.
+    votes: proposal.votes ?? [],
     governor: proposal.governor,
     createdAt: proposal.createdAt,
   }

@@ -181,5 +181,6 @@
   "staging_ExtDemoCorp_3_RoundsVaultOutput_Ext_Demo_StdEng_USDC#RoundsVaultOutput": "0x5ba887FFaEB0873f745063a5743C89855A908d09",
   "staging_Ext_Demo_StdEng_USDC_SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x9c3070d7D56b0a4BffFceAdC9762aa03b6302699",
   "staging_Ext_Demo_StdEng_USDC_AaveV3_usdc_8453#AaveV3Ark": "0xd545cCc5629ED7591e9113Cd2521e314fF88fEC6",
-  "DCAStrategyManagerModule_v4#DCAStrategyManager": "0x82334fd233430C086ED7B9ED4723a7728d1eF292"
+  "DCAStrategyManagerModule_v4#DCAStrategyManager": "0x82334fd233430C086ED7B9ED4723a7728d1eF292",
+  "DCAStrategyManagerModule_v5#DCAStrategyManager": "0x659d087B158008ce37FabF963Af329Ca59cE952a"
 }

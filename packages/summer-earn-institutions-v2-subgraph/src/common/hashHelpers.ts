@@ -56,3 +56,62 @@ export function getContractSpecificRoleName(
   }
   return null
 }
+
+// A contract-specific role to look for: the enum used for hashing plus the
+// human-readable name stored when it matches.
+export class ContractSpecificRoleSpec {
+  role: ContractSpecificRole
+  name: string
+  constructor(role: ContractSpecificRole, name: string) {
+    this.role = role
+    this.name = name
+  }
+}
+
+// Decoded result: the role name and the matched target contract address.
+export class ContractSpecificRoleMatch {
+  name: string
+  target: string
+  constructor(name: string, target: string) {
+    this.name = name
+    this.target = target
+  }
+}
+
+// FleetCommanders can hold CURATOR/KEEPER/OPERATOR. Rounds vaults hold KEEPER
+// (granted to the keeper EOA) and OPERATOR (granted to the fleet); CURATOR does
+// not apply to them.
+export const FLEET_ROLE_SPECS: ContractSpecificRoleSpec[] = [
+  new ContractSpecificRoleSpec(ContractSpecificRole.CURATOR_ROLE, RoleName.CURATOR_ROLE),
+  new ContractSpecificRoleSpec(ContractSpecificRole.KEEPER_ROLE, RoleName.KEEPER_ROLE),
+  new ContractSpecificRoleSpec(ContractSpecificRole.OPERATOR_ROLE, RoleName.OPERATOR_ROLE),
+]
+
+export const ROUNDS_VAULT_ROLE_SPECS: ContractSpecificRoleSpec[] = [
+  new ContractSpecificRoleSpec(ContractSpecificRole.KEEPER_ROLE, RoleName.KEEPER_ROLE),
+  new ContractSpecificRoleSpec(ContractSpecificRole.OPERATOR_ROLE, RoleName.OPERATOR_ROLE),
+]
+
+// Arks carry COMMANDER, granted to the fleet that commands them.
+export const ARK_ROLE_SPECS: ContractSpecificRoleSpec[] = [
+  new ContractSpecificRoleSpec(ContractSpecificRole.COMMANDER_ROLE, RoleName.COMMANDER_ROLE),
+]
+
+// Single matcher shared by the role-grant handler (fleet + rounds vault) and the
+// registry backfill: try each role spec against the candidate addresses and
+// return the first exact hash match, or null. A role hash matches at most one
+// (role, target), so the first hit is the answer.
+export function matchContractSpecificRole(
+  roleHash: string,
+  addresses: string[],
+  specs: ContractSpecificRoleSpec[],
+): ContractSpecificRoleMatch | null {
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i]
+    const target = getContractSpecificRoleName(roleHash, spec.role, addresses)
+    if (target) {
+      return new ContractSpecificRoleMatch(spec.name, target)
+    }
+  }
+  return null
+}

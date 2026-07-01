@@ -7,10 +7,15 @@ import {
   RoundsVaultPairRegistered,
   RoundsVaultPairUpdated,
 } from '../../generated/RoundsVaultRegistry/RoundsVaultRegistry'
-import { RoundsVault, RoundsVaultPair, Vault } from '../../generated/schema'
+import { Institution, RoundsVault, RoundsVaultPair, Vault } from '../../generated/schema'
 import { RoundsVaultInputTemplate, RoundsVaultOutputTemplate } from '../../generated/templates'
 import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
-import { getOrCreateRound, getOrCreateToken, getOrCreateVault } from '../common/initializers'
+import {
+  backfillUndecodedRoles,
+  getOrCreateRound,
+  getOrCreateToken,
+  getOrCreateVault,
+} from '../common/initializers'
 
 export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered): void {
   const pairId = event.params.pairId.toHexString()
@@ -42,6 +47,11 @@ export function handleRoundsVaultPairRegistered(event: RoundsVaultPairRegistered
   }
 
   pair.save()
+
+  const institution = Institution.load(institutionId)
+  if (institution != null) {
+    backfillUndecodedRoles(institution)
+  }
 }
 
 export function handleRoundsVaultPairUpdated(event: RoundsVaultPairUpdated): void {
@@ -72,6 +82,11 @@ export function handleRoundsVaultPairUpdated(event: RoundsVaultPairUpdated): voi
 
   pair.lastUpdated = event.block.timestamp
   pair.save()
+
+  const institution = Institution.load(pair.institutionId)
+  if (institution != null) {
+    backfillUndecodedRoles(institution)
+  }
 }
 
 export function handleRoundsVaultPairDeactivated(event: RoundsVaultPairDeactivated): void {

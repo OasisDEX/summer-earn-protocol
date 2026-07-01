@@ -84,3 +84,94 @@ variable "cron_secret" {
   sensitive   = true
   default     = ""
 }
+
+# ---------------------------------------------------------------- DCA keeper Lambda
+
+variable "keeper_chains" {
+  description = <<-EOT
+    Per-chain DCA keeper config, keyed by chain slug (base, mainnet). Each enabled
+    chain gets its own Lambda + EventBridge schedule + SSM secret prefix, all
+    running the one shared image. Add a chain by adding a map entry. `rpc_url` is
+    written to an SSM SecureString — leave it "" to get a REPLACE_ME placeholder
+    you fill in the console (so the real endpoint never lands in tfstate).
+    `dca_strategy_manager` defaults to the audited v5 address per chain. Set
+    `enabled = false` to pause/skip a chain without removing it.
+  EOT
+  type = map(object({
+    chain_id             = number
+    dca_strategy_manager = string
+    subgraph_url         = string
+    rpc_url              = optional(string, "")
+    schedule_expression  = optional(string, "rate(10 minutes)")
+    enabled              = optional(bool, true)
+  }))
+  default = {
+    base = {
+      chain_id             = 8453
+      dca_strategy_manager = "0x659d087B158008ce37FabF963Af329Ca59cE952a" # v5 (audited)
+      subgraph_url         = "https://subgraph.staging.oasisapp.dev/summer-dca-base"
+    }
+    mainnet = {
+      chain_id             = 1
+      dca_strategy_manager = "0xa0d3E060A43B980E12e688c0607c250F9F53985D" # v5 (audited)
+      subgraph_url         = "https://subgraph.staging.oasisapp.dev/summer-dca"
+    }
+  }
+  nullable = false
+}
+
+variable "keeper_image_tag" {
+  description = "ECR image tag the keeper Lambdas bootstrap from (CI re-pushes :latest each deploy; image_uri is ignored after create)."
+  type        = string
+  default     = "latest"
+  nullable    = false
+}
+
+variable "keeper_ecr_force_delete" {
+  description = "Force-delete the shared keeper ECR repository (including all images) on destroy."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
+variable "keeper_enso_api_url" {
+  description = "Enso router API base URL"
+  type        = string
+  default     = "https://api.enso.finance/api/v1"
+  nullable    = false
+}
+
+variable "keeper_max_concurrent_executions" {
+  description = "Max strategies the keeper processes concurrently within a single pass"
+  type        = number
+  default     = 3
+  nullable    = false
+}
+
+variable "keeper_tx_confirmation_timeout" {
+  description = "Seconds the keeper waits for a tx receipt before moving on (kept short for one-shot Lambda runs)"
+  type        = number
+  default     = 60
+  nullable    = false
+}
+
+variable "keeper_log_level" {
+  description = "Keeper log level (DEBUG/INFO/WARNING/ERROR)"
+  type        = string
+  default     = "INFO"
+  nullable    = false
+}
+
+variable "keeper_private_key" {
+  description = "Keeper EOA private key, shared across all chains (stored as a per-chain SSM SecureString). One EOA works on every EVM chain; nonces are independent per chain."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "keeper_enso_api_key" {
+  description = "Enso API key, optional (stored as an SSM SecureString)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

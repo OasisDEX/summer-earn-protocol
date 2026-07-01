@@ -5,6 +5,7 @@ import type { Address } from 'viem'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { CHAIN_NAMES } from '@/config/chains'
 import { usePermit2Approval } from '@/hooks/usePermit2Approval'
 import type { ChainId } from '@/types/chain'
 
@@ -111,7 +112,7 @@ export function Permit2ApprovalSteps({
       )}
       {p.isWrongChain && (
         <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-          Switch your wallet to Base to approve.
+          Switch your wallet to {CHAIN_NAMES[chainId]} to approve.
         </div>
       )}
     </Card>

@@ -86,7 +86,7 @@
       },
       "dca": {
         "dcaStrategyManager": {
-          "address": "0x82334fd233430C086ED7B9ED4723a7728d1eF292"
+          "address": "0x659d087B158008ce37FabF963Af329Ca59cE952a"
         }
       }
     },
@@ -659,7 +659,7 @@
       },
       "dca": {
         "dcaStrategyManager": {
-          "address": "0x8044e2df8bF45f32E6021Bd342b4C734ffA64E0B"
+          "address": "0xa0d3E060A43B980E12e688c0607c250F9F53985D"
         }
       }
     },
