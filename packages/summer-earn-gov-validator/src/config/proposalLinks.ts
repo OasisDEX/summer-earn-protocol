@@ -1,9 +1,5 @@
-// Governance resource links surfaced on proposal pages.
-//
-// TODO(team): confirm the real URLs before the public-subdomain deploy. The forum
-// links below are placeholders — point `forumUrl` at the governance forum home and
-// `forumTemplateUrl` at the pinned "proposal template / how to write a proposal"
-// thread. Snapshot/Tally links are off until a space/org is filled in.
+// Governance resource links surfaced on proposal pages, mirroring the welcome
+// banner on forum.summer.fi.
 
 export interface GovResourceLink {
   label: string
@@ -11,12 +7,37 @@ export interface GovResourceLink {
   icon: string // Material Symbols name
 }
 
+const FORUM_LINKS: GovResourceLink[] = [
+  { label: 'Forum', href: 'https://forum.summer.fi', icon: 'forum' },
+  {
+    label: 'Governance Guidelines',
+    href: 'https://forum.summer.fi/t/lazy-summer-dao-governance-guidelines/258',
+    icon: 'gavel',
+  },
+  {
+    label: 'RFC Template',
+    href: 'https://forum.summer.fi/t/rfc-template-request-for-comment/260',
+    icon: 'rate_review',
+  },
+  {
+    label: 'SIP Template',
+    href: 'https://forum.summer.fi/t/sip-template-summer-improvement-proposal/261',
+    icon: 'description',
+  },
+  {
+    label: 'EXP Template',
+    href: 'https://forum.summer.fi/t/exp-template-expedited-governance-proposal/718',
+    icon: 'bolt',
+  },
+  {
+    label: 'SIP Numbering & Overview',
+    href: 'https://sheets.fileverse.io/0x7db0bA8aAAA07929cC74Eb28dFd6085272bdC4A5/3#key=5INhN4nX5EtcGu0kVZZOetMvDOcZaKceWbam6fYp0WKcW22pXvUmaMo8QcA-cKH6',
+    icon: 'format_list_numbered',
+  },
+]
+
+// Optional off-chain governance links. Leave undefined to hide.
 const GOV_LINKS = {
-  // Lazy Summer DAO governance forum (home / governance category).
-  forumUrl: 'https://forum.summer.fi',
-  // Pinned "proposal template / how to write a proposal" thread.
-  forumTemplateUrl: 'https://forum.summer.fi',
-  // Optional off-chain governance links. Leave undefined to hide.
   // tallyOrg  → https://www.tally.xyz/gov/<org>
   tallyOrg: undefined as string | undefined,
   // snapshotSpace → https://snapshot.org/#/<space>
@@ -26,10 +47,7 @@ const GOV_LINKS = {
 // The links shown on every proposal page. Optional ones (Tally/Snapshot) only
 // appear once configured above.
 export function getProposalResourceLinks(): GovResourceLink[] {
-  const links: GovResourceLink[] = [
-    { label: 'Forum', href: GOV_LINKS.forumUrl, icon: 'forum' },
-    { label: 'Proposal template', href: GOV_LINKS.forumTemplateUrl, icon: 'description' },
-  ]
+  const links: GovResourceLink[] = [...FORUM_LINKS]
 
   if (GOV_LINKS.tallyOrg) {
     links.push({
@@ -42,7 +60,7 @@ export function getProposalResourceLinks(): GovResourceLink[] {
     links.push({
       label: 'Snapshot',
       href: `https://snapshot.org/#/${GOV_LINKS.snapshotSpace}`,
-      icon: 'bolt',
+      icon: 'ac_unit',
     })
   }
 
