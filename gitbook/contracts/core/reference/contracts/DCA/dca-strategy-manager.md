@@ -449,9 +449,7 @@ function executeStrategy(
 )
     external
     onlyKeeper
-    nonReentrant
-    onlyActiveFleetCommander(config.sourceVault, "source")
-    onlyActiveFleetCommander(config.targetVault, "target");
+    nonReentrant;
 ```
 **Parameters**
 

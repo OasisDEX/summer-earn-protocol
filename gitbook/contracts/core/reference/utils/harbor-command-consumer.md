@@ -60,6 +60,43 @@ modifier onlyActiveFleetCommander(IFleetCommander vault, string memory label) ;
 |`label`|`string`| Human-readable label for the vault role ("source", "target", …).|
 
 
+### _isActiveFleetCommander
+
+Whether `vault` is an active FleetCommander in HarborCommand. The
+non-reverting form, for call sites that branch on the result (e.g. a
+keeper's `checkUpkeep`) rather than aborting. Single source of the
+registry read, shared by the modifier and `_requireActiveFleetCommander`.
+
+
+```solidity
+function _isActiveFleetCommander(IFleetCommander vault) internal view returns (bool);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`vault`|`IFleetCommander`|The FleetCommander to check.|
+
+
+### _requireActiveFleetCommander
+
+Function form of `onlyActiveFleetCommander`, for call sites that must
+run the check partway through a function (e.g. after a pre-flight
+short-circuit) rather than at function entry. Reverts with
+`InactiveFleetCommander` when `vault` is not an active FleetCommander.
+
+
+```solidity
+function _requireActiveFleetCommander(IFleetCommander vault, string memory label) internal view;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`vault`|`IFleetCommander`| The FleetCommander to check.|
+|`label`|`string`| Human-readable label for the vault role ("source", "target", …).|
+
+
 ## Errors
 ### InvalidHarborCommandAddress
 Reverts when the provided HarborCommand address is the zero address.
