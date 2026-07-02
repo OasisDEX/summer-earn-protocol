@@ -1,0 +1,177 @@
+[
+  {
+    "package": ".",
+    "verdict": "substantive",
+    "lines": 127
+  },
+  {
+    "package": "packages/access-contracts",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/chain-bridge",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/config-contracts",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/constants",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/core-contracts",
+    "verdict": "boilerplate:foundry-default",
+    "lines": 66
+  },
+  {
+    "package": "packages/deployment",
+    "verdict": "substantive",
+    "lines": 287
+  },
+  {
+    "package": "packages/dutch-auction",
+    "verdict": "substantive",
+    "lines": 188
+  },
+  {
+    "package": "packages/eslint-config",
+    "verdict": "stub",
+    "lines": 3
+  },
+  {
+    "package": "packages/gov-contracts",
+    "verdict": "substantive",
+    "lines": 243
+  },
+  {
+    "package": "packages/intent-system",
+    "verdict": "substantive",
+    "lines": 274
+  },
+  {
+    "package": "packages/jest-config",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/math-utils",
+    "verdict": "substantive",
+    "lines": 107
+  },
+  {
+    "package": "packages/oracle-cli",
+    "verdict": "substantive",
+    "lines": 123
+  },
+  {
+    "package": "packages/oracle-dashboard",
+    "verdict": "substantive",
+    "lines": 45
+  },
+  {
+    "package": "packages/percentage",
+    "verdict": "substantive",
+    "lines": 96
+  },
+  {
+    "package": "packages/price-utils",
+    "verdict": "substantive",
+    "lines": 67
+  },
+  {
+    "package": "packages/rewards-contracts",
+    "verdict": "substantive",
+    "lines": 103
+  },
+  {
+    "package": "packages/rwa-oracles",
+    "verdict": "substantive",
+    "lines": 43
+  },
+  {
+    "package": "packages/summer-earn-auctions-frontend",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-auctions-subgraph",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-dca-app",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-dca-subgraph",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-gov-alert-bot",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-gov-validator",
+    "verdict": "substantive",
+    "lines": 104
+  },
+  {
+    "package": "packages/summer-earn-institutions-subgraph",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-institutions-v2-subgraph",
+    "verdict": "substantive",
+    "lines": 35
+  },
+  {
+    "package": "packages/summer-earn-interface",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-protocol-gov-subgraph",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-protocol-subgraph",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/summer-earn-rates-subgraph",
+    "verdict": "substantive",
+    "lines": 85
+  },
+  {
+    "package": "packages/summer-earn-rwa-app",
+    "verdict": "boilerplate:create-next-app",
+    "lines": 36
+  },
+  {
+    "package": "packages/tenderly-utils",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/typescript-config",
+    "verdict": "missing",
+    "lines": 0
+  },
+  {
+    "package": "packages/voting-decay",
+    "verdict": "substantive",
+    "lines": 99
+  }
+]

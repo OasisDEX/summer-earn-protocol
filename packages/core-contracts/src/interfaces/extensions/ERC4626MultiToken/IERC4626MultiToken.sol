@@ -20,6 +20,8 @@ import "../../extensions/ERC1155FullSupply/IERC1155FullSupply.sol";
     support the ERC-1155 receipts.
 
     @author Roberto Cano <robercano>
+
+    @title IERC4626MultiToken
  */
 interface IERC4626MultiToken is IERC1155FullSupply {
     /**
@@ -27,29 +29,34 @@ interface IERC4626MultiToken is IERC1155FullSupply {
      */
 
     /**
-     * @dev Returns the address of the underlying token used for the Vault for accounting, depositing, and withdrawing.
+     * @notice Returns the address of the underlying token used for the Vault for accounting, depositing, and
+     * withdrawing.
      *
      * - MUST be an ERC-20 token contract.
      * - MUST NOT revert.
+     * @return assetTokenAddress The address of the underlying asset token
      */
     function asset() external view returns (address assetTokenAddress);
 
     /**
-     * @dev Returns the total amount of the underlying asset that is “managed” by Vault.
+     * @notice Returns the total amount of the underlying asset that is “managed” by Vault.
      *
      * - SHOULD include any compounding that occurs from yield.
      * - MUST be inclusive of any fees that are charged against assets in the Vault.
      * - MUST NOT revert.
+     * @return totalManagedAssets The total amount of underlying assets managed by the Vault
      */
     function totalAssets() external view returns (uint256 totalManagedAssets);
 
     /**
-     * @dev Returns the maximum amount of the underlying asset that can be deposited into the Vault for the receiver,
+     * @notice Returns the maximum amount of the underlying asset that can be deposited into the Vault for the receiver,
      * through a deposit call.
      *
      * - MUST return a limited value if receiver is subject to some deposit limit.
      * - MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of assets that may be deposited.
      * - MUST NOT revert.
+     * @param receiver The address that would receive the deposited shares
+     * @return maxAssets The maximum amount of assets that can be deposited
      */
     function maxDeposit(
         address receiver
@@ -65,6 +72,9 @@ interface IERC4626MultiToken is IERC1155FullSupply {
      *   approving enough underlying tokens to the Vault contract, etc).
      *
      * NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.
+     * @param assets The amount of underlying tokens to deposit
+     * @param receiver The address that receives the minted shares
+     * @return shares The amount of shares minted
      */
     function deposit(
         uint256 assets,
@@ -72,17 +82,19 @@ interface IERC4626MultiToken is IERC1155FullSupply {
     ) external returns (uint256 shares);
 
     /**
-     * @dev Returns the maximum amount of Vault shares that can be redeemed from the owner balance in the Vault,
+     * @notice Returns the maximum amount of Vault shares that can be redeemed from the owner balance in the Vault,
      * through a redeem call.
      *
      * - MUST return a limited value if owner is subject to some withdrawal limit or timelock.
      * - MUST return balanceOf(owner) if owner is not subject to any withdrawal limit or timelock.
      * - MUST NOT revert.
+     * @param owner The address whose redeemable shares are queried
+     * @return maxShares The maximum amount of shares that can be redeemed
      */
     function maxRedeem(address owner) external view returns (uint256 maxShares);
 
     /**
-     * @dev Burns exactly shares from owner and sends assets of underlying tokens to receiver.
+     * @notice Burns exactly shares from owner and sends assets of underlying tokens to receiver.
      *
      * - MUST emit the Withdraw event.
      * - MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
@@ -92,6 +104,11 @@ interface IERC4626MultiToken is IERC1155FullSupply {
      *
      * NOTE: some implementations will require pre-requesting to the Vault before a withdrawal may be performed.
      * Those methods should be performed separately.
+     * @param sharesId The ERC-1155 id of the shares to redeem
+     * @param sharesAmount The amount of shares to redeem
+     * @param receiver The address that receives the underlying assets
+     * @param owner The address whose shares are burned
+     * @return assets The amount of underlying assets sent to the receiver
      */
     function redeem(
         uint256 sharesId,
@@ -101,7 +118,7 @@ interface IERC4626MultiToken is IERC1155FullSupply {
     ) external returns (uint256 assets);
 
     /**
-     * @dev Burns each batch of shares and the specific amounts and sends assets of underlying tokens to receiver.
+     * @notice Burns each batch of shares and the specific amounts and sends assets of underlying tokens to receiver.
      *
      * - MUST emit the WithdrawBatch event.
      * - MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
@@ -111,6 +128,11 @@ interface IERC4626MultiToken is IERC1155FullSupply {
      *
      * NOTE: some implementations will require pre-requesting to the Vault before a withdrawal may be performed.
      * Those methods should be performed separately.
+     * @param sharesIds The ERC-1155 ids of the shares to redeem
+     * @param sharesAmounts The amounts of shares to redeem, one per id
+     * @param receiver The address that receives the underlying assets
+     * @param owner The address whose shares are burned
+     * @return assets The total amount of underlying assets sent to the receiver
      */
     function redeemBatch(
         uint256[] memory sharesIds,

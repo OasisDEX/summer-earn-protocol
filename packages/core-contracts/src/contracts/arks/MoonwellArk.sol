@@ -19,10 +19,15 @@ contract MoonwellArk is Ark {
     using FixedPointMathLib for uint256;
     using SafeERC20 for IERC20;
 
+    /// @notice Thrown when mToken.mint() returns a non-zero (failure) code while boarding
     error MoonwellMintFailed();
+    /// @notice Thrown when mToken.redeem() returns a non-zero (failure) code during a full-position exit
     error MoonwellRedeemUnderlyingFailed();
+    /// @notice Thrown when the mToken's underlying asset does not match the Ark's configured asset
     error MoonwellAssetMismatch();
+    /// @notice Thrown when the mToken, its comptroller, or the reward distributor address is the zero address
     error InvalidMoonwellAddress();
+    /// @notice Thrown when mToken.redeemUnderlying() returns a non-zero (failure) code during a partial exit
     error MoonwellRedeemFailed();
 
     /*//////////////////////////////////////////////////////////////
@@ -31,6 +36,7 @@ contract MoonwellArk is Ark {
 
     /// @notice The Moonwell-compliant mToken this Ark interacts with
     IMToken public immutable mToken;
+    /// @notice The Moonwell comptroller for the mToken, used to claim emission rewards on harvest
     IComptroller public immutable comptroller;
 
     /*//////////////////////////////////////////////////////////////
@@ -78,7 +84,10 @@ contract MoonwellArk is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev MoonwellArk is always withdrawable
+     * @dev Caps the withdrawable amount by the mToken's available cash
+     *      (the underlying asset balance held by the mToken). When the market
+     *      is highly utilised this can be less than the Ark's underlying
+     *      balance, since borrowed assets cannot be redeemed.
      */
     function _withdrawableTotalAssets()
         internal
@@ -122,11 +131,15 @@ contract MoonwellArk is Ark {
     }
 
     /**
-     * @notice Internal function for harvesting rewards
-     * @dev This function is a no-op for most Moonwell vaults as they automatically accrue interest
+     * @notice Internal function for harvesting Moonwell emission rewards
+     * @dev Claims rewards for the mToken from the comptroller, then transfers
+     *      every emission token with a non-zero balance to the raft(). The
+     *      returned arrays are compacted to only include reward tokens that
+     *      were actually received. Reverts with InvalidMoonwellAddress if the
+     *      comptroller has no reward distributor configured.
      * @param /// data Additional data (unused in this implementation)
-     * @return rewardTokens The addresses of the reward tokens
-     * @return rewardAmounts The amounts of the reward tokens
+     * @return rewardTokens The addresses of the reward tokens transferred to the raft
+     * @return rewardAmounts The amounts of each reward token transferred to the raft
      */
     function _harvest(
         bytes calldata
@@ -220,6 +233,12 @@ contract MoonwellArk is Ark {
         return shares.mulWadDown(exchangeRate);
     }
 
+    /**
+     * @notice Computes the mToken's current exchange rate including interest
+     *         that has accrued since the last on-chain accrual, without
+     *         mutating state
+     * @return The exchange rate (underlying per mToken share, WAD-scaled)
+     */
     function _calculateCurrentExchangeRate() internal view returns (uint256) {
         uint256 totalSupply = mToken.totalSupply();
         if (totalSupply == 0) {
@@ -246,6 +265,14 @@ contract MoonwellArk is Ark {
         return _totalAssets.divWadDown(totalSupply);
     }
 
+    /**
+     * @notice Computes the interest accrued on outstanding borrows since the
+     *         mToken's last accrual timestamp
+     * @param totalCash The mToken's current underlying cash balance
+     * @param borrowsPrior The total borrows recorded at the last accrual
+     * @param reservesPrior The total reserves recorded at the last accrual
+     * @return The interest accumulated over the elapsed time
+     */
     function _calculateInterestAccumulated(
         uint256 totalCash,
         uint256 borrowsPrior,
@@ -261,6 +288,13 @@ contract MoonwellArk is Ark {
         return (borrowRateMantissa * timeDelta).mulWadDown(borrowsPrior);
     }
 
+    /**
+     * @notice Computes the mToken's total reserves after applying the reserve
+     *         factor to newly accumulated interest
+     * @param reservesPrior The total reserves recorded at the last accrual
+     * @param interestAccumulated The interest accumulated since the last accrual
+     * @return The updated total reserves
+     */
     function _calculateNewReserves(
         uint256 reservesPrior,
         uint256 interestAccumulated

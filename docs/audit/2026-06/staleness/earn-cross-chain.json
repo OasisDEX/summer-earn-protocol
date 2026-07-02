@@ -1,0 +1,123 @@
+{
+  "docs": [
+    {
+      "doc": "docs/cross-chain/OVERVIEW.md",
+      "verdict": "stale",
+      "claimsChecked": 15,
+      "staleClaims": [
+        {
+          "claim": "Core component 'CrossChain Ark (Source): Per-target-chain vehicle that executes cross-chain transfers' exists",
+          "currentTruth": "The CrossChainArk implementation was deprecated and moved out of active source in commit 8c0beb15d (2026-02-10, 'refactor: remove deprecated FleetProxy and CrossChainArk contracts'). Only the legacy file and an orphan interface remain; no active contract implements ICrossChainArk.",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old (entire file); interface packages/chain-bridge/src/interfaces/ICrossChainArk.sol:12 has no active implementer"
+        },
+        {
+          "claim": "Core component 'FleetProxy (Destination): Gatekeeper on the destination chain ... deposits into the local fleet after registry validation' exists",
+          "currentTruth": "The FleetProxy implementation was deprecated and moved to legacy in the same commit. IFleetProxy interface remains but has no active implementation in either audited package.",
+          "evidence": "packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old (entire file); packages/core-contracts/src/interfaces/IFleetProxy.sol:12 has no active implementer"
+        },
+        {
+          "claim": "Cross-chain withdrawals are initiated on the destination by keepers via FleetProxy.withdrawAndTransfer(...)",
+          "currentTruth": "withdrawAndTransfer(uint amount, BridgeTypes.BridgeOptions calldata options) exists only in the retired legacy file; the function is absent from all active source.",
+          "evidence": "packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old:137-140"
+        },
+        {
+          "claim": "Keepers queue and execute rebalances from the buffer to one or more CrossChain Arks targeting other chains",
+          "currentTruth": "The queue/execute mechanism (Ark._board storing pendingTransferParams, keeper-called executeTransferAssets) lived in the removed CrossChainArk; the documented hub-to-satellite fleet rebalancing flow has no active implementation. BufferArk and FleetCommander deposit-to-buffer remain (FleetCommander.sol:279,316).",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:147-193"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Bridge-layer half of the doc remains accurate: BridgeRouter (packages/chain-bridge/src/router/BridgeRouter.sol), Stargate/LayerZero adapters (packages/chain-bridge/src/adapters/), CrossChainRegistry, registry-first validation, only-local-router trust + adapter peer-mapping check on deliver (BridgeRouter.sol:121-131,495,505), pause/governance controls (BridgeRouter.sol:597-604), and nonReentrant guards all confirmed. The fleet-level half (CrossChain Ark, FleetProxy, keeper withdraw flow) describes contracts deprecated on 2026-02-10; the doc was last touched 2025-09-09 (commit 43ac4ab83)."
+    },
+    {
+      "doc": "docs/cross-chain/REBALANCING_FLOW.md",
+      "verdict": "obsolete",
+      "claimsChecked": 22,
+      "staleClaims": [
+        {
+          "claim": "Steps 3-9 and the sequence diagram: keepers queue transfers into the CrossChain Ark, the Ark calls the BridgeRouter, the destination router calls FleetProxy which deposits into the local fleet",
+          "currentTruth": "Both endpoint contracts (CrossChainArk, FleetProxy) were deprecated and moved to .sol.old legacy files in commit 8c0beb15d (2026-02-10); the documented keeper-led rebalancing flow cannot run against current active source. The router-level steps (executeTransferAssets, adapter forwarding, deliver) still match BridgeRouter.sol.",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old; packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old"
+        },
+        {
+          "claim": "Diagram step 'Buffer->>Ark: queueTransfer(targetChain, amount)'",
+          "currentTruth": "No function named queueTransfer ever existed; queuing happened inside the Ark's _board(amount, executeTransferParams) hook during fleet rebalance, which decoded ExecuteTransferParams + BridgeOptions and stored them as pendingTransferParams (emitting PendingTransferQueued only on execution).",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:147-193"
+        },
+        {
+          "claim": "'A registered executor (keeper) executes the queued transfers' / 'Router execution is gated by onlyAuthorizedExecutor (keepers must be registered executors)'",
+          "currentTruth": "Misattributes the executor requirement. The Ark's executeTransferAssets() was gated by the onlyKeeper access-manager role (ProtocolAccessManaged.sol:151), not the registry. The router's onlyAuthorizedExecutor checks msg.sender — the Ark contract itself — and _validateOriginator requires params.originator == msg.sender, so the contract registered via CrossChainRegistry.registerExecutor must be the Ark/Proxy, not the keeper address.",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:177; packages/chain-bridge/src/router/BridgeRouter.sol:269 and 188-190; packages/chain-bridge/src/contracts/CrossChainConfigManaged.sol:35-38"
+        },
+        {
+          "claim": "Reconciliation cues: Ark inflightAssets / lastRemoteAssetBalance; FleetProxy latestIncomingTransferId / fleetBalance notification; keepers call FleetProxy.withdrawAndTransfer(amount, options)",
+          "currentTruth": "All of this state and these functions exist only in the legacy .sol.old files (the logic itself matched the doc when active: router best-effort updateInflightAssets is still live at BridgeRouter.sol:293-312, but no active contract holds the state).",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:40-46,256-279; packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old:55,137-140,194-211,278"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Every name and constant checked against the legacy implementations matched (the doc was accurate for the system as built), and router-side claims (executeTransferAssets signature with ExecuteTransferParams+BridgeOptions, onlyAuthorizedExecutor gating, adapter peer verification on deliver, Stargate failedComposes fail-safe) are still confirmed in active code. But the document's subject — the CrossChainArk/FleetProxy rebalancing flow — describes a removed feature."
+    },
+    {
+      "doc": "docs/cross-chain/BRIDGE_ROUTER_AND_ADAPTERS.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 19,
+      "staleClaims": [
+        {
+          "claim": "'route deliveries to recipients (e.g., FleetProxy)' and 'For fleet rebalancing, the recipient is the destination chain's FleetProxy'",
+          "currentTruth": "FleetProxy was deprecated and removed from active source (legacy/FleetProxy.sol.old, commit 8c0beb15d); the router delivers to any ICrossChainReceiver recipient, but no FleetProxy recipient exists in current code.",
+          "evidence": "packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old; packages/chain-bridge/src/router/BridgeRouter.sol:512-514"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "All router/adapter claims confirmed against active code: 1% fee buffer ((baseFee*101)/100, BridgeRouter.sol:249-254); explicit adapter selection via BridgeOptions.specifiedAdapter (BridgeTypes.sol:26-32, quote reverts NoSuitableAdapter at BridgeRouter.sol:474); validAdapter rejects unregistered/unsupported (BridgeRouter.sol:98-105); token pull from originator==msg.sender then forceApprove adapter (BridgeRouter.sol:283-291,188-190); best-effort IInflightAssetTracking notification (BridgeRouter.sol:293-312); deliver gated by onlyRegisteredAdapter with PEER_RELATIONSHIP check for (sourceChainId, adapter) (BridgeRouter.sol:79-82,121-131,505,523); adapter capabilities estimateFee/transferAsset/sendMessage/readState (IBridgeAdapter.sol:78, IAssetAdapter.sol:51, IMessageAdapter.sol:67,80); adapter-side excess refund (StargateAdapter.sol:353-364); registry/pause governance (registerAdapter/removeAdapter onlyGovernor BridgeRouter.sol:581-594, pause onlyGuardianOrGovernor:597, unpause onlyGovernor:602); nonReentrant on entry points. One nuance worth noting: the peer-mapping check is intentionally skipped for READ_STATE deliveries (BridgeRouter.sol:530-549), which the doc's blanket 'verifies adapter peer relationships during delivery' does not mention."
+    },
+    {
+      "doc": "docs/cross-chain/REGISTRY_AND_SECURITY.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 15,
+      "staleClaims": [
+        {
+          "claim": "'Keepers must be registered executors to invoke the router via the Ark'",
+          "currentTruth": "Wrong actor: onlyAuthorizedExecutor (CrossChainConfigManaged.sol:35-38, backed by CrossChainRegistry.isAuthorizedExecutor) checks the router's msg.sender, i.e. the originating contract (Ark/FleetProxy), which must equal params.originator (BridgeRouter.sol:188-190,269). Keepers were authorized via the onlyKeeper access-manager role on the (now removed) Ark, not via registry executor registration.",
+          "evidence": "packages/chain-bridge/src/router/BridgeRouter.sol:269,188-190; packages/chain-bridge/src/contracts/CrossChainConfigManaged.sol:35-38,69-71; packages/access-contracts/src/contracts/ProtocolAccessManaged.sol:151"
+        },
+        {
+          "claim": "Source-side validation by 'the CrossChain Ark' and destination-side validation by 'the FleetProxy' (sections describe live contracts)",
+          "currentTruth": "Both contracts are deprecated legacy (.sol.old). The described validation logic did match the legacy code exactly (Ark _getTargetProxy via registry; FleetProxy msg.sender==bridgeRouter() check at FleetProxy.sol.old:229-233 and isValidCrossChainPair check at 308-340), but no active contract performs these checks today.",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:315; packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old:229-340"
+        }
+      ],
+      "unverifiable": [
+        "'Registry state must be identical across all participating chains' — operational/deployment requirement, not enforceable or checkable in code (the registry only enforces that each relationship touches the deployment chain via InvalidChainRelationship)"
+      ],
+      "notes": "Registry API claims all confirmed precisely against active code: governance-only register/unregister (CrossChainRegistry.sol:88-94,106-110); constants PEER_RELATIONSHIP / ARK_FLEET_RELATIONSHIP / EXECUTOR_RELATIONSHIP as keccak256 of their names (CrossChainRegistry.sol:53-57, ICrossChainRegistry.sol:136-147); pseudocode signatures match exactly — getRelationshipByTarget(sourceContract, relationshipType, targetChainId) returning CrossChainRelation with .targetContract (ICrossChainRegistry.sol:300-304,22-28) and isValidCrossChainPair(source, target, uint16 sourceChainId, uint16 targetChainId, relationshipType) (ICrossChainRegistry.sol:272-278); router-side deliver enforcement of onlyRegisteredAdapter + peer relationship (BridgeRouter.sol:495,505); uint16 chain IDs throughout."
+    },
+    {
+      "doc": "docs/cross-chain/OPERATIONS_PLAYBOOK.md",
+      "verdict": "stale",
+      "claimsChecked": 12,
+      "staleClaims": [
+        {
+          "claim": "Precondition: 'Keeper addresses are registered as authorized executors in the CrossChainRegistry on the source chain'",
+          "currentTruth": "Incorrect actor: registry executor registration (registerExecutor, CrossChainRegistry.sol:178) must cover the contract that calls BridgeRouter (the Ark/Proxy, since onlyAuthorizedExecutor + originator==msg.sender bind the caller), while keeper EOAs needed the keeper role from the ProtocolAccessManager (onlyKeeper).",
+          "evidence": "packages/chain-bridge/src/router/BridgeRouter.sol:269,188-190; packages/chain-bridge/src/contracts/CrossChainConfigManaged.sol:35-38; packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:177"
+        },
+        {
+          "claim": "Rebalancing runbook: queue transfers from Buffer Ark to CrossChain Ark(s); reconciliation via Ark inflightAssets / lastRemoteAssetBalance and FleetProxy latestIncomingTransferId / notifySourceChain(...)",
+          "currentTruth": "The CrossChainArk and FleetProxy contracts holding all of this state and these functions were deprecated and moved to legacy .sol.old files in commit 8c0beb15d (2026-02-10); none of the named state variables or notifySourceChain exist in active source.",
+          "evidence": "packages/core-contracts/src/contracts/arks/legacy/CrossChainArk.sol.old:40-46; packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old:55,194-211,278"
+        },
+        {
+          "claim": "'Pause/unpause on BridgeRouter and FleetProxy'",
+          "currentTruth": "BridgeRouter pause/unpause confirmed (pause onlyGuardianOrGovernor, unpause onlyGovernor); FleetProxy pause/unpause exists only in the retired legacy implementation (onlyGuardian/onlyGovernor) and the orphan IFleetProxy interface.",
+          "evidence": "packages/chain-bridge/src/router/BridgeRouter.sol:597-604; packages/core-contracts/src/contracts/legacy/FleetProxy.sol.old:102-108"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Still-accurate items: registry relationship management (registerRelationship/unregisterRelationship/registerAdapterPeer onlyGovernor, CrossChainRegistry.sol:88-110, ICrossChainRegistry.sol:365-370); adapter fail-safe and governance recovery (StargateAdapter failedComposes mapping at StargateAdapter.sol:53-57 and manualRecovery onlyGovernor at 641-648); asset recovery for stuck native/ERC20 on the router (BridgeRouter.recoverAssets, BridgeRouter.sol:607-625). The runbook's central procedures, however, operate on contracts that no longer exist in active code."
+    }
+  ],
+  "group": "earn:cross-chain",
+  "summary": "Audited 5 cross-chain docs (83 claims) against packages/chain-bridge/src and packages/core-contracts/src. The bridge layer the docs describe is fully intact and matches precisely: BridgeRouter (1% fee buffer via (fee*101)/100, onlyAuthorizedExecutor gating, explicit BridgeOptions.specifiedAdapter selection, token pull + forceApprove, best-effort IInflightAssetTracking notification, onlyRegisteredAdapter deliver with PEER_RELATIONSHIP peer-mapping check, governance adapter registry, pause/unpause, recoverAssets, nonReentrant), CrossChainRegistry (onlyGovernor register/unregister, ARK_FLEET/PEER/EXECUTOR relationship constants, exact getRelationshipByTarget and isValidCrossChainPair signatures with uint16 chain IDs), and Stargate/LayerZero adapters (estimateFee/transferAsset/sendMessage/readState, refund handling, failedComposes fail-safe, manualRecovery). However, the fleet-level endpoints — CrossChainArk and FleetProxy — were deprecated and moved to .sol.old legacy files in commit 8c0beb15d (2026-02-10), five months after the docs' last update (43ac4ab83, 2025-09-09); functions/state the docs cite (withdrawAndTransfer, notifySourceChain, inflightAssets, lastRemoteAssetBalance, latestIncomingTransferId, the queue/execute flow) exist only in legacy files, with orphan interfaces (ICrossChainArk, IFleetProxy) and no active implementations. A cross-cutting inaccuracy in three docs: registry 'authorized executor' registration applies to the contract calling the router (the Ark/Proxy itself, since originator must equal msg.sender), not keeper addresses, which were gated by the access-manager keeper role. Verdicts: BRIDGE_ROUTER_AND_ADAPTERS and REGISTRY_AND_SECURITY partially-stale; OVERVIEW and OPERATIONS_PLAYBOOK stale; REBALANCING_FLOW obsolete."
+}

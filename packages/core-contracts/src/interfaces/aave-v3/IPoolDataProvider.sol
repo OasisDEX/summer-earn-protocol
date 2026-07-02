@@ -3,7 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
 
+/// @title IPoolDataProvider
+/// @notice Interface for the Aave V3 protocol data provider (aggregated reserve and user views)
 interface IPoolDataProvider {
+    /// @notice A token's symbol paired with its address
     struct TokenData {
         string symbol;
         address tokenAddress;

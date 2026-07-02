@@ -33,5 +33,7 @@ interface ICrossChainConfigManaged {
     function defaultGasLimit() external view returns (uint256);
 
     /// @notice Returns true if the given address is an executor
+    /// @param executor The address of the executor candidate to check
+    /// @return True if the address is an authorized executor, false otherwise
     function isExecutor(address executor) external view returns (bool);
 }

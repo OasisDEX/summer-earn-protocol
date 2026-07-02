@@ -27,6 +27,6 @@ interface IFleetCommanderRewardsManager is IStakingRewardsManagerBase {
      */
     error InvalidUnstakeRecipient();
 
-    /* @notice Thrown when trying to add a staking token as a reward token */
+    /// @notice Thrown when trying to add a staking token as a reward token
     error CantAddStakingTokenAsReward();
 }

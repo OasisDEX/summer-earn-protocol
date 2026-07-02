@@ -1,5 +1,7 @@
 ### Summer Protocol Documentation
 
+- Docs Playbook (GitBook/NatSpec pipeline — generated vs hand-written): `docs/DOCS_PLAYBOOK.md`
+
 #### Cross-Chain Docs (Start Here)
 
 - Overview: `docs/cross-chain/OVERVIEW.md`

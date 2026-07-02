@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.0;
 
+/**
+ * @title IDCAStrategyManagerErrors
+ * @notice Custom errors raised by the DCA (dollar-cost-averaging) strategy manager
+ */
 interface IDCAStrategyManagerErrors {
     /// @notice Reverts when the `StrategyConfig` supplied by the caller does not hash
     ///         to the commitment stored for `strategyId`. Either the wrong config was

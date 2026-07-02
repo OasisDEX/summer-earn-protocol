@@ -1,0 +1,69 @@
+{
+  "package": "rwa-oracles",
+  "out": "contracts/oracles/reference",
+  "tree": [
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "AggregatorV3Interface",
+          "file": "contracts/oracles/reference/interfaces/aggregator-v3-interface.md"
+        },
+        {
+          "title": "IOracleRegistry",
+          "file": "contracts/oracles/reference/interfaces/i-oracle-registry.md"
+        },
+        {
+          "title": "IOracleRegistryErrors",
+          "file": "contracts/oracles/reference/interfaces/i-oracle-registry-errors.md"
+        },
+        {
+          "title": "IOracleRegistryEvents",
+          "file": "contracts/oracles/reference/interfaces/i-oracle-registry-events.md"
+        },
+        {
+          "title": "IRwaOracle",
+          "file": "contracts/oracles/reference/interfaces/i-rwa-oracle.md"
+        },
+        {
+          "title": "IRwaOracleErrors",
+          "file": "contracts/oracles/reference/interfaces/i-rwa-oracle-errors.md"
+        },
+        {
+          "title": "IRwaOracleEvents",
+          "file": "contracts/oracles/reference/interfaces/i-rwa-oracle-events.md"
+        }
+      ]
+    },
+    {
+      "dir": "",
+      "pages": [
+        {
+          "title": "OracleRegistry",
+          "file": "contracts/oracles/reference/oracle-registry.md"
+        },
+        {
+          "title": "RwaOracle",
+          "file": "contracts/oracles/reference/rwa-oracle.md"
+        }
+      ]
+    },
+    {
+      "dir": "test-yield",
+      "pages": [
+        {
+          "title": "TestYieldFactory",
+          "file": "contracts/oracles/reference/test-yield/test-yield-factory.md"
+        },
+        {
+          "title": "TestYieldToken",
+          "file": "contracts/oracles/reference/test-yield/test-yield-token.md"
+        },
+        {
+          "title": "YieldPocket",
+          "file": "contracts/oracles/reference/test-yield/yield-pocket.md"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+/// @notice Configuration for a stablecoin accepted for subscriptions
+/// @param sweepDestination The address that received subscribed stablecoins are swept to
+/// @param fee The subscription fee charged for this stablecoin
 struct SupportedStablecoin {
     address sweepDestination;
     uint96 fee;

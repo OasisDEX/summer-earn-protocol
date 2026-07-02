@@ -3,6 +3,10 @@ pragma solidity ^0.8.20;
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
+/**
+ * @title ISuperstateArkErrors
+ * @notice Custom errors raised by Superstate Ark contracts
+ */
 interface ISuperstateArkErrors {
     /// @notice Thrown when the Superstate fund share token address supplied to the constructor is
     ///         the zero address.

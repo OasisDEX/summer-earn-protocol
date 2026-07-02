@@ -1,0 +1,28 @@
+{
+  "group": "mono:bundle-admin",
+  "sourceRepo": "/home/halaprix/Projects/summerfi-monorepo",
+  "docs": [
+    {
+      "doc": "sdk/sdk-client/bundle/README-ADMIN.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 62,
+      "staleClaims": [
+        {
+          "claim": "Latest admin SDK bundle version is v2.1.0",
+          "currentTruth": "The checked publishable bundle package is version 2.3.0. README-ADMIN appears not to have had its version banner advanced with the main bundle README.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/bundle/README-ADMIN.md:3; /home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/bundle/package.json:2-3"
+        },
+        {
+          "claim": "sdk.armada.admin.getFeeRevenueConfig takes { chainId }",
+          "currentTruth": "The current IArmadaManagerAdminClient interface defines getFeeRevenueConfig(params: { vaultId: IArmadaVaultId }), not a chainId-only parameter object.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/bundle/README-ADMIN.md:25-47; /home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/src/interfaces/ArmadaManager/IArmadaManagerAdminClient.ts:261-268; /home/halaprix/Projects/summerfi-monorepo/sdk/sdk-client/src/implementation/ArmadaManager/ArmadaManagerAdminClient.ts:133-137"
+        }
+      ],
+      "unverifiable": [
+        "Role-policy statements about which off-chain actor should execute each admin flow were checked against SDK method names, not against live protocol governance assignments."
+      ],
+      "notes": "The main admin/access-control API surface is present in source: makeAdminSDK is exported, SDKAdminManager exists, armada.admin exposes rebalance, arkConfig, setArkDepositCap, setArkMaxRebalanceOutflow, setArkMaxRebalanceInflow and getFeeRevenueConfig, while armada.accessControl exposes has/grant/revoke contract-specific roles, grant/revoke global roles, and fleet/AQ whitelist setters. The rebalance and role-management sections are therefore broadly current despite the version banner and getFeeRevenueConfig parameter drift."
+    }
+  ],
+  "summary": "Audited the admin SDK bundle README from summerfi-monorepo against sdk-client admin/access-control interfaces (62 claims). The admin method surface is mostly current: makeAdminSDK, rebalance, arkConfig, ark cap/limit setters, role grants/revokes, and whitelist setters all exist. Stale items: the admin README still says latest v2.1.0 while the bundle package is 2.3.0, and the getFeeRevenueConfig example/parameter list uses chainId even though the current interface requires vaultId."
+}

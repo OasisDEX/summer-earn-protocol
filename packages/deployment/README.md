@@ -1,329 +1,150 @@
 # Summer Protocol Deployment Package
 
-This package contains deployment scripts and Merkle tree generation tools for the Summer protocol.
+This package (`@summerfi/deployment`) contains Hardhat-based deployment scripts, Hardhat Ignition
+modules, chain/network configuration, and Merkle tree generation tools for the Summer protocol. It
+is the authoritative source of all on-chain addresses: every deploy script writes its results back
+into `config/index.json` (or `config/index.test.json` for staging) via
+`scripts/helpers/update-json.ts`.
 
-## Overview
+## Key contracts and exports
 
-The package handles two main functionalities:
-1. Protocol Deployment Scripts (Core, Governance, Staking, and Fleet systems)
-2. Merkle Tree Generation for Rewards Distribution
+- **Ignition modules** (`ignition/modules/`): `gov.ts`, `gov-v2.ts`, `core.ts`, `fleet.ts`,
+  `fleet-whitelist.ts`, `institution-whitelist.ts`, and 36 per-ark modules under
+  `ignition/modules/arks/`.
+- **Types** (`types/config-types.ts`): `SupportedNetworks` enum (mainnet, base, arbitrum, sonic,
+  hyperliquid), `ArkType` enum (36 types) with a parallel `arkTypes` prompt-choices array,
+  `BaseConfig`, `FleetConfig`, `FleetDeployment`, `ArkConfig`.
+- **Chain helpers**: `SupportedChain` enum and hand-maintained `SUPPORTED_CHAINS` array
+  (`scripts/helpers/chain.ts`), `CHAIN_CONFIG_MAP` / `RPC_URL_MAP`
+  (`scripts/common/chain-config-map.ts`), `getChainConfigs()` literal per-chain block
+  (`scripts/helpers/chain-configs.ts`).
+- **Config** (`config/index.json`, `config/index.test.json`): per-chain address maps (base,
+  arbitrum, mainnet, sonic, hyperliquid in prod; optimism and unichain additionally in test).
+  Re-exported with the `dstEidToChainIdMap` in `config/index.ts`.
+- **Institution configs** (`config/institutions/<Name>/index.json`): governor, curator, guardian,
+  superKeeper, whitelistManagers, timelock delays, and all deployed contract addresses per
+  institution.
 
-## Directory Structure
-
-```
-packages/deployment/
-├── ignition/
-│   └── modules/
-│       ├── core.ts       # Core protocol module
-│       ├── gov.ts        # Governance module
-│       ├── staking.ts    # Staking module
-│       └── fleet.ts      # Fleet module
-├── scripts/
-│   ├── deploy-core.ts    # Core deployment script
-│   ├── deploy-gov.ts     # Governance deployment script
-│   ├── deploy-staking.ts # Staking deployment script
-│   ├── deploy-fleet.ts   # Fleet deployment script
-│   └── generate-merkle-root.ts
-└── token-distributions/
-    ├── input/
-    └── output/
-```
-
-## Deployment System
-
-### 1. Governance Deployment (`deploy-gov`)
-
-Deploys the governance system in the following order:
-1. ProtocolAccessManager
-2. TimelockController
-3. SummerToken
-4. SummerGovernor
-5. RewardsRedeemer
+## Build and test commands
 
 ```bash
-NETWORK=<network> pnpm deploy:gov
+pnpm build                  # forge build (Solidity only; also --extra-output-files abi)
+pnpm build:hh               # hardhat compile (for Ignition / TypeChain artifacts)
+pnpm coverage               # forge coverage --ir-minimum
+pnpm coverage:lcov          # generate lcov.info
+pnpm coverage:report        # lcov.info → HTML report
 ```
 
-Key Parameters:
-- Initial token supply
-- Voting delay: 60 seconds (testing)
-- Voting period: 600 seconds (testing)
-- Proposal threshold: 10,000 SUMMER
-- Quorum fraction: 4%
+## Deployment commands
 
-### 2. Staking Deployment (`deploy-staking`)
-
-Deploys the staking system components:
-1. StakedSummerToken (xSUMR) - Non-transferable governance token
-2. SummerStaking - Main staking contract with lockup periods and rewards
-3. SummerVestingWalletsEscrow - Escrow for vesting wallet staking
+All deploy scripts require `NETWORK=<network>` to be set (matches a key in `hardhat.config.ts`
+`networks` block).
 
 ```bash
-NETWORK=<network> pnpm deploy:staking
+NETWORK=<net> pnpm deploy:gov                   # gov.ts module: ProtocolAccessManager, TimelockController, SummerToken, SummerGovernor, RewardsRedeemer
+NETWORK=<net> pnpm deploy:gov-v2                # gov-v2.ts module
+NETWORK=<net> pnpm deploy:staking               # StakedSummerToken, SummerStaking, SummerVestingWalletsEscrow
+NETWORK=<net> pnpm deploy:core                  # DutchAuctionLibrary, ConfigurationManager, TipJar, HarborCommand, Raft, AdmiralsQuarters, FleetCommanderRewardsManagerFactory
+NETWORK=<net> pnpm deploy:fleet                 # interactive: pick fleet config from config/fleets/
+NETWORK=<net> pnpm deploy:ark                   # interactive: pick ark type (dispatches through scripts/common/ark-deployment.ts)
+NETWORK=<net> pnpm deploy:institution           # scripts/deploy-institution-whitelist.ts
+NETWORK=<net> pnpm deploy:institution-fleet     # scripts/deploy-whitelisted-fleet.ts
+NETWORK=<net> pnpm deploy:institution-handover  # scripts/handover-institution-timelock.ts (run once, revokes deployer roles)
+NETWORK=<net> pnpm deploy:buy-and-burn
+NETWORK=<net> pnpm deploy:dao-tip-jar
+
+# Status / verification
+pnpm deploy:status:arbitrum   # hardhat ignition status chain-42161
+pnpm deploy:status:base       # hardhat ignition status chain-8453
+pnpm verify:mainnet           # hardhat ignition verify chain-1
+pnpm verify:arbitrum          # chain-42161
+pnpm verify:base              # chain-8453
+pnpm verify:sonic             # chain-146
+pnpm verify:hyperliquid       # chain-999
+pnpm verify:all               # mainnet + arbitrum + base + sonic + hyperliquid
+
+# Merkle tree
+pnpm generate-merkle-root     # tsx scripts/generate-merkle-root.ts
 ```
 
-Key Features:
-- Lockup periods from 0 to 3 years
-- Weighted rewards based on lockup duration
-- Early unstake penalties (2-20%)
-- Bucket caps for different lockup periods
-- Integration with vesting wallets
+## Cross-package connections
 
-### 3. Core Protocol Deployment (`deploy-core`)
+**Consumes** (workspace dependencies):
 
-Deploys core protocol components:
-1. Core Infrastructure
-   - DutchAuctionLibrary
-   - ConfigurationManager
-2. Protocol Components
-   - TipJar
-   - FleetCommanderRewardsManagerFactory
-3. Main Protocol Contracts
-   - HarborCommand
-   - Raft
-4. Supporting Contracts
-   - AdmiralsQuarters
+- Solidity sources (runtime dep): `@summerfi/earn-protocol-contracts`.
+- Solidity sources (devDependencies): `@summerfi/access-contracts`, `@summerfi/config-contracts`,
+  `@summerfi/earn-gov-contracts`, `@summerfi/chain-bridge-contracts`, `@summerfi/dutch-auction`,
+  `@summerfi/rewards-contracts`, `@summerfi/voting-decay`, `@summerfi/percentage-solidity`.
+- Utilities (devDependencies): `@summerfi/constants`, `@summerfi/math-utils`,
+  `@summerfi/tenderly-utils`.
 
-```bash
-NETWORK=<network> pnpm deploy:core
-```
+**Consumed by** (address propagation is manual, not automatic):
 
-### 4. Fleet Deployment (`deploy-fleet`)
+- `packages/summer-earn-rwa-app` — `src/config/institutions.ts` hand-mirrors
+  `config/institutions/<Name>/index(.test).json`; must be refreshed manually after each institution
+  or fleet deploy.
+- `packages/summer-earn-interface` — syncs `config/index.json` into `src/config/deployment/`; no
+  automatic propagation.
 
-Deploys individual fleet instances:
-1. FleetCommander contract
-2. Associated Arks
-3. Configuration setup
+**Agent gotchas — hand-maintained lists that must be updated together:**
 
-```bash
-NETWORK=<network> pnpm deploy:fleet
-```
+1. **Two chain enums**: `SupportedChain` in `scripts/helpers/chain.ts` (plus its `SUPPORTED_CHAINS`
+   array) AND `SupportedNetworks` in `types/config-types.ts` are independent. Adding a chain
+   requires editing both files.
+2. **`getChainConfigs()` is a hand-written literal block** (`scripts/helpers/chain-configs.ts`), not
+   derived from `SUPPORTED_CHAINS`. New chains must also be added there, in `CHAIN_CONFIG_MAP` /
+   `RPC_URL_MAP` (`scripts/common/chain-config-map.ts`), in `config/index.json`,
+   `config/index.test.json`, `config/index.ts`, and `hardhat.config.ts`.
+3. **`ArkType` enum and `arkTypes` prompt array** live in the same file (`types/config-types.ts`)
+   but are separate lists. Omitting the `arkTypes` entry hides the type from the interactive
+   `deploy:ark` menu without error.
+4. **`scripts/common/ark-deployment.ts` has two independent switch statements** (`deployArk` and
+   `deployArkInteractive`). A new ark type must be added to both.
+5. **`config/index.json` vs `config/index.test.json`** have diverged key sets (test has `optimism`
+   and `unichain`; both have a not-yet-deployed `monad` key). Keep them consistent when adding new
+   chain entries.
+6. **`dstEidToChainIdMap`** in `config/index.ts` lists LayerZero endpoint IDs (`30184` base, `30110`
+   arbitrum, `30332` sonic, `30101` mainnet) — hyperliquid eid 30367 is not present. Add it when
+   wiring LZ governance for hyperliquid.
+7. **`foundry.toml` `[rpc_endpoints]`** only lists `sepolia`, `base`, and `mainnet`;
+   `hardhat.config.ts` covers five or more networks. Add fork-test chains to `foundry.toml`
+   separately.
+8. **Etherscan API keys** are committed in plaintext in `foundry.toml`; hardhat verification uses
+   env vars.
 
-### Supported Networks
+## Institution (whitelisted) fleet deployment
 
-- Arbitrum One (42161)
-- Base (8453)
-- Other networks as configured
-
-## Deployment Commands
-
-```bash
-# Deployment Commands
-pnpm deploy:gov              # Deploy governance system
-pnpm deploy:staking          # Deploy staking system
-pnpm deploy:core             # Deploy core protocol
-pnpm deploy:fleet            # Deploy fleet system
-pnpm deploy:ark              # Deploy individual ark
-pnpm deploy:buy-and-burn     # Deploy buy and burn system
-
-# Deployment Status
-pnpm deploy:status:arbitrum  # Check Arbitrum deployment status
-pnpm deploy:status:base      # Check Base deployment status
-
-# Verification
-pnpm verify:arbitrum         # Verify contracts on Arbitrum
-pnpm verify:base             # Verify contracts on Base
-
-# Visualization
-pnpm visualize:core          # Visualize deployment dependencies
-```
-
-## Merkle Tree Generation
-
-For reward distribution management, see [Merkle Tree Generation](#merkle-tree-generation) section below.
-
-### Input Format
-
-Place distribution files in `token-distributions/input/{chainId}/merkle-redeemer/`:
-
-```json
-{
-  "0xuser1...": "1000000000000000000",
-  "0xuser2...": "2000000000000000000"
-}
-```
-
-### Output Format
-
-Generated in `token-distributions/output/{chainId}/merkle-redeemer/`:
-
-```json
-{
-  "chainId": "1",
-  "distributionId": "1",
-  "merkleRoot": "0x...",
-  "totalAmount": "3000000000000000000",
-  "addressCount": 2,
-  "claims": {
-    "0xuser1...": {
-      "amount": "1000000000000000000",
-      "proof": ["0x...", "0x..."]
-    }
-  }
-}
-```
-
-### Usage
-
-```bash
-pnpm generate-merkle-root
-```
-
-## Development
-
-### Prerequisites
-- Node.js 16+
-- pnpm
-- Foundry (for contract testing)
-
-### Setup
-```bash
-pnpm install
-```
-
-### Testing
-```bash
-pnpm coverage        # Run coverage tests
-pnpm coverage:lcov   # Generate LCOV report
-pnpm coverage:report # Generate HTML coverage report
-```
-
-## License
-BUSL-1.1 
-
-## Fleet Deployment System
-
-### 1. Fleet Configuration Files
-
-Fleet configurations are JSON files located in `config/fleets/` that define the fleet parameters and its associated Arks.
-
-Example fleet configuration (`config/fleets/usdc-base-USDC-1.json`):
-```json
-{
-  "fleetName": "LazyVault_LowerRisk_USDC",
-  "symbol": "LVUSDC",
-  "assetSymbol": "USDC",
-  "initialMinimumBufferBalance": "0",
-  "initialRebalanceCooldown": "3600",
-  "depositCap": "1000000000",
-  "initialTipRate": "0",
-  "network": "base",
-  "details": "",
-  "arks": [
-    {
-      "type": "AaveV3Ark",
-      "params": {
-        "asset": "USDC",
-        "protocol": "aaveV3"
-      }
-    },
-    // Additional Arks...
-  ]
-}
-```
-
-Configuration Parameters:
-- `fleetName`: Unique identifier for the fleet
-- `symbol`: Token symbol for the fleet
-- `assetSymbol`: Underlying asset symbol (e.g., "USDC")
-- `initialMinimumBufferBalance`: Minimum balance to maintain in buffer
-- `initialRebalanceCooldown`: Time between rebalances (in seconds)
-- `depositCap`: Maximum total deposits allowed
-- `initialTipRate`: Initial fee rate for the fleet
-- `network`: Target network for deployment
-- `arks`: Array of Ark configurations
-  - `type`: Type of Ark to deploy
-  - `params`: Ark-specific parameters
-
-### 2. Deployment Process
-
-```bash
-NETWORK=base pnpm deploy:fleet
-```
-
-The deployment script will:
-1. Prompt you to select a fleet configuration file
-2. Deploy the FleetCommander contract
-3. Deploy all configured Arks
-4. Set up necessary permissions and configurations
-
-### 3. Deployment Output
-
-After successful deployment, a JSON file is created in `deployments/fleets/` with the deployed contract addresses.
-
-Example deployment file (`deployments/fleets/LazyVault_LowerRisk_USDC_base_deployment.json`):
-```json
-{
-  "fleetName": "LazyVault_LowerRisk_USDC",
-  "fleetSymbol": "LVUSDC",
-  "assetSymbol": "USDC",
-  "fleetAddress": "0x3d34EC4588BAe77AfBbd894c5BeB6d53958b161D",
-  "bufferArkAddress": "0x776373D6D4f84160C34364851f131e63EBF20d42",
-  "network": "base",
-  "initialMinimumBufferBalance": "0",
-  "initialRebalanceCooldown": "3600",
-  "depositCap": "1000000000",
-  "initialTipRate": "0",
-  "arks": [
-    "0x125dAE47930c1118cf2dB5A140877C64B408783C",
-    // Additional Ark addresses...
-  ]
-}
-```
-
-Deployment Output Fields:
-- Original configuration parameters
-- `fleetAddress`: Deployed FleetCommander contract address
-- `bufferArkAddress`: Deployed BufferArk contract address
-- `arks`: Array of deployed Ark contract addresses
-
-### 4. Supported Ark Types
-
-The following Ark types can be configured:
-- `AaveV3Ark`: For Aave V3 protocol integration
-- `CompoundV3Ark`: For Compound V3 protocol integration
-- `ERC4626Ark`: For ERC4626-compliant vaults
-- `MorphoVaultArk`: For Morpho protocol vaults
-- `SkyUsdsPsm3Ark`: For Sky protocol integration
-
-## Institution (Whitelisted) Fleet Deployment
-
-Institution fleets are `FleetCommanderWhitelist` fleets scoped to a registered institution. Their configs
-live under `config/institutions/<InstitutionId>/fleets/` and are selected interactively at deploy time.
+Institution fleets are `FleetCommanderWhitelist` fleets scoped to a registered institution. Their
+configs live under `config/institutions/<InstitutionId>/fleets/` and are selected interactively at
+deploy time.
 
 ```bash
 NETWORK=base pnpm deploy:institution-fleet      # gates on the V2 institution registry
 NETWORK=base pnpm deploy:institution-fleet-v1   # gates on the legacy V1 institution registry
 ```
 
-Both scripts are identical except for the pre-flight gate that verifies the institution is registered:
+Both scripts are identical except for the pre-flight gate that verifies the institution is
+registered:
 
-- **`deploy:institution-fleet`** checks `institutionalVaultRegistryV2`. Use this for institutions
-  onboarded into the V2 registry (the default for new institutions).
-- **`deploy:institution-fleet-v1`** checks the legacy `institutionalVaultRegistry` (V1). Use this for
+- **`deploy:institution-fleet`** checks `institutionalVaultRegistryV2` (the default for new
+  institutions).
+- **`deploy:institution-fleet-v1`** checks the legacy `institutionalVaultRegistry` (V1) — for
   institutions that live in the V1 registry and have no V2 registry on the target network (e.g.
-  `ExtDemoCorp_3` on Base). The registry is only a registration gate — the deploy itself runs entirely
-  on the already-deployed PAM / HarborCommand / AdmiralsQuarters, so the rest of the flow is identical.
-
-### Operator type
+  `ExtDemoCorp_3` on Base). The registry is only a registration gate; the deploy runs on the
+  already-deployed PAM / HarborCommand / AdmiralsQuarters, so the rest of the flow is identical.
 
 The fleet config's `operatorType` selects how users interact with the fleet:
 
 - `admiralsQuarters`: synchronous flow; AdmiralsQuarters is granted the OPERATOR role on the fleet.
-- `roundsVaults`: asynchronous (RWA) flow; the deploy also creates input/output RoundsVaults and grants
-  them the OPERATOR role. Requires a `roundsVaultRegistry` on the target network
+- `roundsVaults`: asynchronous (RWA) flow; the deploy also creates input/output RoundsVaults and
+  grants them the OPERATOR role. Requires a `roundsVaultRegistry` on the target network
   (`NETWORK=<net> pnpm deploy:rounds-vault-registry`).
 
-### Revoking the AdmiralsQuarters operator
-
 If a `roundsVaults` (RWA) fleet was first deployed as `admiralsQuarters` and later retrofitted with
-RoundsVaults, AdmiralsQuarters still holds the OPERATOR role. For RWA, deposits must flow only through
-the input/output vaults, so revoke it:
+RoundsVaults, AdmiralsQuarters still holds the OPERATOR role. For RWA, deposits must flow only
+through the input/output vaults, so revoke it with `NETWORK=<net> pnpm gov:revoke-aq-operator`
+(executes directly if the deployer holds `GOVERNOR_ROLE`, otherwise captures a Safe batch).
 
-```bash
-NETWORK=base pnpm gov:revoke-aq-operator
-```
+## GitBook reference
 
-This prompts for the institution and fleet, defaults the operator to the institution's AdmiralsQuarters,
-and revokes the role (executes directly if the deployer holds `GOVERNOR_ROLE`, otherwise captures a Safe
-batch). 
+[Deployment System](../../gitbook/internal/deployment.md) (`gitbook/internal/deployment.md`)

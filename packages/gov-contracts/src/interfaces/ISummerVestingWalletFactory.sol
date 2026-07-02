@@ -3,6 +3,8 @@ pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "./ISummerVestingWallet.sol";
 
+/// @title ISummerVestingWalletFactory
+/// @notice Interface for the factory that deploys SummerVestingWallet instances and tracks their owners
 interface ISummerVestingWalletFactory {
     /** @notice Custom errors */
     error ZeroTokenAddress();

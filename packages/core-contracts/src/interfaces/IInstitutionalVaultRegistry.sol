@@ -13,6 +13,12 @@ interface IInstitutionalVaultRegistry is
     IInstitutionalVaultRegistryErrors,
     IInstitutionalVaultRegistryEvents
 {
+    /**
+     * @notice Component addresses wired together for a single institution
+     * @param configurationManager The institution's ConfigurationManager address
+     * @param protocolAccessManager The institution's ProtocolAccessManager address
+     * @param admiralsQuarters The institution's AdmiralsQuarters address
+     */
     struct Institution {
         address configurationManager;
         address protocolAccessManager;
@@ -44,13 +50,17 @@ interface IInstitutionalVaultRegistry is
     ) external pure returns (string memory name);
 
     /**
-     * @notice Returns true if an institution id exists (active or disabled)
+     * @notice Returns true if an institution id is currently registered
+     * @dev Returns false after removeInstitution, which deletes the entry
+     * @param id The institution identifier
      */
     function exists(bytes32 id) external view returns (bool);
 
     /**
      * @notice Returns the full institution wiring for institution with id `id`
      * @dev Reverts if the institution does not exist
+     * @param id The institution identifier
+     * @return institution The institution's wired component addresses
      */
     function getInstitution(
         bytes32 id
@@ -59,6 +69,7 @@ interface IInstitutionalVaultRegistry is
     /**
      * @notice Returns the ConfigurationManager for institution with id `id`
      * @dev Reverts if the institution does not exist
+     * @param id The institution identifier
      */
     function getConfigurationManager(
         bytes32 id
@@ -67,6 +78,7 @@ interface IInstitutionalVaultRegistry is
     /**
      * @notice Returns the ProtocolAccessManager for institution with id `id`
      * @dev Reverts if the institution does not exist
+     * @param id The institution identifier
      */
     function getProtocolAccessManager(
         bytes32 id
@@ -75,12 +87,14 @@ interface IInstitutionalVaultRegistry is
     /**
      * @notice Returns the AdmiralsQuarters for institution with id `id`
      * @dev Reverts if the institution does not exist
+     * @param id The institution identifier
      */
     function getAdmiralsQuarters(bytes32 id) external view returns (address);
 
     /**
      * @notice Returns the HarborCommand for institution with id `id`
      * @dev Reverts if the institution does not exist; value is read from the institution's ConfigurationManager
+     * @param id The institution identifier
      */
     function getHarborCommand(bytes32 id) external view returns (address);
 
@@ -90,6 +104,8 @@ interface IInstitutionalVaultRegistry is
 
     /**
      * @notice Adds a new institution wiring
+     * @param id The institution identifier
+     * @param institution The component addresses to wire for the institution
      */
     function addInstitution(
         bytes32 id,
@@ -97,12 +113,16 @@ interface IInstitutionalVaultRegistry is
     ) external;
 
     /**
-     * @notice Removes an existing institution id (keeps data visible)
+     * @notice Removes an institution, deleting its stored data
+     * @dev After removal exists(id) returns false and getInstitution(id) reverts
+     * @param id The institution identifier
      */
     function removeInstitution(bytes32 id) external;
 
     /**
      * @notice Updates only the AdmiralsQuarters address for institution with id `id`
+     * @param id The institution identifier
+     * @param newAdmiralsQuarters The new AdmiralsQuarters address
      */
     function updateAdmiralsQuarters(
         bytes32 id,

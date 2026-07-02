@@ -14,6 +14,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  *      Soft-disable preserves visibility and auditability of old institutions.
  */
 contract InstitutionalVaultRegistry is IInstitutionalVaultRegistry, Ownable {
+    /// @notice Maps each institution identifier to its registered Institution record
     mapping(bytes32 => IInstitutionalVaultRegistry.Institution)
         public institutions;
 

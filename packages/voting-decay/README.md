@@ -1,99 +1,79 @@
-# Voting Decay Smart Contract
+# @summerfi/voting-decay
 
 A Solidity library for tracking and managing the decay of voting power in governance systems.
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Reference](#api-reference)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
-
 ## Overview
 
-The Voting Decay Library provides a flexible and efficient way to implement voting power erosion in
-blockchain-based governance systems. It allows for customizable decay rates, supports delegation,
-and offers utilities for calculating and updating voting power based on user activity.
+`@summerfi/voting-decay` provides two internal libraries used by governance and staking contracts.
+`VotingDecayLibrary` manages per-account decay state (`DecayState`, `DecayInfo`) and exposes
+functions for initialising accounts, updating/resetting decay factors, querying current and
+historical decay factors, and applying decay to a raw voting-power value. `VotingDecayMath` supplies
+the underlying fixed-point arithmetic: `linearDecay`, `exponentialDecay`, and `mulDiv`, all using
+`@prb/math` UD60x18. The library supports configurable decay-free windows, per-second decay rates,
+and both `Linear` and `Exponential` decay functions. Delegation chains up to
+`MAX_DELEGATION_DEPTH = 2` are followed when resolving an account's effective decay factor.
 
-## Features
+## Key contracts / exports
 
-- Customizable decay rates
-- Notional amount-based erosion calculation
-- Support for delegated voting power
-- Time-based modifiers for accurate decay tracking
-- Erosion reset mechanisms
-- Flexible voting power decay policies
-- Easy integration with existing governance systems
+| File                         | What it provides                                                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `src/VotingDecayLibrary.sol` | `VotingDecayLibrary` — state types (`DecayState`, `DecayInfo`), errors, events, all state-mutating and view functions |
+| `src/VotingDecayMath.sol`    | `VotingDecayMath` — pure math helpers (`linearDecay`, `exponentialDecay`, `mulDiv`)                                   |
 
-## Installation
+Import path used by consumers: `@summerfi/voting-decay/VotingDecayLibrary.sol` (remapped via
+`node_modules/`).
 
-TODO: Actually publish as foundry package
-
-To install the Voting Decay Library, use the following command:
-
-```bash
-forge install yourusername/voting-decay
-```
-
-## Usage
-
-Here's a basic example of how to use the Voting Decay Library:
-
-```solidity
-pragma solidity ^0.8.0;
-
-import 'voting-decay/VotingDecay.sol';
-
-contract MyGovernance {
-  using VotingDecay for VotingDecay.Account;
-
-  mapping(address => VotingDecay.Account) public accounts;
-
-  function vote(uint256 proposalId) external {
-    VotingDecay.Account storage account = accounts[msg.sender];
-    account.updateDecay();
-    uint256 votingPower = account.getCurrentVotingPower();
-    // Use votingPower for voting logic
-  }
-
-  function refresh() external {
-    accounts[msg.sender].refreshDecay();
-  }
-}
-```
-
-## API Reference
-
-### Key Functions
-
-- `calculateDecay(uint256 notionalAmount, uint256 elapsedTime) -> uint256`
-- `getCurrentVotingPower(address account) -> uint256`
-- `updateDecay(address account)`
-- `resetDecay(address account)`
-- `applyDecay(address account)`
-- `setDecayRate(uint256 rate)`
-- `refreshDecay(address account)`
-
-For detailed documentation on each function, please refer to the inline comments in the source code.
-
-## Testing
-
-To run the test suite:
+## Build and test
 
 ```bash
-forge test
+# Build
+pnpm build          # forge build --quiet
+
+# Test
+pnpm test           # forge test
+
+# Coverage
+pnpm coverage       # forge coverage (debug report)
+pnpm coverage:lcov  # lcov report
+
+# Generate docs
+pnpm docs:gen       # forge doc  →  docs/generated/
+
+# Lint / format
+pnpm format         # prettier check
+pnpm format:fix     # prettier write
 ```
 
-## Contributing
+## Cross-package connections
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+**Consumes**
 
-## License
+- `@prb/math` — UD60x18 fixed-point arithmetic used in `VotingDecayMath`
+- `@openzeppelin/contracts` — `Checkpoints.Trace224` for historical decay-factor snapshots (resolved
+  via `@summerfi/dependencies`)
+- `@summerfi/dependencies` — provides OZ and forge-std remappings
+- `@summerfi/constants` — remapped for any shared constants
 
-This project is licensed under the MIT License. This markdown block includes everything from the API
-Reference section to the end of the README. You can now easily copy and paste this into your
-project's README file.
+**Consumed by** (verified via `package.json` and `.sol` imports)
+
+- `packages/gov-contracts` — `SummerToken.sol` embeds `VotingDecayLibrary.DecayState` and calls all
+  major state functions; `DecayController.sol` orchestrates decay updates by calling
+  `ISummerToken.updateDecayFactor` (it does not directly embed `DecayState`)
+- `packages/rewards-contracts` — imports `VotingDecayLibrary` in staking tests
+- `packages/core-contracts` — declares the dependency; used in `FleetCommanderTestBase` tests
+- `packages/deployment` — compiles `SummerToken` which transitively includes this library
+
+**Gotchas**
+
+- The `DecayFunction` enum has exactly two variants (`Linear`, `Exponential`); adding a third
+  requires updating every `if/else` branch in both `VotingDecayLibrary` and `VotingDecayMath` or the
+  `revert InvalidDecayType()` path will be hit.
+- `MAX_DELEGATION_DEPTH = 2` is a public constant. Any integration that chains more than two
+  delegate hops silently receives a decay factor of 0 — this is intentional but easy to miss.
+- The package is `private: true` and is not published to npm; it is consumed only as a workspace
+  dependency via Foundry remappings.
+
+## Documentation
+
+GitBook section: [Voting Decay Library](../../gitbook/governance/voting-decay/README.md) (SUMMARY.md
+entry: `governance/voting-decay/README.md`).

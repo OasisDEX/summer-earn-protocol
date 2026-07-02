@@ -3,6 +3,10 @@ pragma solidity 0.8.28;
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
+/**
+ * @title ITipperEvents
+ * @notice Events emitted by the Tipper fee-accrual mechanism
+ */
 interface ITipperEvents {
     /**
      * @notice Emitted when the tip rate is updated

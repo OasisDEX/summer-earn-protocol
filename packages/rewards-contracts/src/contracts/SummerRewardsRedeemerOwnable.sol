@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ISummerRewardsRedeemer} from "../interfaces/ISummerRewardsRedeemer.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
+
 /**
  * @title SummerRewardsRedeemer
  * @author Summer.fi
@@ -124,6 +125,14 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
 
     /// INTERNALS
 
+    /**
+     * @notice Helper function to check if a user is included in the Merkle root for a given distribution
+     * @param user The address of the user to check
+     * @param index The distribution index
+     * @param amount The reward amount
+     * @param proof The Merkle proof verifying inclusion
+     * @return bool True if the proof is valid, false otherwise
+     */
     function _couldClaim(
         address user,
         uint256 index,
@@ -136,6 +145,14 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
         return MerkleProof.verify(proof, roots[index], leaf);
     }
 
+    /**
+     * @notice Verifies that a claim is valid and has not already been made
+     * @dev Reverts if the proof is invalid or if the user already claimed
+     * @param user The address of the user attempting to claim
+     * @param index The distribution index
+     * @param amount The reward amount to claim
+     * @param proof The Merkle proof verifying inclusion
+     */
     function _verifyClaim(
         address user,
         uint256 index,
@@ -151,6 +168,14 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
         }
     }
 
+    /**
+     * @notice Processes a single claim by verifying it, marking it as claimed in the bitmap, and emitting an event
+     * @param user The address of the user claiming the reward
+     * @param index The distribution index
+     * @param amount The reward amount
+     * @param proof The Merkle proof verifying inclusion
+     * @param userClaimedRoots The bitmap tracking claimed roots for the user
+     */
     function _processClaim(
         address user,
         uint256 index,
@@ -165,6 +190,11 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
         emit Claimed(user, index, amount);
     }
 
+    /**
+     * @notice Internal helper to transfer reward tokens to a recipient
+     * @param to The recipient address
+     * @param amount The amount of tokens to transfer
+     */
     function _sendRewards(address to, uint256 amount) internal {
         rewardsToken.safeTransfer(to, amount);
     }
@@ -177,6 +207,14 @@ contract SummerRewardsRedeemerOwnable is ISummerRewardsRedeemer, Ownable {
         return claimedRoots[user].get(index);
     }
 
+    /**
+     * @notice Processes claims for multiple distributions in a single transaction
+     * @dev Reverts if there is an array length mismatch or if the arrays are empty
+     * @param user The address of the user claiming the rewards
+     * @param indices Array of distribution indices
+     * @param amounts Array of reward amounts
+     * @param proofs Matrix of Merkle proofs for each distribution
+     */
     function _claimMultiple(
         address user,
         uint256[] calldata indices,

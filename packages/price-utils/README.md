@@ -6,13 +6,13 @@ needed to buy one unit of the base asset. This is represented as BASE/QUOTE. For
 
 ### Features
 
-The library abstracts the complexisty of handling prices for bases and quotes with different
-decimals and provides a simple interface for price manipulation and calculations.
+The library abstracts the complexity of handling prices for bases and quotes with different decimals
+and provides a simple interface for price manipulation and calculations.
 
-- Custom `Price` type that holds the ratio of base to quote
-- Free function `toPrice` to create Price instances
-- Custom `Price` functions: `invert()` and `quote(amount)`
-- Custom `uint256` functions: `mul(Price)`, `div(Price)`
+- Custom `Price` struct (`Types.sol`) that holds `baseAmount` and `quoteAmount`
+- Free functions `toPrice` and `toPriceFromOraclePrice` to create `Price` instances
+  (`Constructor.sol`)
+- `PriceUtils` library (`Utils.sol`): `invert()`, `quote(amount)`, `mul(Price)`, `div(Price)`
 
 ### Caveats
 
@@ -32,7 +32,7 @@ This is the same as multiplying the quote amount by the price using `.mul()` on 
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import '../contracts/PriceUtils.sol';
+import '@summerfi/price-solidity/contracts/PriceUtils.sol';
 
 contract PriceExample {
   using PriceUtils for Price;
@@ -65,3 +65,37 @@ contract PriceExample {
   }
 }
 ```
+
+## Build and test
+
+```sh
+# from the package root
+pnpm build          # forge build --quiet
+pnpm test           # forge test
+pnpm test:coverage  # forge coverage
+pnpm docs:gen       # forge doc
+```
+
+## Cross-package connections
+
+**Consumes:** `@openzeppelin/contracts` (declared as a direct npm dependency at `^5.4.0`) for
+`Math.mulDiv` used in `Utils.sol`; `forge-std` for tests.
+
+**Consumed by:** `core-contracts` is the only package in this repo that imports from
+`@summerfi/price-solidity`. The remapping in `core-contracts/remappings.txt` is:
+
+```
+@summerfi/price-solidity/=node_modules/@summerfi/price-solidity/
+```
+
+So import paths in `core-contracts` look like:
+
+```solidity
+import '@summerfi/price-solidity/contracts/PriceUtils.sol';
+```
+
+Note the required `/contracts/` segment — unlike some sibling libraries whose remappings already
+include a `/contracts/` suffix, this package's remapping points at the package root, so callers must
+include the `contracts/` directory in every import path.
+
+**GitBook reference:** [Price Library](../../gitbook/contracts/libraries/price/README.md)

@@ -10,7 +10,8 @@
     "coverage:lcov": "forge coverage --report lcov --ir-minimum",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
     "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
+    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern",
+    "docs:gen": "forge doc"
   },
   "dependencies": {
     "@summerfi/access-contracts": "workspace:*",

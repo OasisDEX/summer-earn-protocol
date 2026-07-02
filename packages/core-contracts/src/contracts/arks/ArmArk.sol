@@ -115,8 +115,10 @@ contract ArmArk is ArkWithWithdrawalRequest {
 
     /**
      * @inheritdoc IArkWithWithdrawalRequest
-     * @notice ARM appears to handle withdrawals automatically based on the withdrawal queue
-     * @dev This function checks if the withdrawal has been automatically processed and resets the requestId
+     * @notice Claims a previously requested ARM redemption
+     * @dev Reverts if no withdrawal is outstanding, otherwise calls
+     *      arm.claimRedeem(withdrawalRequestId) (which returns WETH, so no
+     *      wrapping is needed) and clears the stored request id.
      */
     function claimWithdrawal() external onlyKeeper {
         if (withdrawalRequestId == 0) {
@@ -164,12 +166,16 @@ contract ArmArk is ArkWithWithdrawalRequest {
     }
 
     /**
-     * @notice Withdraws assets from the ARM protocol via swap
-     * @param amount The amount of assets to withdraw
+     * @notice No-op disembark hook
+     * @dev Direct synchronous disembark is not supported: exits from the ARM
+     *      position go through requestWithdrawal/claimWithdrawal or
+     *      withdrawUsingSwap. Only WETH already held directly is immediately
+     *      withdrawable (see _withdrawableTotalAssets).
+     * @param amount The amount of assets to withdraw (unused)
      * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        // handeled by disembark method, since only WETH can be disembarked
+        // handled by requestWithdrawal/withdrawUsingSwap, since only WETH can be disembarked
     }
 
     /**

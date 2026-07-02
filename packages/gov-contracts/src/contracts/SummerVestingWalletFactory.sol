@@ -21,9 +21,9 @@ contract SummerVestingWalletFactory is
     /** @notice The ERC20 token that will be vested */
     address public immutable token;
 
-    /** @notice Mapping from beneficiary address to their vesting wallet address */
+    /// @inheritdoc ISummerVestingWalletFactory
     mapping(address beneficiary => address vestingWallet) public vestingWallets;
-    /** @notice Mapping from vesting wallet address to its beneficiary address */
+    /// @inheritdoc ISummerVestingWalletFactory
     mapping(address vestingWallet => address beneficiary)
         public vestingWalletOwners;
 
@@ -41,7 +41,7 @@ contract SummerVestingWalletFactory is
     }
 
     /**
-     * @notice Creates a new vesting wallet for a beneficiary
+     * @inheritdoc ISummerVestingWalletFactory
      * @dev Only callable by the Foundation
      */
     function createVestingWallet(

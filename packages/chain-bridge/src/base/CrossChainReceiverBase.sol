@@ -67,7 +67,9 @@ abstract contract CrossChainReceiverBase is ICrossChainReceiver {
     }
 
     /**
-     * @inheritdoc IERC165
+     * @notice Checks if the contract supports a given interface ID
+     * @param interfaceId The interface ID to check
+     * @return True if the contract supports the interface, false otherwise
      */
     function supportsInterface(
         bytes4 interfaceId

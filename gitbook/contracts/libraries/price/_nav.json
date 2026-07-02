@@ -1,0 +1,23 @@
+{
+  "package": "price-utils",
+  "out": "contracts/libraries/price",
+  "tree": [
+    {
+      "dir": "",
+      "pages": [
+        {
+          "title": "Constructor",
+          "file": "contracts/libraries/price/constructor.md"
+        },
+        {
+          "title": "Types",
+          "file": "contracts/libraries/price/types.md"
+        },
+        {
+          "title": "Utils",
+          "file": "contracts/libraries/price/utils.md"
+        }
+      ]
+    }
+  ]
+}

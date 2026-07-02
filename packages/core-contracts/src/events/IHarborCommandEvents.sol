@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+/**
+ * @title IHarborCommandEvents
+ * @notice Events emitted by the HarborCommand registry
+ */
 interface IHarborCommandEvents {
     /**
      * @notice Emitted when a new FleetCommander is enlisted

@@ -35,7 +35,9 @@ contract StakedSummerToken is
     ERC20Votes
 {
     // ============ ROLES ============
+    /// @notice AccessControl role identifier authorizing an address to mint xSUMR
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    /// @notice AccessControl role identifier authorizing an address to burn xSUMR from other accounts
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     // ============ CONSTRUCTOR ============
@@ -83,20 +85,32 @@ contract StakedSummerToken is
 
     // ============ MINT / BURN API ============
 
-    /// @inheritdoc IStakedSummerToken
+    /**
+     * @notice Mints xSUMR to a recipient address. Restricted to addresses holding MINTER_ROLE.
+     * @param to Recipient address for newly minted xSUMR
+     * @param amount Amount of xSUMR to mint
+     */
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         // Only authorized staking modules are permitted to mint xSUMR
         _mint(to, amount);
     }
 
-    /// @inheritdoc IStakedSummerToken
+    /**
+     * @notice Burns xSUMR from the caller's own balance
+     * @param amount Amount of xSUMR to burn from the caller's balance
+     */
     function burn(
         uint256 amount
     ) public override(ERC20Burnable, IStakedSummerToken) {
         super.burn(amount);
     }
 
-    /// @inheritdoc IStakedSummerToken
+    /**
+     * @notice Burns xSUMR from a specified address; allowed for the owner or a BURNER_ROLE holder,
+     * subject to standard ERC20 allowance rules when the caller is not the owner
+     * @param from Address from which tokens will be burned
+     * @param amount Amount of xSUMR to burn
+     */
     function burnFrom(
         address from,
         uint256 amount
@@ -121,6 +135,13 @@ contract StakedSummerToken is
     }
 
     // The following functions are overrides required by Solidity.
+    /**
+     * @notice Internal balance-update hook that enforces the transfer restriction (mint/burn only)
+     * before running the pausable and votes checkpoint logic
+     * @param from The address tokens move from (zero address for mints)
+     * @param to The address tokens move to (zero address for burns)
+     * @param value The amount of tokens moved
+     */
     function _update(
         address from,
         address to,
@@ -133,6 +154,11 @@ contract StakedSummerToken is
         super._update(from, to, value);
     }
 
+    /**
+     * @notice Returns the current permit nonce for an owner address
+     * @param owner The address to query the nonce for
+     * @return The current nonce for the specified owner
+     */
     function nonces(
         address owner
     ) public view override(ERC20Permit, Nonces) returns (uint256) {

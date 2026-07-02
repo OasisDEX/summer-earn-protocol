@@ -129,5 +129,7 @@ cmd.in
 cmd.out
 gemini_pipe.sh
 
+# forge doc intermediate output (cleaned copies live in gitbook/)
+packages/*/docs/generated/
 .audits/
 x-ray/

@@ -36,8 +36,11 @@ contract PendleLPArk is BasePendleArk {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev PendleLPArk is always withdrawable
-     * @dev TODO:  add logic to check for pause etc
+     * @dev Returns the full totalAssets() (the slippage-adjusted, oracle-valued
+     *      LP position). It does not apply any market-pause or AMM-liquidity
+     *      cap: withdrawals route through Pendle's removeLiquiditySingleToken
+     *      and can revert at execution time if the market lacks sufficient
+     *      liquidity.
      */
     function _withdrawableTotalAssets()
         internal

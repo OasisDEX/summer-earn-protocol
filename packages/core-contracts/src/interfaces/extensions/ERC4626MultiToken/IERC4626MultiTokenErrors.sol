@@ -2,6 +2,8 @@
 pragma solidity 0.8.28;
 
 /**
+    @title IERC4626MultiTokenErrors
+
     @notice Errors for the VaultWithReceipts contract
 
     @author Roberto Cano <robercano>

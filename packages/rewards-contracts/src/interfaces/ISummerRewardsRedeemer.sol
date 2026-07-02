@@ -13,35 +13,96 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface ISummerRewardsRedeemer {
     /// EVENTS
+    /**
+     * @notice Emitted when a user successfully claims rewards
+     * @param user The address of the user who claimed the rewards
+     * @param index The distribution index from which the rewards were claimed
+     * @param amount The amount of tokens claimed
+     */
     event Claimed(address indexed user, uint256 indexed index, uint256 amount);
+
+    /**
+     * @notice Emitted when a new Merkle root is added for a distribution
+     * @param index The distribution index for the root
+     * @param root The Merkle root hash
+     */
     event RootAdded(uint256 indexed index, bytes32 root);
+
+    /**
+     * @notice Emitted when a Merkle root is removed
+     * @param index The distribution index of the removed root
+     */
     event RootRemoved(uint256 indexed index);
 
     /// ERRORS
+    /**
+     * @notice Thrown when attempting to initialize the contract with an invalid rewards token address
+     * @param token The address of the invalid token
+     */
     error InvalidRewardsToken(address token);
+
+    /**
+     * @notice Thrown when attempting to add a Merkle root for an index that already has one
+     * @param index The distribution index
+     * @param root The Merkle root hash that was attempted to be added
+     */
     error RootAlreadyAdded(uint256 index, bytes32 root);
+
+    /**
+     * @notice Thrown when a user cannot claim rewards due to an invalid Merkle proof
+     * @param user The address of the user
+     * @param index The distribution index
+     * @param amount The amount attempted to claim
+     * @param proof The Merkle proof provided
+     */
     error UserCannotClaim(
         address user,
         uint256 index,
         uint256 amount,
         bytes32[] proof
     );
+
+    /**
+     * @notice Thrown when a user attempts to claim rewards they have already claimed
+     * @param user The address of the user
+     * @param index The distribution index
+     * @param amount The amount attempted to claim
+     * @param proof The Merkle proof provided
+     */
     error UserAlreadyClaimed(
         address user,
         uint256 index,
         uint256 amount,
         bytes32[] proof
     );
+
+    /**
+     * @notice Thrown when claiming multiple rewards and the arrays have mismatched lengths
+     * @param indices Array of distribution indices
+     * @param amounts Array of reward amounts
+     * @param proofs Array of Merkle proofs
+     */
     error ClaimMultipleLengthMismatch(
         uint256[] indices,
         uint256[] amounts,
         bytes32[][] proofs
     );
+
+    /**
+     * @notice Thrown when claiming multiple rewards and the provided arrays are empty
+     * @param indices Array of distribution indices
+     * @param amounts Array of reward amounts
+     * @param proofs Array of Merkle proofs
+     */
     error ClaimMultipleEmpty(
         uint256[] indices,
         uint256[] amounts,
         bytes32[][] proofs
     );
+
+    /**
+     * @notice Thrown when the caller is not the Admirals Quarters router contract
+     */
     error CallerNotAdmiralsQuarters();
 
     /**

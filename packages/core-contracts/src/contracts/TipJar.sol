@@ -149,6 +149,7 @@ contract TipJar is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
+    /// @param fleetCommander_ The FleetCommander to distribute accumulated tips from
     function shake(address fleetCommander_) external whenNotPaused onlyKeeper {
         _shake(fleetCommander_);
     }

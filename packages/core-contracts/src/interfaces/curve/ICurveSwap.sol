@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+/// @title ICurveSwap
+/// @notice Minimal interface for a Curve pool's pricing and swap functions
 interface ICurveSwap {
+    /// @notice Returns the last traded price for the token at index `i`
+    /// @param i The index of the token
+    /// @return The last traded price
     function last_price(uint256 i) external view returns (uint256);
     /**
      * @notice Returns the stored EMA (Exponential Moving Average) price without recalculation
@@ -21,11 +26,20 @@ interface ICurveSwap {
      * @return The current oracle price
      */
     function price_oracle(uint256 i) external view returns (uint256);
+    /// @notice Exchanges `dx` of token `i` for token `j`, requiring at least `min_dy` out
+    /// @param i The index of the input token
+    /// @param j The index of the output token
+    /// @param dx The amount of input token to swap
+    /// @param min_dy The minimum acceptable amount of output token
+    /// @return The amount of output token received
     function exchange(
         int128 i,
         int128 j,
         uint256 dx,
         uint256 min_dy
     ) external returns (uint256);
+    /// @notice Returns the token address at index `i` in the pool
+    /// @param i The index of the token
+    /// @return The token address
     function coins(uint256 i) external view returns (address);
 }

@@ -1,0 +1,19 @@
+{
+  "package": "voting-decay",
+  "out": "governance/voting-decay",
+  "tree": [
+    {
+      "dir": "",
+      "pages": [
+        {
+          "title": "VotingDecayLibrary",
+          "file": "governance/voting-decay/voting-decay-library.md"
+        },
+        {
+          "title": "VotingDecayMath",
+          "file": "governance/voting-decay/voting-decay-math.md"
+        }
+      ]
+    }
+  ]
+}

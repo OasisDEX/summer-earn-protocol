@@ -33,21 +33,43 @@ contract IntentHandler is
                                         CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The maximum age of a price update before it is considered stale
     uint256 public constant MAX_PRICE_AGE = 1 hours;
+
+    /// @notice The minimum term duration allowed for an intent
     uint256 public constant MIN_TERM = 1 days;
+
+    /// @notice The maximum term duration allowed for an intent
     uint256 public constant MAX_TERM = 365 days;
+
+    /// @notice The buffer time window after an intent is solved during which it cannot be committed
     uint256 public constant BUFFER_TIME = 10 minutes;
 
     /*//////////////////////////////////////////////////////////////
                                     STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+    /// @notice Mapping from intent ID to its current lifecycle state
     mapping(bytes32 intentId => IntentState state) public intentStates;
+
+    /// @notice Mapping from solver address to their deployed Escrow contract
     mapping(address solver => Escrow escrow) public solverEscrows;
+
+    /// @notice Mapping from intent ID to the address of the solver who solved it
     mapping(bytes32 intentId => address solver) public intentSolvers;
+
+    /// @notice Mapping from intent ID to the block timestamp when it was solved
     mapping(bytes32 intentId => uint256 solveTime) public intentSolveTime;
+
+    /// @notice The IntentBondFactory contract address
     IIntentBondFactory public immutable intentBondFactory;
+
+    /// @notice The IntentOracle contract address
     IIntentOracle public immutable intentOracle;
+
+    /// @notice The Summer token contract address
     IERC20 public immutable summerToken;
+
+    /// @notice The address of the AccessManager contract
     address public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
@@ -60,22 +82,26 @@ contract IntentHandler is
         address _summerToken,
         address _accessManager
     ) ProtocolAccessManaged(_accessManager) {
-        if (_summerToken == address(0))
+        if (_summerToken == address(0)) {
             revert IntentHandler__ConstructorParamsInvalid(
                 "Summer token cannot be zero address"
             );
-        if (_intentBondFactory == address(0))
+        }
+        if (_intentBondFactory == address(0)) {
             revert IntentHandler__ConstructorParamsInvalid(
                 "Intent bond factory cannot be zero address"
             );
-        if (_intentOracle == address(0))
+        }
+        if (_intentOracle == address(0)) {
             revert IntentHandler__ConstructorParamsInvalid(
                 "Intent oracle cannot be zero address"
             );
-        if (_accessManager == address(0))
+        }
+        if (_accessManager == address(0)) {
             revert IntentHandler__ConstructorParamsInvalid(
                 "Access manager cannot be zero address"
             );
+        }
 
         summerToken = IERC20(_summerToken);
         intentBondFactory = IIntentBondFactory(_intentBondFactory);
@@ -89,8 +115,9 @@ contract IntentHandler is
     //////////////////////////////////////////////////////////////*/
 
     modifier onlySolver() {
-        if (address(solverEscrows[msg.sender]) == address(0))
+        if (address(solverEscrows[msg.sender]) == address(0)) {
             revert IntentHandler__UnauthorizedCaller();
+        }
         _;
     }
 
@@ -98,39 +125,50 @@ contract IntentHandler is
                                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IIntentHandler
     function createIntent(Intent memory intent) external onlyKeeper {
         bytes32 intentId = keccak256(abi.encode(intent));
 
-        if (intentStates[intentId] != IntentState.None)
+        if (intentStates[intentId] != IntentState.None) {
             revert IntentHandler__IntentAlreadyExists();
-        if (intent.term < MIN_TERM || intent.term > MAX_TERM)
+        }
+        if (intent.term < MIN_TERM || intent.term > MAX_TERM) {
             revert IntentHandler__InvalidState();
-        if (intent.expiry <= block.timestamp)
+        }
+        if (intent.expiry <= block.timestamp) {
             revert IntentHandler__IntentExpired();
+        }
 
         intentStates[intentId] = IntentState.Created;
         emit IntentCreated(intentId, intent);
     }
 
+    /// @inheritdoc IIntentHandler
     function solveIntent(
         Intent memory intent,
         uint256 escrowedYield
     ) external onlySolver {
         bytes32 intentId = keccak256(abi.encode(intent));
-        if (intentStates[intentId] != IntentState.Created)
+        if (intentStates[intentId] != IntentState.Created) {
             revert IntentHandler__IntentNotFound();
-        if (block.timestamp > intent.expiry)
+        }
+        if (block.timestamp > intent.expiry) {
             revert IntentHandler__IntentExpired();
+        }
 
         // Check if solver is vouched with sufficient bond
-        if (!intentBondFactory.isSolverVouched(msg.sender, intent.requiredBond))
+        if (
+            !intentBondFactory.isSolverVouched(msg.sender, intent.requiredBond)
+        ) {
             revert IntentHandler__InsufficientBond();
+        }
 
         // Verify oracle is not stale
         // Note: Currently only checks staleness, but future versions may use price data
         // for dynamic bond requirements based on notional value
-        if (intentOracle.isPriceStale(address(summerToken), MAX_PRICE_AGE))
+        if (intentOracle.isPriceStale(address(summerToken), MAX_PRICE_AGE)) {
             revert IntentHandler__InvalidOracle();
+        }
         if (intent.targetYield < escrowedYield) {
             revert IntentHandler__TooLittleEscrowed();
         }
@@ -151,13 +189,15 @@ contract IntentHandler is
         emit IntentSolved(intent.user, msg.sender, escrowedYield);
     }
 
+    /// @inheritdoc IIntentHandler
     function settleIntent(Intent memory intent) external {
         bytes32 intentId = keccak256(abi.encode(intent));
         IntentState state = intentStates[intentId];
 
         if (state != IntentState.Solved) revert IntentHandler__InvalidState();
-        if (block.timestamp < intent.expiry)
+        if (block.timestamp < intent.expiry) {
             revert IntentHandler__InvalidState();
+        }
 
         intentStates[intentId] = IntentState.Settled;
 
@@ -179,6 +219,7 @@ contract IntentHandler is
         emit IntentSettled(intent.user, solver, escrowedYield);
     }
 
+    /// @inheritdoc IIntentHandler
     function resignByUser(Intent memory intent) external onlyKeeper {
         bytes32 intentId = keccak256(abi.encode(intent));
         IntentState state = intentStates[intentId];
@@ -187,21 +228,25 @@ contract IntentHandler is
             address solver = intentSolvers[intentId];
             Escrow escrow = solverEscrows[solver];
             escrow.withdraw(intent.token, solver, intentId);
-        } else if (state != IntentState.Created)
+        } else if (state != IntentState.Created) {
             revert IntentHandler__InvalidState();
+        }
 
         intentStates[intentId] = IntentState.UserResigned;
 
         emit IntentResignedByArk(intent.user, address(0), 0);
     }
 
+    /// @inheritdoc IIntentHandler
     function resignBySolver(Intent memory intent) external {
         bytes32 intentId = keccak256(abi.encode(intent));
         IntentState state = intentStates[intentId];
-        if (state != IntentState.Solved && state != IntentState.Active)
+        if (state != IntentState.Solved && state != IntentState.Active) {
             revert IntentHandler__InvalidState();
-        if (intentSolvers[intentId] != msg.sender)
+        }
+        if (intentSolvers[intentId] != msg.sender) {
             revert IntentHandler__UnauthorizedCaller();
+        }
 
         intentStates[intentId] = IntentState.SolverResigned;
 
@@ -227,12 +272,18 @@ contract IntentHandler is
                                         ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Deploys and associates a new Escrow contract for a solver
+     * @param solver Address of the solver
+     * @param asset Address of the asset/token used by this solver
+     */
     function addSolverEscrow(
         address solver,
         address asset
     ) external onlyKeeper {
-        if (address(solverEscrows[solver]) != address(0))
+        if (address(solverEscrows[solver]) != address(0)) {
             revert IntentHandler__SolverEscrowAlreadyExists();
+        }
 
         // Deploy new escrow for this solver
         Escrow escrow = new Escrow(address(this));
@@ -242,15 +293,25 @@ contract IntentHandler is
         emit SolverEscrowAdded(solver, address(escrow), asset);
     }
 
+    /**
+     * @notice Removes the Escrow contract association for a solver
+     * @param solver Address of the solver
+     */
     function removeSolverEscrow(address solver) external onlyKeeper {
-        if (address(solverEscrows[solver]) == address(0))
+        if (address(solverEscrows[solver]) == address(0)) {
             revert IntentHandler__SolverEscrowNotFound();
+        }
 
         delete solverEscrows[solver];
 
         emit SolverEscrowRemoved(solver);
     }
 
+    /**
+     * @notice Withdraws a specified amount of tokens from this contract to the caller
+     * @param token Address of the token to withdraw (use address(0) for native ETH)
+     * @param amount The amount of tokens to withdraw
+     */
     function withdrawToken(address token, uint256 amount) external onlyKeeper {
         if (token == address(0)) {
             (bool success, ) = msg.sender.call{value: amount}("");
@@ -263,13 +324,27 @@ contract IntentHandler is
                                         EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a solver's Escrow contract is successfully added
+    /// @param solver Address of the solver
+    /// @param escrow Address of the newly deployed Escrow contract
+    /// @param asset Address of the asset associated with the escrow
     event SolverEscrowAdded(
         address indexed solver,
         address indexed escrow,
         address indexed asset
     );
+
+    /// @notice Emitted when a solver's Escrow contract is removed
+    /// @param solver Address of the solver
     event SolverEscrowRemoved(address indexed solver);
 
+    /**
+     * @notice Checks if an intent has met the commitment conditions (sufficient assets and buffer time elapsed)
+     * @param intent The Intent struct containing all parameters of the intent
+     * @return requiredNotional The required notional value for the intent
+     * @return arkAssets The total assets of the user's Ark contract
+     * @return isCommited True if commitment conditions are satisfied, false otherwise
+     */
     function hasCommitted(
         Intent memory intent
     )
@@ -289,22 +364,31 @@ contract IntentHandler is
 
         IArk ark = IArk(intent.user);
         arkAssets = ark.totalAssets();
-        if (arkAssets < requiredNotional)
+        if (arkAssets < requiredNotional) {
             return (requiredNotional, arkAssets, false);
+        }
         return (requiredNotional, arkAssets, true);
     }
 
+    /// @notice Modifier restricting function execution to only existing intents
+    /// @param intent The Intent struct to validate
     modifier onlyExistingIntent(Intent memory intent) {
         bytes32 intentId = keccak256(abi.encode(intent));
-        if (intentStates[intentId] == IntentState.None)
+        if (intentStates[intentId] == IntentState.None) {
             revert IntentHandler__IntentNotFound();
+        }
         _;
     }
     /*//////////////////////////////////////////////////////////////
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when attempting to add an escrow for a solver that already has one
     error IntentHandler__SolverEscrowAlreadyExists();
+
+    /// @notice Thrown when the escrow for a solver cannot be found
     error IntentHandler__SolverEscrowNotFound();
+
+    /// @notice Thrown when the token withdrawal fails
     error IntentHandler__WithdrawFailed();
 }

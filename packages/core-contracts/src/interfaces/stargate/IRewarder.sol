@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
+ *  @title IRewarder
  *  @notice A rewarder is connected to the staking contract and distributes rewards whenever the staking contract
  *          updates the rewarder.
  */
@@ -27,6 +28,11 @@ interface IRewarder {
      *  @notice Informs the rewarder of an update in the staking contract, such as a deposit, withdraw or claim.
      *  @dev Emergency withdrawals draw the balance of a user to 0, and DO NOT call `onUpdate`.
      *       The rewarder logic must keep this in mind!
+     *  @param token The staking token whose pool is being updated
+     *  @param user The user whose stake changed
+     *  @param oldStake The user's stake before the update
+     *  @param oldSupply The pool's total supply before the update
+     *  @param newStake The user's stake after the update
      */
     function onUpdate(
         IERC20 token,
@@ -40,6 +46,7 @@ interface IRewarder {
      *  @notice Called by the staking contract whenever this rewarder is connected to a staking token in the staking
      *          contract. Should only be callable once per staking token to avoid wrongful reward attribution through
      *          reconfiguration.
+     *  @param stakingToken The staking token the rewarder is being connected to
      */
     function connect(IERC20 stakingToken) external;
 }

@@ -15,6 +15,9 @@ contract ConfigurationManagerWhitelist is
     IConfigurationManager,
     ProtocolAccessManaged
 {
+    /**
+     * @notice Indicates whether the configuration manager has been initialized
+     */
     bool public initialized;
 
     /// @inheritdoc IConfigurationManager
