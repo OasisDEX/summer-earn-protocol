@@ -31,6 +31,9 @@ interactive scripts.
 
 ## Documentation Pipeline
 
+Full playbook (NatSpec gotchas, coverage/comment-only audit tooling, hand-written vs generated in
+depth): [`docs/DOCS_PLAYBOOK.md`](docs/DOCS_PLAYBOOK.md). Summary below.
+
 Published docs live in [`gitbook/`](gitbook/) and are split into **generated** and **hand-written**
 trees. Knowing which is which is the single biggest gotcha — editing a generated page is wasted
 work.
