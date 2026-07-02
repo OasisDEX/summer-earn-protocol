@@ -18,10 +18,14 @@ In a consuming package's `tsconfig.json`:
 { "extends": "@summerfi/typescript-config/tsconfig.base.json" }
 ```
 
-15 packages in the monorepo consume this package as a `devDependency`.
+## Cross-package connections
 
-## Gotcha
+**Consumed by:** 15 packages in the monorepo, as a `devDependency` extending `tsconfig.base.json`
+(includes `@summerfi/jest-config`, whose factory takes a consumer's `tsconfig.test.json`
+`compilerOptions` — see that package's README).
 
-`tsconfig.base.json` ships a hardcoded `references` list pointing at specific sibling packages.
-Consumers that use `composite: true` project references must keep their own `tsconfig.json`
-references in sync; they are not inherited from the base.
+**Gotchas:**
+
+- `tsconfig.base.json` ships a hardcoded `references` list pointing at specific sibling packages.
+  Consumers that use `composite: true` project references must keep their own `tsconfig.json`
+  references in sync; they are not inherited from the base.

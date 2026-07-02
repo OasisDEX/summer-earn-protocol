@@ -11,17 +11,21 @@ Shared Solidity constants library for the Summer.fi protocol.
 - `MAX_UINT256` — type max
 - `ACTIVE_MASK`, `FROZEN_MASK`, `PAUSED_MASK` — Aave V3 pool config data masks
 
-## Who uses it
+## Cross-package connections
 
-`core-contracts`, `gov-contracts`, `rewards-contracts`, `voting-decay`, `intent-system`, and
-`deployment` all consume this package via a Foundry remapping:
+**Consumed by** (via the Foundry remapping
+`@summerfi/constants/=node_modules/@summerfi/constants/src/`):
 
-```
-@summerfi/constants/=node_modules/@summerfi/constants/src/
-```
+- `packages/core-contracts`
+- `packages/gov-contracts`
+- `packages/rewards-contracts`
+- `packages/voting-decay`
+- `packages/intent-system`
+- `packages/deployment`
 
-## Gotcha
+**Gotchas:**
 
-`package.json` declares `main`/`types` pointing to a `dist/` directory and defines only
-`format`/`format:fix` scripts targeting `*.ts` files — there is no build step and no TypeScript
-source. The package is Solidity-only; the dist fields and TS-targeting scripts are unused artifacts.
+- `package.json` declares `main`/`types` pointing to a `dist/` directory and defines only
+  `format`/`format:fix` scripts targeting `*.ts` files — there is no build step and no TypeScript
+  source. The package is Solidity-only; the dist fields and TS-targeting scripts are unused
+  artifacts.

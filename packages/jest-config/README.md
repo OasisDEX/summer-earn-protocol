@@ -9,12 +9,6 @@ Shared Jest base configuration for TypeScript packages in this monorepo.
 `ts-jest` with ESM treatment for `.ts` files, runs with a single worker (`maxWorkers: 1`), and maps
 TypeScript path aliases via `pathsToModuleNameMapper`.
 
-## Who uses it
-
-Any TypeScript package that runs Jest tests: `tenderly-utils`, `summer-earn-gov-validator`,
-`math-utils`, `price-utils`, `percentage`, `dutch-auction`, `deployment`, `intent-system`,
-`core-contracts`, `gov-contracts`, and `summer-earn-auctions-frontend`.
-
 ## Usage
 
 ```js
@@ -27,8 +21,18 @@ module.exports = {
 }
 ```
 
-## Gotcha
+## Cross-package connections
 
-The base config hard-codes `roots` to `['<rootDir>/src', '<rootDir>/tests']`. Packages that also
-have an `e2e/` directory (e.g. `tenderly-utils`) must spread the base config and override `roots` to
-add the extra directory.
+**Consumes:** `@summerfi/typescript-config` — a consuming package's `tsconfig.test.json` (which
+feeds `compilerOptions` into the factory above) typically extends it.
+
+**Consumed by:** any TypeScript package that runs Jest tests — `tenderly-utils`,
+`summer-earn-gov-validator`, `math-utils`, `price-utils`, `percentage`, `dutch-auction`,
+`deployment`, `intent-system`, `core-contracts`, `gov-contracts`, and
+`summer-earn-auctions-frontend`.
+
+**Gotchas:**
+
+- The base config hard-codes `roots` to `['<rootDir>/src', '<rootDir>/tests']`. Packages that also
+  have an `e2e/` directory (e.g. `tenderly-utils`) must spread the base config and override `roots`
+  to add the extra directory.

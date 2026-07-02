@@ -18,14 +18,17 @@ versions that the deployed governance contracts were built with.
 | `@layerzerolabs/toolbox-foundry`           | 0.1.9   |
 | `solidity-bytes-utils`                     | 0.8.4   |
 
-## Who uses it
+## Cross-package connections
 
-`gov-contracts` and `deployment` depend on this package. `gov-contracts` remaps `@layerzerolabs/` to
-`node_modules/@summerfi/legacy-dependencies/node_modules/@layerzerolabs/` via `remappings.txt`, so
-Foundry resolves LayerZero imports from here rather than from the workspace root.
+**Consumed by:**
 
-## Gotcha
+- `packages/gov-contracts` — remaps `@layerzerolabs/` to
+  `node_modules/@summerfi/legacy-dependencies/node_modules/@layerzerolabs/` via `remappings.txt`, so
+  Foundry resolves LayerZero imports from here rather than from the workspace root.
+- `packages/deployment`
 
-`core-contracts` resolves `@layerzerolabs/` from the root `node_modules` and therefore sees
-different LayerZero versions. Do not update `gov-contracts` to use the root versions — the two
-packages are intentionally pinned separately.
+**Gotchas:**
+
+- `core-contracts` resolves `@layerzerolabs/` from the root `node_modules` and therefore sees a
+  different LayerZero version. Do not update `gov-contracts` to use the root versions — the two
+  packages are intentionally pinned separately.
