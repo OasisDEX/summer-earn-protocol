@@ -43,6 +43,35 @@ export async function getCache<T>(pk: string, sk: string): Promise<T | null> {
   }
 }
 
+// Read-through cache: return the cached payload while it's younger than
+// `maxAgeSeconds`; otherwise run `fetcher` and store the result. On a fetcher
+// failure the stale payload (if any) is served rather than propagating the error,
+// so a flaky upstream never blanks a page that rendered fine an hour ago.
+export async function getCachedOrFetch<T>(
+  pk: string,
+  sk: string,
+  maxAgeSeconds: number,
+  fetcher: () => Promise<T>,
+): Promise<T | null> {
+  const item = await getCache<{ data: T; updatedAt?: string }>(pk, sk)
+  const ageSeconds = item?.updatedAt
+    ? (Date.now() - new Date(item.updatedAt).getTime()) / 1000
+    : Infinity
+
+  if (item && ageSeconds < maxAgeSeconds) {
+    return item.data
+  }
+
+  try {
+    const fresh = await fetcher()
+    await putCache(pk, sk, { data: fresh as unknown as Record<string, unknown> | unknown })
+    return fresh
+  } catch (error) {
+    console.error(`Cache refresh failed for ${pk}/${sk}, serving stale if available:`, error)
+    return item?.data ?? null
+  }
+}
+
 export async function putCache(
   pk: string,
   sk: string,

@@ -206,7 +206,56 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
                   </p>
                   <p className="text-lg font-bold text-on-surface">{delegate.proposalsVoted}</p>
                 </div>
+                {delegate.curia && (
+                  <>
+                    <div className="p-3 bg-primary/5 rounded-xl border border-primary/20">
+                      <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1 flex items-center gap-1">
+                        PRS Score
+                        <span
+                          className="material-symbols-outlined text-[12px] opacity-50 cursor-help"
+                          title="Curia forum Post Reputation Score, aggregated over the last year"
+                        >
+                          info
+                        </span>
+                      </p>
+                      <p className="text-lg font-bold text-primary">
+                        {delegate.curia.prsScore !== null
+                          ? delegate.curia.prsScore.toLocaleString(undefined, {
+                              maximumFractionDigits: 1,
+                            })
+                          : '—'}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-surface-container-low rounded-xl border border-outline/10">
+                      <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">
+                        Votes Cast
+                      </p>
+                      <p className="text-lg font-bold text-on-surface">
+                        {delegate.curia.votesCast}
+                        {delegate.curia.proposalsCount > 0 && (
+                          <span className="text-xs font-medium text-on-surface-variant">
+                            {' '}
+                            / {delegate.curia.proposalsCount}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
+              {delegate.curia && (
+                <p className="text-[10px] text-on-surface-variant opacity-60 -mt-4 mb-6 text-right">
+                  Analytics by{' '}
+                  <a
+                    href="https://curiahub.xyz"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary underline decoration-dotted"
+                  >
+                    Curia
+                  </a>
+                </p>
+              )}
 
               <button
                 onClick={() => handleDelegate(delegate.address)}
