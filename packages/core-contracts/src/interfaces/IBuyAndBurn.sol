@@ -12,7 +12,7 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.s
  */
 interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     /**
-     * @dev Starts a new auction for a specified token
+     * @notice Starts a new auction for a specified token
      * @param tokenToAuction The address of the token to be auctioned
      * @custom:override Implements the startAuction function from IBuyAndBurn
      * @custom:internal-logic
@@ -30,7 +30,7 @@ interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     function startAuction(address tokenToAuction) external;
 
     /**
-     * @dev Allows users to buy tokens from an ongoing auction
+     * @notice Allows users to buy tokens from an ongoing auction
      * @param auctionId The ID of the auction
      * @param amount The amount of tokens to buy
      * @return summerAmount The amount of SUMMER tokens required to purchase the specified amount of auction tokens
@@ -54,7 +54,7 @@ interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     ) external returns (uint256 summerAmount);
 
     /**
-     * @dev Finalizes an auction after its end time
+     * @notice Finalizes an auction after its end time
      * @param auctionId The ID of the auction to finalize
      * @custom:override Implements the finalizeAuction function from IBuyAndBurn
      * @custom:internal-logic

@@ -9,13 +9,13 @@ pragma solidity 0.8.28;
  * https://github.com/Synthetixio/synthetix/blob/v2.101.3/contracts/StakingRewards.sol
  */
 import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Constants} from "@summerfi/constants/Constants.sol";
 import {ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
  * @title StakingRewards
@@ -30,6 +30,14 @@ abstract contract StakingRewardsManagerBase is
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /**
+     * @notice Struct containing distribution information for a reward token
+     * @param periodFinish The timestamp when the current rewards distribution period ends
+     * @param rewardRate The rate of rewards distributed per second (scaled by WAD)
+     * @param rewardsDuration The duration of the rewards distribution period in seconds
+     * @param lastUpdateTime The last timestamp when rewards were updated
+     * @param rewardPerTokenStored The accumulated reward per token stored (scaled by WAD)
+     */
     struct RewardData {
         uint256 periodFinish;
         uint256 rewardRate;
@@ -42,22 +50,37 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /* @notice List of all reward tokens supported by this contract */
+    /**
+     * @notice List of all reward tokens supported by this contract
+     */
     EnumerableSet.AddressSet internal _rewardTokensList;
-    /* @notice The token that users stake to earn rewards */
+    /**
+     * @notice The token that users stake to earn rewards
+     */
     address public immutable stakingToken;
 
-    /* @notice Mapping of reward token to its reward distribution data */
+    /**
+     * @notice Mapping of reward token to its reward distribution data
+     */
     mapping(address rewardToken => RewardData data) public rewardData;
-    /* @notice Tracks the last reward per token paid to each user for each reward token */
+    /**
+     * @notice Tracks the last reward per token paid to each user for each reward token
+     */
     mapping(address rewardToken => mapping(address account => uint256 rewardPerTokenPaid))
         public userRewardPerTokenPaid;
-    /* @notice Tracks the unclaimed rewards for each user for each reward token */
+    /**
+     * @notice Tracks the unclaimed rewards for each user for each reward token
+     */
     mapping(address rewardToken => mapping(address account => uint256 rewardAmount))
         public rewards;
 
-    /* @notice Total amount of tokens staked in the contract */
+    /**
+     * @notice Total amount of tokens staked in the contract
+     */
     uint256 public totalSupply;
+    /**
+     * @notice Mapping from user address to their staked balance
+     */
     mapping(address account => uint256 balance) internal _balances;
 
     uint256 private constant MAX_REWARD_DURATION = 360 days; // 1 year
@@ -303,10 +326,21 @@ abstract contract StakingRewardsManagerBase is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Helper function to check if a token address is registered as a reward token
+     * @param rewardToken The address of the token to check
+     * @return bool True if the token is a reward token, false otherwise
+     */
     function _isRewardToken(address rewardToken) internal view returns (bool) {
         return _rewardTokensList.contains(rewardToken);
     }
 
+    /**
+     * @notice Stakes tokens for an account
+     * @param staker The address providing the tokens
+     * @param receiver The address whose staking balance will be increased
+     * @param amount The amount of tokens to stake
+     */
     function _stake(
         address staker,
         address receiver,
@@ -323,6 +357,12 @@ abstract contract StakingRewardsManagerBase is
         emit Staked(staker, receiver, amount);
     }
 
+    /**
+     * @notice Unstakes tokens for an account
+     * @param staker The address whose staking balance will be decreased
+     * @param receiver The address receiving the unstaked tokens
+     * @param amount The amount of tokens to unstake
+     */
     function _unstake(
         address staker,
         address receiver,
@@ -335,7 +375,7 @@ abstract contract StakingRewardsManagerBase is
         emit Unstaked(staker, receiver, amount);
     }
 
-    /*
+    /**
      * @notice Internal function to calculate earned rewards for an account
      * @param account The address to calculate earnings for
      * @param rewardToken The reward token to calculate earnings for
@@ -353,6 +393,10 @@ abstract contract StakingRewardsManagerBase is
             rewards[rewardToken][account];
     }
 
+    /**
+     * @notice Updates the reward state for all reward tokens for a specific account
+     * @param account The address of the account to update rewards for
+     */
     function _updateReward(address account) internal {
         uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {

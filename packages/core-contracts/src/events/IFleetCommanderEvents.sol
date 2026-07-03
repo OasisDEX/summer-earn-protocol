@@ -3,6 +3,10 @@ pragma solidity 0.8.28;
 
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
+/**
+ * @title IFleetCommanderEvents
+ * @notice Events emitted by the FleetCommander vault
+ */
 interface IFleetCommanderEvents {
     /* EVENTS */
     /**

@@ -68,6 +68,7 @@ abstract contract ArkWithSwap is IArkWithSwap, Ark {
     }
 
     /// @inheritdoc IArkWithSwap
+    /// @param _slippage The new swap slippage in basis points; must not exceed MAX_SLIPPAGE
     function setSlippage(
         uint256 _slippage
     ) external onlyCurator(config.commander) {

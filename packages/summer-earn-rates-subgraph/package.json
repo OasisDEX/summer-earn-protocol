@@ -1,7 +1,7 @@
 {
   "name": "@summerfi/summer-earn-rates-subgraph",
   "license": "UNLICENSED",
-  "version": "1.23.4-morpho-v2-eurc",
+  "version": "1.24.1-franklin-templeton",
   "scripts": {
     "codegen": "graph codegen",
     "build:mainnet": "pnpm run prepare:mainnet &&  graph codegen && graph build",
@@ -24,7 +24,10 @@
     "deploy:hyperliquid": "bash -c 'source ../../.env && pnpm run build:hyperliquid && goldsky subgraph deploy summer-earn-protocol-rates-hyperliquid/$npm_package_version --path .'",
     "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:sonic && pnpm run deploy:arbitrum",
     "format": "prettier --check \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore",
-    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore"
+    "format:fix": "prettier --write \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern --ignore-path .prettierignore",
+    "prepare:mainnet-test": "mustache config/mainnet-test.json subgraph.template.yaml > subgraph.yaml ",
+    "build:mainnet-test": "pnpm run prepare:mainnet-test &&  graph codegen && graph build",
+    "deploy:mainnet-test": "bash -c 'source ../../.env && pnpm run build:mainnet-test && goldsky subgraph deploy summer-earn-protocol-rates-test/$npm_package_version --path .'"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "0.82.0",

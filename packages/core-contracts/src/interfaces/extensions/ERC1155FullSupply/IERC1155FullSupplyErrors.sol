@@ -4,7 +4,8 @@ pragma solidity 0.8.28;
 import {IERC1155Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 /**
- * @dev Custom errors for the IERC1155FullSupply extension
+ * @title IERC1155FullSupplyErrors
+ * @notice Custom errors for the IERC1155FullSupply extension
  *
  * @author Roberto Cano <robercano>
  */

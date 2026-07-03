@@ -139,6 +139,8 @@ abstract contract BaseSuperstateArk is
     }
 
     /// @notice Converts shares to assets at the current oracle price.
+    /// @param shares The amount of fund-token shares to convert
+    /// @return The equivalent base-asset amount
     function sharesToAssets(uint256 shares) external view returns (uint256) {
         return _sharesToAssets(shares);
     }
@@ -161,11 +163,13 @@ abstract contract BaseSuperstateArk is
     }
 
     /// @notice Updates the sweep slippage band. Keeper-gated.
+    /// @param newSweepSlippage The new sweep slippage cap (must be <= MAX_SWEEP_SLIPPAGE)
     function setSweepSlippage(Percentage newSweepSlippage) external onlyKeeper {
         _setSweepSlippage(newSweepSlippage);
     }
 
     /// @notice Updates the deposit slippage band. Keeper-gated.
+    /// @param newDepositSlippage The new deposit slippage cap (must be <= MAX_DEPOSIT_SLIPPAGE)
     function setDepositSlippage(
         Percentage newDepositSlippage
     ) external onlyKeeper {
@@ -287,6 +291,7 @@ abstract contract BaseSuperstateArk is
         emit ArkSwept(sweptTokens, sweptAmounts);
     }
 
+    /// @notice Validates and stores a new sweep slippage band, emitting SweepSlippageUpdated
     function _setSweepSlippage(Percentage newSweepSlippage) internal {
         if (newSweepSlippage > MAX_SWEEP_SLIPPAGE) {
             revert InvalidSweepSlippage(newSweepSlippage, MAX_SWEEP_SLIPPAGE);
@@ -295,6 +300,7 @@ abstract contract BaseSuperstateArk is
         sweepSlippage = newSweepSlippage;
     }
 
+    /// @notice Validates and stores a new deposit slippage band, emitting DepositSlippageUpdated
     function _setDepositSlippage(Percentage newDepositSlippage) internal {
         if (newDepositSlippage > MAX_DEPOSIT_SLIPPAGE) {
             revert InvalidDepositSlippage(
@@ -344,8 +350,10 @@ abstract contract BaseSuperstateArk is
         rewardAmounts = new uint256[](0);
     }
 
+    /// @notice Validates the board data (no-op; Superstate arks require no board data)
     function _validateBoardData(bytes calldata) internal override {}
 
+    /// @notice Validates the disembark data (no-op; Superstate arks require no disembark data)
     function _validateDisembarkData(bytes calldata) internal override {}
 
     /*//////////////////////////////////////////////////////////////

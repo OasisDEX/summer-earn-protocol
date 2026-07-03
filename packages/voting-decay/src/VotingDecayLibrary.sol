@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {VotingDecayMath} from "./VotingDecayMath.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-/*
+/**
  * @title VotingDecayLibrary
  * @notice A library for managing voting power decay in governance systems
  * @dev Utilizes VotingDecayMath for decay calculations
@@ -13,19 +13,25 @@ library VotingDecayLibrary {
     using VotingDecayMath for uint256;
     using Checkpoints for Checkpoints.Trace224;
 
-    /* @notice Constant representing 1 in the system's fixed-point arithmetic (18 decimal places) */
+    /**
+     * @notice Constant representing 1 in the system's fixed-point arithmetic (18 decimal places)
+     */
     uint256 private constant WAD = 1e18;
 
-    /* @notice Number of seconds in a year, used for annualized rate calculations */
+    /**
+     * @notice Number of seconds in a year, used for annualized rate calculations
+     */
     uint256 private constant SECONDS_PER_YEAR = 365 days;
 
-    /* @notice Enumeration of supported decay function types */
+    /**
+     * @notice Enumeration of supported decay function types
+     */
     enum DecayFunction {
         Linear,
         Exponential
     }
 
-    /*
+    /**
      * @notice Structure to store decay information for an account
      * @param decayFactor The current decay factor of the account's voting power
      * @param lastUpdateTimestamp The timestamp of the last update to the account's decay info
@@ -35,6 +41,15 @@ library VotingDecayLibrary {
         uint40 lastUpdateTimestamp;
     }
 
+    /**
+     * @notice Structure representing the global decay state and configuration
+     * @param decayInfoByAccount Mapping of account addresses to their individual decay information
+     * @param decayFreeWindow Duration in seconds during which no decay occurs
+     * @param decayRatePerSecond The decay rate applied per second
+     * @param decayFunction The decay function type (Linear or Exponential)
+     * @param originTimestamp The timestamp representing when the decay system was initialized
+     * @param decayFactorCheckpoints Historical checkpoints of decay factors by account
+     */
     struct DecayState {
         mapping(address => DecayInfo) decayInfoByAccount;
         uint40 decayFreeWindow;
@@ -49,16 +64,51 @@ library VotingDecayLibrary {
      */
     error InvalidDecayType();
 
-    // Events
+    /**
+     * @notice Emitted when the decay rate is updated
+     * @param newRate The new decay rate per second
+     */
     event DecayRateSet(uint256 newRate);
+
+    /**
+     * @notice Emitted when the decay-free window is updated
+     * @param newWindow The new decay-free window in seconds
+     */
     event DecayFreeWindowSet(uint40 newWindow);
+
+    /**
+     * @notice Emitted when the decay function is updated
+     * @param newFunction The enum value representing the new decay function
+     */
     event DecayFunctionSet(uint8 newFunction);
+
+    /**
+     * @notice Emitted when an account is initialized in the decay system
+     * @param account The address of the initialized account
+     */
     event AccountInitialized(address account);
+
+    /**
+     * @notice Emitted when an account's decay factor is updated
+     * @param account The address of the account
+     * @param newDecayFactor The new decay factor calculated for the account
+     */
     event DecayUpdated(address account, uint256 newDecayFactor);
+
+    /**
+     * @notice Emitted when an account's decay state is reset to base values
+     * @param account The address of the reset account
+     */
     event DecayReset(address account);
 
-    // Errors
+    /**
+     * @notice Thrown when attempting to perform operations on an uninitialized account
+     */
     error AccountNotInitialized();
+
+    /**
+     * @notice Thrown when the set decay rate is invalid (e.g., greater than WAD)
+     */
     error InvalidDecayRate();
 
     /**
@@ -74,6 +124,11 @@ library VotingDecayLibrary {
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Initializes an account's decay state
+     * @param self The DecayState storage pointer
+     * @param accountAddress The address of the account to initialize
+     */
     function initializeAccount(
         DecayState storage self,
         address accountAddress
@@ -253,7 +308,7 @@ library VotingDecayLibrary {
         return applyDecay(originalValue, decayFactor);
     }
 
-    /*
+    /**
      * @notice Applies the decay to the original voting power value
      * @param originalValue The original voting power value
      * @param retentionFactor The current retention factor
@@ -266,7 +321,7 @@ library VotingDecayLibrary {
         return VotingDecayMath.mulDiv(originalValue, retentionFactor, WAD);
     }
 
-    /*
+    /**
      * @notice Checks if a given decay rate is valid
      * @param rate The decay rate to check
      * @return A boolean indicating whether the rate is valid (less than or equal to WAD)
@@ -409,7 +464,7 @@ library VotingDecayLibrary {
         return self.decayInfoByAccount[accountAddress].lastUpdateTimestamp != 0;
     }
 
-    /*
+    /**
      * @notice Calculates the new decay factor based on elapsed time and decay parameters
      * @param currentDecayFactor The current retention factor
      * @param elapsedSeconds The number of seconds elapsed since the last update

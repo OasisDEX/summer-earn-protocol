@@ -144,8 +144,9 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev Returns the sum of the direct asset balance and the redeemable amount from Origin ETH
-     *      limited by the ARM balance
+     * @dev Returns only the direct asset (WETH) balance held by this Ark. The
+     *      OETH position is not synchronously redeemable here: exits go through
+     *      requestWithdrawal/claimWithdrawal or withdrawUsingSwap.
      * @return withdrawableAssets Assets that can be immediately withdrawn
      */
     function _withdrawableTotalAssets()
@@ -213,7 +214,9 @@ contract OriginSuperOETHArk is ArkWithWithdrawalRequest {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when the asset in ArkParams doesn't match WETH
+    /// @notice Declared to signal a mismatch between the configured asset and
+    ///         the expected underlying. Currently unused: the constructor does
+    ///         not perform this check, so the error is never reverted.
     error AssetMismatch();
 
     /// @notice Error thrown when an invalid Origin ETH address is provided

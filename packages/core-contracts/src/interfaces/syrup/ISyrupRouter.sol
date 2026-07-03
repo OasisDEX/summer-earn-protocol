@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+/// @title ISyrupRouter
+/// @notice Interface for the Maple Syrup deposit router
 interface ISyrupRouter {
     /**
-     *  @dev   Optional Deposit Data for off-chain processing.
+     *  @notice Optional Deposit Data for off-chain processing.
      *  @param owner       The receiver of the shares.
      *  @param amount      The amount of assets to deposit.
      *  @param depositData Optional deposit data.
@@ -15,7 +17,7 @@ interface ISyrupRouter {
     );
 
     /**
-     *  @dev    Authorizes and deposits assets into the Vault.
+     *  @notice Authorizes and deposits assets into the Vault.
      *  @param  bitmap_      The bitmap of the permission.
      *  @param  deadline_    The timestamp after which the `authorize` signature is no longer valid.
      *  @param  auth_v       ECDSA signature v component.
@@ -36,7 +38,7 @@ interface ISyrupRouter {
     ) external returns (uint256 shares_);
 
     /**
-     *  @dev    Mints `shares` to sender by depositing `assets` into the Vault.
+     *  @notice Mints `shares` to sender by depositing `assets` into the Vault.
      *  @param  assets      The amount of assets to deposit.
      *  @param  depositData Optional deposit data.
      *  @return shares      The amount of shares minted.
@@ -47,14 +49,15 @@ interface ISyrupRouter {
     ) external returns (uint256 shares);
 
     /**
-     *  @dev    Returns the next nonce for the owner's signature.
+     *  @notice Returns the next nonce for the owner's signature.
      *  @param  owner The address to check the nonce for.
      *  @return The next nonce.
      */
     function nonces(address owner) external view returns (uint256);
 
     /**
-     *  @dev    Returns the address of the pool permission manager.
+     *  @notice Returns the address of the pool permission manager.
+     *  @return The pool permission manager address.
      */
     function poolPermissionManager() external view returns (address);
 }

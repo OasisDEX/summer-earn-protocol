@@ -9,6 +9,8 @@ import {StorageSlots} from "./StorageSlots.sol";
 
 /**
  * @title FleetCommanderCacheLib - Caching Utility Library
+ * @notice Core logic for the FleetCommander caching mechanism, covering asset tracking, Ark data
+ *         management, rebalance flow accounting, and persistent state storage
  * @dev This library provides the core logic for the caching mechanism used in the FleetCommander suite.
  *      It handles asset tracking, ark data management, rebalance flow calculations, and persistent state
  *      storage using transient-like behavior in storage slots.

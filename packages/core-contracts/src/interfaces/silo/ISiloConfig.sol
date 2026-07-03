@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+/// @notice Full configuration of a single silo within a Silo V2 market
 struct ConfigData {
     uint256 daoFee;
     uint256 deployerFee;
@@ -21,6 +22,11 @@ struct ConfigData {
     bool callBeforeQuote;
 }
 
+/// @title ISiloConfig
+/// @notice Interface for reading the configuration of silos in a Silo V2 market
 interface ISiloConfig {
+    /// @notice Returns the configuration data for a given silo
+    /// @param _silo The silo address to query
+    /// @return The silo's configuration data
     function getConfig(address _silo) external view returns (ConfigData memory);
 }

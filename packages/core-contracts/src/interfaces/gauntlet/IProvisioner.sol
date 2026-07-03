@@ -136,43 +136,80 @@ interface IProvisioner {
     /// @notice Emitted when a token is removed from the provisioner
     /// @param token The token that was removed
     event TokenRemoved(IERC20 indexed token);
+    /// @notice Thrown when a synchronous (direct) deposit is attempted while sync deposits are disabled
     error Aera__SyncDepositDisabled();
+    /// @notice Thrown when an async deposit request is attempted while async deposits are disabled
     error Aera__AsyncDepositDisabled();
+    /// @notice Thrown when an async redeem request is attempted while async redeems are disabled
     error Aera__AsyncRedeemDisabled();
+    /// @notice Thrown when a deposit would exceed the vault deposit cap
     error Aera__DepositCapExceeded();
+    /// @notice Thrown when the minted units are below the requested minimum
     error Aera__MinUnitsOutNotMet();
+    /// @notice Thrown when the tokens-in amount is zero
     error Aera__TokensInZero();
+    /// @notice Thrown when the units-in amount is zero
     error Aera__UnitsInZero();
+    /// @notice Thrown when the units-out amount is zero
     error Aera__UnitsOutZero();
+    /// @notice Thrown when the minimum units-out is zero
     error Aera__MinUnitsOutZero();
+    /// @notice Thrown when the maximum tokens-in is zero
     error Aera__MaxTokensInZero();
+    /// @notice Thrown when the tokens required exceed the caller-specified maximum
     error Aera__MaxTokensInExceeded();
+    /// @notice Thrown when the configured deposit refund timeout exceeds the allowed maximum
     error Aera__MaxDepositRefundTimeoutExceeded();
+    /// @notice Thrown when the referenced deposit hash does not exist
     error Aera__DepositHashNotFound();
+    /// @notice Thrown when the referenced request hash does not exist
     error Aera__HashNotFound();
+    /// @notice Thrown when a refund is attempted after the refund period has expired
     error Aera__RefundPeriodExpired();
+    /// @notice Thrown when the supplied deadline is in the past
     error Aera__DeadlineInPast();
+    /// @notice Thrown when the supplied deadline is too far in the future
     error Aera__DeadlineTooFarInFuture();
+    /// @notice Thrown when the deadline is in the future and the caller is not authorized to act early
     error Aera__DeadlineInFutureAndUnauthorized();
+    /// @notice Thrown when the minimum tokens-out is zero
     error Aera__MinTokenOutZero();
+    /// @notice Thrown when a computed request hash collides with an existing one
     error Aera__HashCollision();
+    /// @notice Thrown when the price and fee calculator address is the zero address
     error Aera__ZeroAddressPriceAndFeeCalculator();
+    /// @notice Thrown when the MultiDepositorVault address is the zero address
     error Aera__ZeroAddressMultiDepositorVault();
+    /// @notice Thrown when the deposit multiplier is below the allowed minimum
     error Aera__DepositMultiplierTooLow();
+    /// @notice Thrown when the deposit multiplier is above the allowed maximum
     error Aera__DepositMultiplierTooHigh();
+    /// @notice Thrown when the redeem multiplier is below the allowed minimum
     error Aera__RedeemMultiplierTooLow();
+    /// @notice Thrown when the redeem multiplier is above the allowed maximum
     error Aera__RedeemMultiplierTooHigh();
+    /// @notice Thrown when the deposit cap is set to zero
     error Aera__DepositCapZero();
+    /// @notice Thrown when the price and fee calculator reports the vault as paused
     error Aera__PriceAndFeeCalculatorVaultPaused();
+    /// @notice Thrown when an auto-price solve is attempted but not allowed for the request
     error Aera__AutoPriceSolveNotAllowed();
+    /// @notice Thrown when a solver tip is supplied for a fixed-price request, which is not allowed
     error Aera__FixedPriceSolverTipNotAllowed();
+    /// @notice Thrown when the token cannot be priced by the calculator
     error Aera__TokenCantBePriced();
+    /// @notice Thrown when the caller is the vault, which is not permitted for this action
     error Aera__CallerIsVault();
+    /// @notice Thrown when the supplied token is not supported by the provisioner
     error Aera__InvalidToken();
     ////////////////////////////////////////////////////////////
     //                         Functions                      //
     ////////////////////////////////////////////////////////////
+    /// @notice Returns the address of the MultiDepositorVault this provisioner serves
+    /// @return The MultiDepositorVault address
     function MULTI_DEPOSITOR_VAULT() external view returns (address);
+    /// @notice Returns the address of the price and fee calculator
+    /// @return The PriceAndFeeCalculator address
     function PRICE_FEE_CALCULATOR() external view returns (address);
     /// @notice Deposit tokens directly into the vault
     /// @param token The token to deposit
@@ -243,6 +280,7 @@ interface IProvisioner {
     /// @param solverTip The tip offered to the solver
     /// @param deadline Duration in seconds for which the request is valid
     /// @param maxPriceAge Maximum age of price data that solver can use
+    /// @param isFixedPrice Whether the request is a fixed price request
     function requestRedeem(
         IERC20 token,
         uint256 unitsIn,

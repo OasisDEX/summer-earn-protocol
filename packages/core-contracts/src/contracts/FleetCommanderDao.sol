@@ -62,14 +62,17 @@ contract FleetCommanderDao is
         _accrueTip(tipJar(), totalSupply());
     }
 
+    /// @notice Clears the tip-collection flag after a tip-collecting action completes
     function _collectTipPost() private {
         _setIsCollectingTip(false);
     }
 
+    /// @notice Populates the Arks data cache before a cache-using action
     function _useCachePre() private {
         _getArksData(config.bufferArk);
     }
 
+    /// @notice Populates the withdrawable-Arks data cache before a withdraw cache-using action
     function _useWithdrawCachePre() private {
         _getWithdrawableArksData(config.bufferArk);
     }
@@ -259,6 +262,12 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Deposits `assets` of the underlying token, mints shares to `receiver`,
+    ///         and boards the assets into the buffer Ark
+    /// @dev Reverts when paused; collects the tip and refreshes the totals cache before executing
+    /// @param assets The amount of underlying assets to deposit
+    /// @param receiver The address that receives the minted shares
+    /// @return shares The amount of shares minted
     function deposit(
         uint256 assets,
         address receiver
@@ -296,6 +305,12 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Mints exactly `shares` to `receiver`, pulling the required assets and boarding
+    ///         them into the buffer Ark
+    /// @dev Reverts when paused; collects the tip and refreshes the totals cache before executing
+    /// @param shares The amount of shares to mint
+    /// @param receiver The address that receives the minted shares
+    /// @return assets The amount of underlying assets pulled from the caller
     function mint(
         uint256 shares,
         address receiver
@@ -332,6 +347,7 @@ contract FleetCommanderDao is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Returns the total supply of FleetCommander shares, including not-yet-minted accrued tip shares
      * @dev Overrides the totalSupply function to include the tip shares
      * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
      * @dev This is done by checking if the _isCollectingTip flag is set, and if it is, return the totalSupply
@@ -371,6 +387,10 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum amount of assets `owner` can deposit, bounded by the remaining
+    ///         deposit cap and the owner's asset balance
+    /// @param owner The address whose maximum deposit is queried
+    /// @return _maxDeposit The maximum depositable amount of underlying assets
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
@@ -383,6 +403,10 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum number of shares `owner` can mint, bounded by the remaining
+    ///         deposit cap and the owner's asset balance
+    /// @param owner The address whose maximum mint is queried
+    /// @return _maxMint The maximum number of shares that can be minted
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
@@ -406,6 +430,10 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum amount of assets `owner` can withdraw, bounded by the currently
+    ///         withdrawable total assets and the owner's share value
+    /// @param owner The address whose maximum withdrawal is queried
+    /// @return _maxWithdraw The maximum withdrawable amount of underlying assets
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
@@ -416,6 +444,10 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC4626
+    /// @notice Returns the maximum number of shares `owner` can redeem, bounded by the currently
+    ///         withdrawable total assets and the owner's share balance
+    /// @param owner The address whose maximum redemption is queried
+    /// @return _maxRedeem The maximum number of shares that can be redeemed
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
@@ -440,6 +472,7 @@ contract FleetCommanderDao is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IFleetCommanderDao
+    /// @param rebalanceData The array of rebalance operations to execute
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
@@ -463,6 +496,7 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IFleetCommanderDao
+    /// @param _newMinimumPauseTime The new minimum pause time in seconds
     function setMinimumPauseTime(
         uint256 _newMinimumPauseTime
     ) public onlyGovernor whenNotPaused {
@@ -477,6 +511,7 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IFleetCommanderDao
+    /// @param rebalanceData The array of rebalance operations to execute
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip whenNotPaused {
@@ -500,6 +535,9 @@ contract FleetCommanderDao is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IERC20
+    /// @notice Transfers `amount` shares to `to`
+    /// @param to The recipient of the shares
+    /// @param amount The amount of shares to transfer
     function transfer(
         address to,
         uint256 amount
@@ -508,6 +546,10 @@ contract FleetCommanderDao is
     }
 
     /// @inheritdoc IERC20
+    /// @notice Transfers `amount` shares from `from` to `to` using the caller's allowance
+    /// @param from The address to transfer the shares from
+    /// @param to The recipient of the shares
+    /// @param amount The amount of shares to transfer
     function transferFrom(
         address from,
         address to,
@@ -983,6 +1025,7 @@ contract FleetCommanderDao is
         }
     }
 
+    /// @inheritdoc FleetCommanderCache
     function _getActiveArksAddresses()
         internal
         view

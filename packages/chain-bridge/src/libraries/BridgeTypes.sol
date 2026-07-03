@@ -31,7 +31,9 @@ library BridgeTypes {
         bytes options; // Additional adapter-specific parameters
     }
 
-    // Enum for operation types
+    /**
+     * @notice Enum representing cross-chain operation types
+     */
     enum OperationType {
         MESSAGE,
         READ_STATE,
@@ -107,6 +109,10 @@ library BridgeTypes {
         bytes32 operationId;
         uint16 sourceChainId;
     }
+
+    /**
+     * @notice Struct representing the parameters of a relayed transfer
+     */
     struct RelayedTransferParams {
         bytes32 operationId;
         address originator;
@@ -116,6 +122,10 @@ library BridgeTypes {
         uint256 amount;
         bytes message;
     }
+
+    /**
+     * @notice Struct representing the parameters of a relayed message
+     */
     struct RelayedMessageParams {
         bytes32 operationId;
         address originator;
@@ -124,6 +134,9 @@ library BridgeTypes {
         bytes message;
     }
 
+    /**
+     * @notice Struct representing delivery payload details for incoming bridge messages
+     */
     struct DeliverPayload {
         bytes32 operationId; // cross-chain operation ID
         address originator; // original msg.sender on the source chain

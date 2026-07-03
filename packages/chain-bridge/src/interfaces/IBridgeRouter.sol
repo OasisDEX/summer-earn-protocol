@@ -126,6 +126,7 @@ interface IBridgeRouter is IERC165 {
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
      * @param params Struct containing all parameters for the transfer execution.
+     * @param options Struct containing bridge options including adapter choice and parameters.
      * @return operationId Unique operation ID.
      */
     function executeTransferAssets(
@@ -140,6 +141,7 @@ interface IBridgeRouter is IERC165 {
      *      The `originator` parameter represents the original requester; the implementation determines how the response
      * is routed (e.g., back to the originator, or potentially to the BridgeQueue itself depending on the design).
      * @param params Struct containing all parameters for the state read execution.
+     * @param options Struct containing bridge options including adapter choice and parameters.
      * @return operationId Unique operation ID.
      */
     function executeReadState(
@@ -153,6 +155,7 @@ interface IBridgeRouter is IERC165 {
      *      Expects `msg.value` to cover the *base* fee required by the adapter.
      *      The implementation should pass the provided `originator` to the internal execution logic and adapter.
      * @param params Struct containing all parameters for the message send execution.
+     * @param options Struct containing bridge options including adapter choice and parameters.
      * @return operationId Unique operation ID.
      */
     function executeSendMessage(

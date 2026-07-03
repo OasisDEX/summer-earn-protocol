@@ -1,0 +1,48 @@
+{
+  "package": "access-contracts",
+  "out": "contracts/access/reference",
+  "tree": [
+    {
+      "dir": "contracts",
+      "pages": [
+        {
+          "title": "LimitedAccessControl",
+          "file": "contracts/access/reference/contracts/limited-access-control.md"
+        },
+        {
+          "title": "ProtocolAccessManaged",
+          "file": "contracts/access/reference/contracts/protocol-access-managed.md"
+        },
+        {
+          "title": "ProtocolAccessManagedV2",
+          "file": "contracts/access/reference/contracts/protocol-access-managed-v2.md"
+        },
+        {
+          "title": "ProtocolAccessManager",
+          "file": "contracts/access/reference/contracts/protocol-access-manager.md"
+        },
+        {
+          "title": "ProtocolAccessManagerV2",
+          "file": "contracts/access/reference/contracts/protocol-access-manager-v2.md"
+        }
+      ]
+    },
+    {
+      "dir": "interfaces",
+      "pages": [
+        {
+          "title": "IAccessControlErrors",
+          "file": "contracts/access/reference/interfaces/i-access-control-errors.md"
+        },
+        {
+          "title": "IProtocolAccessManager",
+          "file": "contracts/access/reference/interfaces/i-protocol-access-manager.md"
+        },
+        {
+          "title": "IProtocolAccessManagerV2",
+          "file": "contracts/access/reference/interfaces/i-protocol-access-manager-v2.md"
+        }
+      ]
+    }
+  ]
+}

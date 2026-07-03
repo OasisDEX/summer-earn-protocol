@@ -10,6 +10,7 @@ import {FleetCommanderCacheLib} from "./libraries/FleetCommanderCacheLib.sol";
 
 /**
  * @title FleetCommanderCache - Caching System
+ * @notice Provides a transient caching mechanism for total assets and Ark data used by the FleetCommander
  * @dev This contract implements a caching mechanism
  *      for efficient asset tracking and operations.
  *

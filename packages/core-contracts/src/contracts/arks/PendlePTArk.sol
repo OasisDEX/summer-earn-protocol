@@ -3,6 +3,10 @@ pragma solidity 0.8.28;
 
 import "./BasePendleArk.sol";
 
+/// @notice Constructor parameters for PendlePTArk
+/// @param market Address of the Pendle market
+/// @param oracle Address of the Pendle PY/LP oracle
+/// @param router Address of the Pendle router
 struct PendlePtArkConstructorParams {
     address market;
     address oracle;
@@ -45,8 +49,11 @@ contract PendlePTArk is BasePendleArk {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev PendlePTArk is always withdrawable
-     * @dev TODO:  add logic to check for pause etc
+     * @dev Returns the full totalAssets() (the slippage-adjusted, oracle-valued
+     *      PT position). It does not apply any market-pause or AMM-liquidity
+     *      cap: pre-expiry withdrawals route through the Pendle market swap and
+     *      can revert at execution time if liquidity is insufficient, while
+     *      post-expiry withdrawals redeem PT at the fixed redemption rate.
      */
     function _withdrawableTotalAssets()
         internal

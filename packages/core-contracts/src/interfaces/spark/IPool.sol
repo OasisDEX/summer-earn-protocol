@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
 import {DataTypes} from "./DataTypes.sol";
 
+/// @title IPool
+/// @notice Interface for the Spark lending Pool (Aave V3 fork)
 interface IPool {
     /**
      * @dev Emitted on mintUnbacked()

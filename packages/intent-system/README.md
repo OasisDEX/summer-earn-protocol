@@ -2,7 +2,10 @@
 
 ## Overview
 
-The Intent-Based Bond System is a CoW Swap-style bonding mechanism where **each solver creates their own individual bond contract** via a factory. The system operates independently from Arks - Keeper posts intents on behalf of arks and the intent system only checks if an Ark is committed to an intent. When an intent is settled, yield is returned to the Ark's buffer.
+The Intent-Based Bond System is a CoW Swap-style bonding mechanism where **each solver creates their
+own individual bond contract** via a factory. The system operates independently from Arks - Keeper
+posts intents on behalf of arks and the intent system only checks if an Ark is committed to an
+intent. When an intent is settled, yield is returned to the Ark's buffer.
 
 ## Architecture
 
@@ -25,17 +28,17 @@ flowchart TD
     Bond[💰 Solver's Individual Bond]
     Handler[⚙️ Intent Handler]
     Escrow[🏦 Solver's Escrow]
-    
+
     %% Solver Bond Creation Flow
     Solver -->|1. Create Bond| Factory
     Factory -->|2. Deploy Bond Contract| Bond
     Factory -->|3. Record Bond| Factory
-    
+
     %% Intent Creation Flow (Offchain)
     User -->|4. Post Intent Offchain| Ark
     Ark -->|5. Record Intent| Handler
     Handler -->|6. Create Intent| Handler
-    
+
     %% Intent Solving Flow
     Solver -->|7. Solve Intent| Handler
     Handler -->|8. Check Bond via Factory| Factory
@@ -44,34 +47,34 @@ flowchart TD
     Bond -->|11. Bond Sufficient| Handler
     Handler -->|12. Mark Solved| Handler
     Handler -->|13. Transfer Yield to Escrow| Escrow
-    
+
     %% Intent Execution Flow
     Solver -->|14. Execute Protocol Actions| External
-    
+
     %% Intent Settlement Flow
     Solver -->|15. Complete Term| Handler
     Solver -->|16. Settle Intent| Handler
     Handler -->|17. Mark Settled| Handler
     Handler -->|18. Transfer Yield to Ark Buffer| Ark
-    
+
     %% Alternative Flows
     Ark -->|19a. Cancel Intent| Handler
     Handler -->|20a. Mark Cancelled| Handler
     Handler -->|21a. Return Yield to Solver| Escrow
-    
+
     Solver -->|19b. Resign Intent| Handler
     Handler -->|20b. Get Bond Contract| Factory
     Factory -->|21b. Return Bond Contract| Handler
     Handler -->|22b. Slash Bond 50%| Bond
     Bond -->|23b. Update Bond| Bond
-    
+
     %% Styling
     classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef solverClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef arkClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef contractClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef externalClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    
+
     class User userClass
     class Solver solverClass
     class Ark arkClass
@@ -82,17 +85,20 @@ flowchart TD
 ## Detailed Flow Steps
 
 ### 1. Solver Bond Creation
+
 - **Solver** calls `IntentBondFactory.createBond(solver)`
 - **Factory** deploys new `SolverBond` contract for that solver
 - **Factory** records the mapping of solver → bond contract
 - **Solver** now has their own isolated bond contract
 
 ### 2. Intent Creation (Offchain)
+
 - **User/Commander** posts intent with requirements (notional, term, yield, etc.)
 - **Ark** records the intent offchain (independent from intent system)
 - **IntentHandler** creates intent in `Created` state via keeper call
 
 ### 3. Intent Solving
+
 - **Solver** sees intent and calls `solveIntent(intent, escrowedYield)` directly
 - **IntentHandler** checks if solver has bond contract via factory
 - **IntentHandler** verifies solver has sufficient bond in their individual contract
@@ -100,11 +106,13 @@ flowchart TD
 - Intent transitions to `Solved` state
 
 ### 4. Intent Execution
+
 - **Solver** executes solveIntent() - intent yield amount is pulled to solvers escrow
 - **Keeper** is obledged to deposit to solvers protocol (there's 10 minute buffer)
 - Yield remains escrowed in solver's individual escrow contract
 
 ### 5. Intent Settlement
+
 - **Solver** completes the term and calls `settleIntent()` (permissionless)
 - **IntentHandler** withdraws yield from solver's escrow
 - **IntentHandler** transfers yield to Ark's buffer via FleetCommander
@@ -112,13 +120,16 @@ flowchart TD
 - **Solver** keeps their bond in their individual contract
 
 ### 6. Commitment Checking
+
 - **Ark** can check if they're committed to an intent via `hasCommitted()`
 - Returns required notional, ark assets, and commitment status
 - Includes buffer time check (10 minutes) after solving
 
 ### 7. Alternative Paths
+
 - **Ark can cancel** intent before solving via `resignByUser()` (only in `Created` state)
-- **Solver can resign** intent via `resignBySolver()` (50% bond penalty from their individual contract)
+- **Solver can resign** intent via `resignBySolver()` (50% bond penalty from their individual
+  contract)
 
 ## Key Features
 
@@ -140,19 +151,19 @@ graph LR
         Handler[IntentHandler]
         Factory[IntentBondFactory]
     end
-    
+
     subgraph "Individual Bonds"
         Bond1[Solver1 Bond]
         Bond2[Solver2 Bond]
         BondN[SolverN Bond]
     end
-    
+
     subgraph "Individual Escrows"
         Escrow1[Solver1 Escrow]
         Escrow2[Solver2 Escrow]
         EscrowN[SolverN Escrow]
     end
-    
+
     subgraph "External"
         Solver1[Solver 1]
         Solver2[Solver 2]
@@ -160,7 +171,7 @@ graph LR
         Ark[Ark Buffer]
         Protocol[External Protocols]
     end
-    
+
     Handler --> Factory
     Factory --> Bond1
     Factory --> Bond2
@@ -188,28 +199,28 @@ stateDiagram-v2
     Created --> UserResigned: resignByUser()
     Solved --> Settled: settleIntent()
     Solved --> SolverResigned: resignBySolver()
-    
+
     note right of Created
         Intent created by keeper
         Waiting for solver
     end note
-    
+
     note right of Solved
         Solver has solved intent
         Bond verified, yield escrowed
     end note
-    
+
     note right of Settled
         Intent completed successfully
         Yield returned to Ark buffer
         Solver keeps bond
     end note
-    
+
     note right of UserResigned
         Ark cancelled intent
         Yield returned to solver if solved
     end note
-    
+
     note right of SolverResigned
         Solver resigned intent
         50% bond penalty applied
@@ -221,16 +232,18 @@ stateDiagram-v2
 The system provides a `hasCommitted()` function that Arks can use to check their commitment status:
 
 ```solidity
-function hasCommitted(Intent memory intent) external view 
+function hasCommitted(Intent memory intent) external view
     returns (uint256 requiredNotional, uint256 arkAssets, bool isCommited)
 ```
 
 **Commitment Logic:**
+
 1. **Buffer Time**: 10-minute grace period after solving (BUFFER_TIME)
 2. **Asset Check**: Compares Ark's total assets against required notional
 3. **Status Return**: Returns commitment status and relevant amounts
 
 **Use Cases:**
+
 - Arks can verify their commitment before taking actions
 - Risk management and position sizing
 - Compliance and reporting requirements
@@ -271,4 +284,28 @@ function hasCommitted(Intent memory intent) external view
 - ✅ **Individual escrows**: Each solver has their own escrow contract
 - ✅ **Buffer time protection**: 10-minute grace period for commitment verification
 
-This system is **minimal as possible** and **overly simple** as requested, with Arks operating independently and the intent system focusing solely on bond management and commitment verification! 🎉
+This system is **minimal as possible** and **overly simple** as requested, with Arks operating
+independently and the intent system focusing solely on bond management and commitment verification!
+🎉
+
+## Cross-package connections
+
+**Consumes** (all `workspace:*`): `core-contracts` (`@summerfi/earn-protocol-contracts` —
+Ark/FleetCommander interfaces this system commits against), `access-contracts`, `config-contracts`,
+`gov-contracts` (`@summerfi/earn-gov-contracts`), `rewards-contracts`, `dutch-auction`, `constants`,
+`external-dependencies` (`@summerfi/dependencies`), `math-utils`, `percentage` (via Foundry
+remappings in `remappings.txt`), plus dev tooling `eslint-config`/`jest-config`/`typescript-config`/
+`tenderly-utils`.
+
+**Consumed by:** nobody. This package is **not deployed** — it is explicitly excluded from the
+published GitBook docs and from the root `AGENTS.md`/`CLAUDE.md` Package Map's "Contracts" bullet
+alongside `chain-bridge`, for the same reason.
+
+**Gotchas:**
+
+- Because nothing depends on this package, its NatSpec/doc coverage is intentionally out of scope
+  for the `scripts/docs/` GitBook pipeline (see `docs/DOCS_PLAYBOOK.md`) — do not add it to
+  `scripts/docs/docs.config.json` unless the system is actually scheduled for deployment.
+- Being unreferenced elsewhere also means nothing will catch a breaking interface change here at
+  compile time outside this package's own tests — treat its Solidity as a standalone unit when
+  refactoring shared types it imports (e.g. `IArk`, `Percentage`).

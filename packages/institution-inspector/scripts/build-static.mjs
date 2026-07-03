@@ -1,10 +1,10 @@
-// Static-export build for hosting (e.g. Vercel).
+// Static-export build for hosting (AWS Amplify, platform WEB — the Amplify buildspec in
+// infrastructure/modules/amplify_app runs `pnpm run build:static` for this package).
 //
 // The viewer only renders the committed data/*.json snapshots, so it can ship as a fully
-// static site (output: 'export') with zero serverless functions — which sidesteps Vercel's
-// 250 MB function-size limit. The catch: the dynamic /api/refresh route handler cannot be
-// part of a static export (it requires a literal `dynamic = 'force-static'`, which would
-// break the live on-chain refresh used in local dev).
+// static site (output: 'export') with zero serverless functions. The catch: the dynamic
+// /api/refresh route handler cannot be part of a static export (it requires a literal
+// `dynamic = 'force-static'`, which would break the live on-chain refresh used in local dev).
 //
 // So for the export build we move app/api out of the tree, run `next build` with
 // NEXT_PUBLIC_STATIC_EXPORT=1, then restore it in a finally — leaving the route fully intact

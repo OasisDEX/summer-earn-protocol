@@ -1,0 +1,118 @@
+{
+  "group": "earn:governance",
+  "docs": [
+    {
+      "doc": "docs/governance_rules.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 18,
+      "staleClaims": [
+        {
+          "claim": "SIPs undergo a 4-day on-chain voting period",
+          "currentTruth": "Current gov and gov-v2 deployment modules default votingPeriod to 600 seconds. The contract accepts constructor params, so this doc is stale for the repo defaults rather than for an immutable constant.",
+          "evidence": "packages/deployment/ignition/modules/gov.ts:44-47; packages/deployment/ignition/modules/gov-v2.ts:20-23"
+        },
+        {
+          "claim": "Quorum is 35% of actively delegated token supply",
+          "currentTruth": "Current deployment defaults quorumFraction to 4, passed to OpenZeppelin GovernorVotesQuorumFraction. That is 4%, not 35%.",
+          "evidence": "packages/deployment/ignition/modules/gov.ts:44-47; packages/deployment/ignition/modules/gov-v2.ts:20-23; packages/gov-contracts/src/contracts/SummerGovernorV2.sol:86-91"
+        },
+        {
+          "claim": "Approved SIPs enter a TimeLock contract with a 2-day waiting period before execution",
+          "currentTruth": "Current gov module default minDelay is 0. V2 governor module consumes an externally supplied timelock; no 2-day default is encoded there.",
+          "evidence": "packages/deployment/ignition/modules/gov.ts:43-64; packages/deployment/ignition/modules/gov-v2.ts:20-42"
+        }
+      ],
+      "unverifiable": [
+        "Forum/RFC process requirements and SIP numbering categories are governance-process policy, not enforced in the checked contracts."
+      ],
+      "notes": "Proposal threshold of 10,000 SUMR matches the current deployment default proposalThreshold = 10000 * 1e18. The simple >50% passing threshold aligns with OpenZeppelin Governor counting semantics used by SummerGovernor/SummerGovernorV2. The doc is process-oriented and still useful, but its timing/quorum/timelock numbers are stale against current repo defaults."
+    },
+    {
+      "doc": "packages/gov-contracts/README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 30,
+      "staleClaims": [
+        {
+          "claim": "SummerToken includes built-in vesting wallet creation",
+          "currentTruth": "Active vesting creation is handled by SummerVestingWalletFactory and SummerVestingWalletFactoryV2. SummerToken is the OFT/voting token and does not expose createVestingWallet-style creation functions.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerVestingWalletFactory.sol:47; packages/gov-contracts/src/contracts/SummerVestingWalletFactoryV2.sol:55-59; packages/gov-contracts/src/contracts/SummerToken.sol:118-132"
+        },
+        {
+          "claim": "Decay rate is configurable between 1% and 50% per year / TBD",
+          "currentTruth": "SummerToken validates yearly decay rate against MAX_DECAY_RATE_PER_YEAR, and decay-free window bounds are 30 days to 365.25 days; the README still contains TBD-era ranges.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerToken.sol:65; packages/gov-contracts/src/contracts/SummerToken.sol:628-640"
+        },
+        {
+          "claim": "Decay-free window is between 1 day and 180 days / TBD",
+          "currentTruth": "The implementation validates decay-free window between 30 days and 365.25 days.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerToken.sol:65; packages/gov-contracts/src/contracts/SummerToken.sol:628-640"
+        },
+        {
+          "claim": "Deploy command uses script/DeployGovernance.s.sol:DeployGovernanceScript",
+          "currentTruth": "There is no matching DeployGovernance.s.sol in packages/gov-contracts; governance deployment is handled through the deployment package Ignition modules/scripts.",
+          "evidence": "packages/deployment/ignition/modules/gov.ts:23-33; packages/deployment/ignition/modules/gov-v2.ts:20-42"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "The README is mainly a v1 overview. Core contract names SummerGovernor, SummerToken and SummerVestingWallet exist; v1 decay-chain behavior is broadly reflected by SummerToken/DecayController interfaces, and the Foundry build/test/format/anvil/cast commands are generic but plausible for this package. It should be refreshed to distinguish v1 from Governance V2 and remove boilerplate/deploy drift."
+    },
+    {
+      "doc": "packages/gov-contracts/README_Governance_v2.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 72,
+      "staleClaims": [
+        {
+          "claim": "Bucket list labels TwoWeeksToThreeMonths as >14 days - 90 days, ThreeToSixMonths as >90 - 180 days, etc.",
+          "currentTruth": "The prose is directionally right, but exact lower bounds are one second above the previous max: ShortTerm is 1..14 days, TwoWeeksToThreeMonths is 14 days + 1 second through 90 days, ThreeToSixMonths is 90 days + 1 second through 180 days, and so on.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerStaking.sol:74-80; packages/gov-contracts/src/contracts/SummerStaking.sol:575-587; packages/gov-contracts/src/contracts/SummerStaking.sol:641-661"
+        },
+        {
+          "claim": "Appendix says SummerGovernorV2 params include voting delay/period, quorum fraction, proposal threshold validated within [1,000; 100,000] SUMR",
+          "currentTruth": "Only proposalThreshold is validated within [1,000e18, 100,000e18]. votingDelay, votingPeriod and quorumFraction are constructor params forwarded to GovernorSettings/GovernorVotesQuorumFraction without that threshold-range validation.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerGovernorV2.sol:38-39; packages/gov-contracts/src/contracts/SummerGovernorV2.sol:86-97; packages/gov-contracts/src/contracts/SummerGovernorV2.sol:400-406"
+        }
+      ],
+      "unverifiable": [
+        "Coverage percentage claim (>80% lines/branches) was not rerun as part of this read-only claim audit."
+      ],
+      "notes": "Most V2 claims checked out: xSUMR is non-transferable except mint/burn, MINTER_ROLE/BURNER_ROLE are granted to staking modules, direct grantRole/revokeRole revert, pause/unpause are guardian-or-governor, burnFrom still uses allowance semantics, SummerGovernorV2 is hub-only for propose/vote/execute/cancel/sendProposalToTargetChain, receive() is restricted to endpoint/timelock, proposalThreshold bounds are 1,000-100,000 SUMR, escrow owns vesting wallets during staking, staking uses 0-3y lockups, MAX_AMOUNT_OF_STAKES is 1000, penalty constants are 2%/20%/110 days, weighted coefficient is 700 (7e-16 scaled), and all bucket caps default to zero storage unless governance updates them."
+    },
+    {
+      "doc": "packages/gov-contracts/README_VestingV2.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 42,
+      "staleClaims": [
+        {
+          "claim": "Flexible tracking: performance goals are tracked by index (0-based) for easy management",
+          "currentTruth": "The storage array is zero-based internally, but the public API uses 1-based goal numbers: performanceGoals rejects goalNumber < 1 and returns _performanceGoals[goalNumber - 1]; markGoalReached has the same 1-based check.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerVestingWalletV2.sol:121-129; packages/gov-contracts/src/contracts/SummerVestingWalletV2.sol:169-174"
+        },
+        {
+          "claim": "Migration table says V2 goal management is 0-indexed",
+          "currentTruth": "V2 external goal management is 1-indexed, matching the goalNumber API checks.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerVestingWalletV2.sol:121-129; packages/gov-contracts/src/contracts/SummerVestingWalletV2.sol:169-174"
+        },
+        {
+          "claim": "Admin functions list addNewGoal(amount, description) as simply adding new performance goals",
+          "currentTruth": "addNewGoal also transfers goalAmount tokens from the factory owner/admin into the vesting wallet, so the admin must have token balance and allowance.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerVestingWalletV2.sol:149-165"
+        },
+        {
+          "claim": "Recall functionality recalls both time-based and performance-based unvested tokens",
+          "currentTruth": "recallUnvestedTokens transfers the entire token balance in the wallet to the admin and marks isRecalled, including vested/releasable tokens still sitting in the wallet, not only unvested amounts.",
+          "evidence": "packages/gov-contracts/src/contracts/SummerVestingWalletV2.sol:177-195"
+        },
+        {
+          "claim": "Tests are in test/vesting/SummerTokenVestingV2.t.sol and test/vesting/SummerTokenVestingFactoryV2.t.sol",
+          "currentTruth": "The package currently has no test/vesting directory with those filenames; test layout uses governor, governorV2, rewards, staking, token and utils directories.",
+          "evidence": "packages/gov-contracts/test/ (directory listing)"
+        }
+      ],
+      "unverifiable": [
+        "Oazo Multisig/Foundation operational ownership is an intended deployment process, not encoded as a specific address in these contracts."
+      ],
+      "notes": "Core V2 vesting architecture is confirmed: SummerVestingWalletV2 and SummerVestingWalletFactoryV2 exist; factory createVestingWallet is onlyOwner, deploys the wallet, records beneficiary/wallet mappings, checks allowance and balance, and transfers total cliff + time + performance token amount; wallet checks Ownable(factory).owner() for admin-only goal/recall functions; cliffEndTimestamp, cliffAmount, vestingPeriods and totalVestingAmount match the interface; vestingPeriods * 30 days is used as duration; totalVestingAmount > 0 with vestingPeriods == 0 reverts; contracts are not upgradeable."
+    }
+  ],
+  "summary": "Audited 4 governance docs against gov-contracts source and deployment modules (162 claims). docs/governance_rules.md is partially-stale: its process structure is policy, but the numeric on-chain defaults have drifted (600s voting period, 4% quorum, gov minDelay default 0; 10,000 SUMR threshold still matches deployment defaults). packages/gov-contracts/README.md is a v1-era overview with stale token/vesting/deploy and TBD decay-window claims. README_Governance_v2.md is mostly current for xSUMR, hub/satellite governance, staking, penalties, bucket caps, and escrow mechanics; only exact bucket-boundary wording and the appendix wording about which params are threshold-validated need correction. README_VestingV2.md is mostly aligned with the active V2 factory/wallet contracts, but external goal numbers are 1-based, addNewGoal requires token transfer/allowance, recall transfers the entire remaining wallet balance, and the listed test files do not exist."
+}

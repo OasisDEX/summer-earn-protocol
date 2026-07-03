@@ -1,0 +1,213 @@
+# Records Amplify production deploys as GitHub Deployments.
+#
+# The Amplify apps auto-build their `main` branch from the repo webhook; this
+# workflow does NOT deploy anything. Per app changed by the push, it locates
+# the Amplify job for the commit, then mirrors its progress/result into a
+# GitHub Deployment (environment = app name) so deploys show up in the repo's
+# Deployments / Environments UI with the live URL.
+name: Amplify Production Deploys
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/summer-earn-gov-validator/**'
+      - 'packages/summer-earn-auctions-frontend/**'
+      - 'packages/summer-earn-interface/**'
+      - 'packages/summer-earn-dca-app/**'
+      - 'packages/summer-earn-rwa-app/**'
+      - 'packages/institution-inspector/**'
+
+env:
+  AWS_REGION: eu-central-1
+
+permissions: {}
+
+jobs:
+  detect:
+    name: Detect changed apps
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      apps: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            summer-earn-gov-validator:
+              - 'packages/summer-earn-gov-validator/**'
+            summer-earn-auctions-frontend:
+              - 'packages/summer-earn-auctions-frontend/**'
+            summer-earn-interface:
+              - 'packages/summer-earn-interface/**'
+            summer-earn-dca-app:
+              - 'packages/summer-earn-dca-app/**'
+            summer-earn-rwa-app:
+              - 'packages/summer-earn-rwa-app/**'
+            institution-inspector:
+              - 'packages/institution-inspector/**'
+
+  record:
+    name: Record deploy (${{ matrix.app }})
+    needs: detect
+    if: needs.detect.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      id-token: write
+      contents: read
+      deployments: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    concurrency:
+      group: amplify-prod-${{ matrix.app }}
+      cancel-in-progress: false
+    env:
+      APP_NAME: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve Amplify app
+        id: app
+        run: |
+          set -euo pipefail
+          APP_ID=$(aws amplify list-apps --query "apps[?name=='${APP_NAME}'].appId | [0]" --output text)
+          if [ -z "$APP_ID" ] || [ "$APP_ID" = "None" ]; then
+            echo "::error::Amplify app '${APP_NAME}' not found in ${AWS_REGION}"
+            exit 1
+          fi
+          DOMAIN=$(aws amplify get-app --app-id "$APP_ID" --query 'app.defaultDomain' --output text)
+          {
+            echo "app_id=$APP_ID"
+            echo "url=https://main.${DOMAIN}"
+          } >> "$GITHUB_OUTPUT"
+
+      # Amplify's webhook creates the main-branch job asynchronously; find the
+      # one for this commit. Outcomes:
+      #   found=true       job located -> record a deployment and follow it
+      #   found=superseded a job for a NEWER commit exists -> that commit's own
+      #                    workflow run records it; exit neutrally
+      #   found=false      AMPLIFY_DIFF_DEPLOY skipped the build -> no deployment
+      - name: Locate Amplify job for this commit
+        id: locate
+        env:
+          APP_ID: ${{ steps.app.outputs.app_id }}
+        run: |
+          set -euo pipefail
+          MY_TIME=$(git show -s --format=%ct "$GITHUB_SHA")
+          for i in $(seq 1 30); do
+            JOBS=$(aws amplify list-jobs --app-id "$APP_ID" --branch-name main --max-results 25 --output json)
+            JOB_ID=$(echo "$JOBS" | jq -r --arg sha "$GITHUB_SHA" \
+              '.jobSummaries[] | select(.commitId == $sha) | .jobId' | head -1)
+            if [ -n "$JOB_ID" ]; then
+              echo "Found Amplify job $JOB_ID for $GITHUB_SHA"
+              { echo "job_id=$JOB_ID"; echo "found=true"; } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            # commitTime parsing is best-effort (fractional seconds / offsets vary);
+            # a parse miss just means we keep polling until the timeout.
+            NEWER=$(echo "$JOBS" | jq -r --arg t "$MY_TIME" '
+              def ts: (tostring | .[0:19] + "Z") | try fromdateiso8601 catch 0;
+              [.jobSummaries[] | select(((.commitTime // "") | ts) > ($t | tonumber))] | length')
+            if [ "$NEWER" -gt 0 ]; then
+              echo "A newer commit already has an Amplify job; skipping (its run records the deploy)"
+              echo "found=superseded" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "[$i/30] No Amplify job for $GITHUB_SHA yet"
+            sleep 20
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No Amplify job appeared for ${GITHUB_SHA} on ${APP_NAME} — AMPLIFY_DIFF_DEPLOY likely skipped the build." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub deployment (in progress)
+        id: ghd
+        if: steps.locate.outputs.found == 'true'
+        uses: actions/github-script@v7
+        env:
+          ENV_URL: ${{ steps.app.outputs.url }}
+        with:
+          script: |
+            const { data: dep } = await github.rest.repos.createDeployment({
+              ...context.repo,
+              ref: context.sha,
+              environment: process.env.APP_NAME,
+              production_environment: true,
+              transient_environment: false,
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Amplify production deploy (main)',
+            });
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: dep.id,
+              state: 'in_progress',
+              environment_url: process.env.ENV_URL,
+            });
+            core.setOutput('deployment_id', dep.id);
+
+      - name: Wait for Amplify build
+        if: steps.locate.outputs.found == 'true'
+        env:
+          APP_ID: ${{ steps.app.outputs.app_id }}
+          JOB_ID: ${{ steps.locate.outputs.job_id }}
+          URL: ${{ steps.app.outputs.url }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 90); do
+            STATUS=$(aws amplify get-job --app-id "$APP_ID" --branch-name main --job-id "$JOB_ID" \
+              --query 'job.summary.status' --output text)
+            echo "[$i/90] Amplify job $JOB_ID: $STATUS"
+            case "$STATUS" in
+              SUCCEED) echo "Deployed: $URL"; exit 0 ;;
+              FAILED|CANCELLED) echo "::error::Amplify production job for ${APP_NAME} finished with status ${STATUS}"; exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "::error::Timed out waiting for Amplify job ${JOB_ID}"
+          exit 1
+
+      - name: Mark deployment succeeded
+        if: success() && steps.locate.outputs.found == 'true'
+        uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_ID: ${{ steps.ghd.outputs.deployment_id }}
+          ENV_URL: ${{ steps.app.outputs.url }}
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'success',
+              environment_url: process.env.ENV_URL,
+            });
+
+      - name: Mark deployment failed
+        if: (failure() || cancelled()) && steps.ghd.outputs.deployment_id
+        uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_ID: ${{ steps.ghd.outputs.deployment_id }}
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'failure',
+            });

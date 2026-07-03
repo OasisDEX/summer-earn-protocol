@@ -1,0 +1,83 @@
+{
+  "group": "earn:dca",
+  "docs": [
+    {
+      "doc": "packages/core-contracts/docs/DCAStrategyManager.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 42,
+      "staleClaims": [
+        {
+          "claim": "Execution flow withdraws or approves assets from the source vault to the Enso router",
+          "currentTruth": "The current execution path pulls source-vault shares from the strategy owner via Permit2, approves those shares to the Enso router, and swaps the vault-share token directly. The manager does not withdraw assets from the source vault during execution.",
+          "evidence": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:687-694; packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:772-776"
+        },
+        {
+          "claim": "The hash of StrategyConfig serves as the strategy's unique identifier and authorization proof",
+          "currentTruth": "The hash is the active commitment/authorization proof and duplicate key. The strategy identifier is a separate monotonic uint256 assigned from _nextStrategyId++ and used as the mapping key.",
+          "evidence": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:68-79; packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:545-565; packages/core-contracts/src/interfaces/arks/IDCAStrategyManager.sol:138-140"
+        },
+        {
+          "claim": "interval must be at least 7 days",
+          "currentTruth": "The current minimum interval is 1 day; the maximum remains 90 days.",
+          "evidence": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:55-59; packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:607-612"
+        },
+        {
+          "claim": "StrategyConfig.maxTrades is uint248",
+          "currentTruth": "The public StrategyConfig struct uses uint256 maxTrades. The runtime StrategyState.tradesExecuted counter is uint248.",
+          "evidence": "packages/core-contracts/src/interfaces/arks/IDCAStrategyManager.sol:44-65; packages/core-contracts/src/interfaces/arks/IDCAStrategyManager.sol:88-97"
+        },
+        {
+          "claim": "Pass the exact original StrategyConfig to edit, pause, or cancel the strategy",
+          "currentTruth": "Pause, resume, cancel, and edit must receive the exact current committed config. After editStrategy succeeds, the old commitment is removed and the edited config becomes the current authorization payload.",
+          "evidence": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:111-121; packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:260-289"
+        },
+        {
+          "claim": "If an Enso swap returns fewer shares than minOut, the keeper will try again next block or interval",
+          "currentTruth": "The failed swap reverts the transaction, including schedule/state changes in the same call. A retry can happen while the same execution window is still due; it is not advanced to the next interval.",
+          "evidence": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:759-764; packages/core-contracts/src/contracts/DCA/DCAStrategyManager.sol:782-784"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Most integration guidance remains useful: users must approve Permit2 for source-vault shares, terminal commitments are intentionally not freed, zero price bounds disable the optional min/max guard in checkUpkeep, and the core lifecycle states still match the contract. The stale items are concentrated around pre-refactor wording that predates the share-swap execution model and the 1-day minimum interval."
+    },
+    {
+      "doc": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.technical.md",
+      "verdict": "current",
+      "claimsChecked": 75,
+      "staleClaims": [],
+      "unverifiable": [],
+      "notes": "The technical reference matches the as-built contract and helpers: source/target vault asset validation, 1-90 day interval bounds, 50% max slippage, hour-aligned first trigger, commitment model, activeCommitments duplicate prevention, current-config authorization, Permit2 recurring allowance validation, one-shot deposit permits, keeper-only execution, empty performData, Chainlink staleness/price validation, min/max price bounds, and direct Enso swaps of source-vault shares."
+    },
+    {
+      "doc": "packages/core-contracts/src/contracts/DCA/DCAStrategyManager.product.md",
+      "verdict": "current",
+      "claimsChecked": 65,
+      "staleClaims": [],
+      "unverifiable": [
+        "Operational statements about deployed production state were not checked against chain deployments in this source-only pass."
+      ],
+      "notes": "The product-facing behavior aligns with the contract: users retain vault shares until execution, strategies are immutable-by-commitment except through editStrategy, the manager supports create/deposit flows with Permit2 variants, execution is keeper-gated, price bounds are optional, commitments are not reused after terminal states, and the user-facing risks described around Permit2 allowance and Enso calldata are reflected by the implementation."
+    },
+    {
+      "doc": "packages/summer-earn-dca-app/CLAUDE.md",
+      "verdict": "current",
+      "claimsChecked": 50,
+      "staleClaims": [],
+      "unverifiable": [
+        "Operational notes about subgraph re-indexing and deployment practices were not verified against external infrastructure."
+      ],
+      "notes": "The app guidance matches the package: Next.js 16, React 19, wagmi 3, viem 2, and Reown AppKit are in package.json; the app is Base-only via ChainId '8453'; the only required app env var is the WalletConnect/Reown project ID; strategy tuple helpers encode the 14-field contract StrategyConfig without a strategyId; action hooks pass strategyId separately for edit/pause/resume/cancel; chart and toast guidance match the in-repo hooks and types."
+    },
+    {
+      "doc": "packages/summer-earn-dca-subgraph/CLAUDE.md",
+      "verdict": "current",
+      "claimsChecked": 52,
+      "staleClaims": [],
+      "unverifiable": [
+        "The published Goldsky/subgraph endpoint slug was compared to repo config, not queried externally."
+      ],
+      "notes": "The subgraph guidance matches the manifest, schema, and mappings: StrategyCreated uses the 14-field StrategyConfig tuple plus strategyId, ExecutionCompleted has the current 7-parameter shape, mapping code uses event.params.strategyId rather than a config strategyId, Execution entities track inAssets/outAssets and share amounts, and Chainlink proxy/feed entities are registered from initializer and proxy handlers."
+    }
+  ],
+  "summary": "Audited 5 DCA docs against DCAStrategyManager.sol, its interface/events/errors, Permit2/Chainlink/Enso helpers, and the DCA app/subgraph packages (284 claims). The older packages/core-contracts/docs/DCAStrategyManager.md is partially-stale: it still describes a withdrawal/asset approval execution flow, treats the config hash as the strategy ID, lists a 7-day minimum interval, shows maxTrades as uint248, and overstates reuse of the original config after edits. The newer technical and product references are current for the refactored share-swap design, commitment model, Permit2 flows, keeper checks, price guards, and lifecycle behavior. The DCA app and subgraph CLAUDE docs also match the checked package code and config."
+}

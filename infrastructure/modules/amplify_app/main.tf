@@ -1,6 +1,12 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+locals {
+  # Static (WEB) apps have no server runtime: skip the compute role and
+  # everything that only exists to serve it.
+  is_compute = var.platform == "WEB_COMPUTE"
+}
+
 data "aws_iam_policy_document" "amplify_deployment_trust" {
   statement {
     actions = ["sts:AssumeRole", "sts:TagSession"]
@@ -45,6 +51,8 @@ resource "aws_iam_role" "deployment" {
 }
 
 resource "aws_iam_role" "compute" {
+  count = local.is_compute ? 1 : 0
+
   name               = "${var.app_name}-amplify-compute-role"
   assume_role_policy = data.aws_iam_policy_document.amplify_compute_trust.json
 
@@ -62,6 +70,8 @@ resource "aws_iam_role_policy_attachment" "deployment_backend" {
 }
 
 resource "aws_iam_policy" "deployment_pass_role" {
+  count = local.is_compute ? 1 : 0
+
   name        = "${var.app_name}-pass-role"
   description = "Allow Amplify deployment role to pass the compute role"
 
@@ -71,15 +81,17 @@ resource "aws_iam_policy" "deployment_pass_role" {
       {
         Action   = "iam:PassRole"
         Effect   = "Allow"
-        Resource = aws_iam_role.compute.arn
+        Resource = aws_iam_role.compute[0].arn
       }
     ]
   })
 }
 
 resource "aws_iam_role_policy_attachment" "deployment_pass_role" {
+  count = local.is_compute ? 1 : 0
+
   role       = aws_iam_role.deployment.name
-  policy_arn = aws_iam_policy.deployment_pass_role.arn
+  policy_arn = aws_iam_policy.deployment_pass_role[0].arn
 }
 
 resource "aws_iam_policy" "ssm_access" {
@@ -103,7 +115,9 @@ resource "aws_iam_policy" "ssm_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.compute.name
+  count = local.is_compute ? 1 : 0
+
+  role       = aws_iam_role.compute[0].name
   policy_arn = aws_iam_policy.ssm_access.arn
 }
 
@@ -137,12 +151,14 @@ resource "aws_iam_policy" "dynamodb_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "compute_dynamodb" {
-  count      = var.dynamodb_arn != null ? 1 : 0
-  role       = aws_iam_role.compute.name
+  count      = var.dynamodb_arn != null && local.is_compute ? 1 : 0
+  role       = aws_iam_role.compute[0].name
   policy_arn = aws_iam_policy.dynamodb_access[0].arn
 }
 
 resource "aws_iam_policy" "compute_logging" {
+  count = local.is_compute ? 1 : 0
+
   name        = "${var.app_name}-compute-logging"
   description = "Allow Amplify compute to write logs to the correct Amplify namespace"
 
@@ -166,8 +182,10 @@ resource "aws_iam_policy" "compute_logging" {
 }
 
 resource "aws_iam_role_policy_attachment" "compute_logging" {
-  role       = aws_iam_role.compute.name
-  policy_arn = aws_iam_policy.compute_logging.arn
+  count = local.is_compute ? 1 : 0
+
+  role       = aws_iam_role.compute[0].name
+  policy_arn = aws_iam_policy.compute_logging[0].arn
 }
 
 resource "aws_amplify_app" "this" {
@@ -176,25 +194,22 @@ resource "aws_amplify_app" "this" {
 
   access_token         = var.github_token
   iam_service_role_arn = aws_iam_role.deployment.arn
-  compute_role_arn     = aws_iam_role.compute.arn
+  compute_role_arn     = local.is_compute ? aws_iam_role.compute[0].arn : null
 
   environment_variables = merge(var.environment_variables, {
     AMPLIFY_MONOREPO_APP_ROOT = var.package_root
     AMPLIFY_DIFF_DEPLOY       = "true"
   })
 
-  enable_branch_auto_build      = false
-  enable_branch_auto_deletion   = true
-  enable_auto_branch_creation   = true
-  auto_branch_creation_patterns = ["pr*", "!*dependabot*"]
+  enable_branch_auto_build    = false
+  enable_branch_auto_deletion = true
+  # Auto branch creation intentionally disabled: the repo is public, so Amplify
+  # forbids native web previews on WEB_COMPUTE apps (PR code would run under the
+  # app's IAM roles). PR previews are driven by
+  # .github/workflows/amplify-previews.yaml via CreateBranch/StartJob instead.
+  enable_auto_branch_creation = false
 
-  auto_branch_creation_config {
-    enable_auto_build             = true
-    enable_pull_request_preview   = true
-    pull_request_environment_name = "pr-preview"
-  }
-
-  platform = "WEB_COMPUTE"
+  platform = var.platform
 
   build_spec = <<-EOT
     version: 1
@@ -211,9 +226,9 @@ resource "aws_amplify_app" "this" {
                 - echo "REGION=$AWS_DEFAULT_REGION" >> .env.production
             build:
               commands:
-                - pnpm run build
+                - ${var.build_command}
           artifacts:
-            baseDirectory: .next
+            baseDirectory: ${var.artifacts_base_directory}
             files:
               - '**/*'
           cache:
@@ -222,7 +237,7 @@ resource "aws_amplify_app" "this" {
   EOT
 
   job_config {
-    build_compute_type = "XLARGE_72GB"
+    build_compute_type = var.build_compute_type
   }
 
   tags = var.tags
@@ -232,7 +247,7 @@ resource "aws_amplify_branch" "this" {
   app_id      = aws_amplify_app.this.id
   branch_name = var.branch_name
 
-  framework         = "Next.js - SSR"
+  framework         = var.framework
   enable_auto_build = true
 
   environment_variables = {
@@ -263,4 +278,36 @@ moved {
 moved {
   from = aws_iam_role_policy_attachment.amplify_backend_deploy
   to   = aws_iam_role_policy_attachment.deployment_backend
+}
+
+# Compute-role resources gained `count` (gated on WEB_COMPUTE); migrate the
+# existing SSR apps' state to the [0] addresses instead of recreating.
+moved {
+  from = aws_iam_role.compute
+  to   = aws_iam_role.compute[0]
+}
+
+moved {
+  from = aws_iam_policy.deployment_pass_role
+  to   = aws_iam_policy.deployment_pass_role[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.deployment_pass_role
+  to   = aws_iam_role_policy_attachment.deployment_pass_role[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.ssm
+  to   = aws_iam_role_policy_attachment.ssm[0]
+}
+
+moved {
+  from = aws_iam_policy.compute_logging
+  to   = aws_iam_policy.compute_logging[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.compute_logging
+  to   = aws_iam_role_policy_attachment.compute_logging[0]
 }

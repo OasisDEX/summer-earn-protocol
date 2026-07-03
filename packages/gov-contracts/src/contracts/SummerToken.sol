@@ -31,6 +31,9 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 
 /**
  * @title SummerToken
+ * @notice The SUMR governance token: an ERC20Votes token with a supply cap, LayerZero OFT cross-chain
+ * transfers, configurable voting-power decay, and gated transfers (disabled until enabled by governance
+ * or for whitelisted addresses). Delegation is restricted to the hub chain.
  * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
  * Delegation of voting power is restricted to the hub chain only.
  * @custom:security-contact security@summer.fi
@@ -53,12 +56,16 @@ contract SummerToken is
 
     /// @notice The chain ID of the hub chain where governance actions are permitted
     uint32 public immutable hubChainId;
+    /// @notice Address of the vesting wallet factory whose wallet balances count toward voting power
     address public vestingWalletFactory;
     address public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
 
+    /// @notice Unix timestamp before which transfers cannot be globally enabled
     uint256 public immutable transferEnableDate;
+    /// @notice Whether unrestricted token transfers have been enabled globally
     bool public transfersEnabled;
+    /// @notice Whether an address is whitelisted to send/receive transfers while transfers are globally disabled
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
     uint256 private constant SECONDS_PER_YEAR = 365.25 days;
@@ -112,6 +119,8 @@ contract SummerToken is
     }
 
     /**
+     * @notice Completes one-time token initialization, setting decay parameters and the vesting wallet
+     * factory and minting the initial supply to the caller
      * @dev Completes the token initialization with remaining parameters
      * @param params InitializeParams struct containing additional configuration
      */
@@ -142,7 +151,14 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Sends tokens cross-chain via LayerZero, subject to the transfer gate (allowed only when
+     * transfers are globally enabled, the recipient is whitelisted, or the sender sends to itself)
      * @dev Override the send function to add whitelist checks with self-transfer allowance
+     * @param _sendParam The parameters describing the cross-chain send (destination, amounts, recipient)
+     * @param _fee The messaging fee (native and LZ token) to pay for the send
+     * @param _refundAddress The address to refund any excess messaging fee to
+     * @return msgReceipt The LayerZero messaging receipt for the send
+     * @return oftReceipt The OFT receipt recording amounts sent and received
      */
     function send(
         SendParam calldata _sendParam,
@@ -292,6 +308,7 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Delegates the caller's voting power to a delegatee; callable only on the hub chain
      * @dev Delegates voting power to a specified address. Can only be called on the hub chain.
      * @param delegatee The address to delegate voting power to
      * @dev Updates the decay factor for the caller
@@ -317,6 +334,7 @@ contract SummerToken is
     }
 
     /**
+     * @notice Returns the current permit nonce for an owner address
      * @dev Required override to resolve inheritance conflict between IERC20Permit, ERC20Permit, and Nonces contracts.
      * This implementation simply calls the parent implementation and exists solely to satisfy the compiler.
      * @param owner The address to get nonces for
@@ -333,10 +351,18 @@ contract SummerToken is
         return super.nonces(owner);
     }
 
+    /**
+     * @notice Returns the current timepoint used for vote snapshots (the block timestamp, ERC-6372)
+     * @return The current block timestamp as a uint48
+     */
     function clock() public view override returns (uint48) {
         return uint48(block.timestamp);
     }
 
+    /**
+     * @notice Returns the machine-readable description of the clock (timestamp mode, ERC-6372)
+     * @return The string "mode=timestamp"
+     */
     function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp";
     }
@@ -420,6 +446,14 @@ contract SummerToken is
         super._update(from, to, amount);
     }
 
+    /**
+     * @notice Returns whether a transfer between two addresses is permitted by the transfer gate
+     * @dev Mint/burn (zero-address party), globally enabled transfers, and transfers involving a
+     * whitelisted address are allowed; all other transfers are blocked.
+     * @param from The address tokens move from (zero address for mints)
+     * @param to The address tokens move to (zero address for burns)
+     * @return True if the transfer is allowed, false otherwise
+     */
     function _canTransfer(
         address from,
         address to

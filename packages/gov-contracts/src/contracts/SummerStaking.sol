@@ -55,38 +55,61 @@ contract SummerStaking is
 
     // ============ IMMUTABLE STATE ============
 
+    /// @notice The SUMR token that users stake
     IERC20 public immutable SUMMER_TOKEN;
+    /// @notice The xSUMR token minted 1:1 to stakers as their staked representation
     IStakedSummerToken public immutable STAKED_SUMMER_TOKEN;
+    /// @notice The wrapped SUMR token held internally to back staked positions
     WrappedStakingToken public immutable WRAPPED_SUMMER_TOKEN;
 
     // ============ CONSTANTS ============
 
+    /// @notice Maximum lockup duration allowed for a stake, in seconds (3 years)
     uint256 public constant MAX_LOCKUP_PERIOD = 3 * 365 days;
+    /// @notice Maximum number of distinct stake positions a single owner may hold
     uint256 public constant MAX_AMOUNT_OF_STAKES = 1000;
+    /// @notice Minimum early-unstake penalty as a WAD fraction (0.02e18 = 2%)
     uint256 public constant MIN_PENALTY_PERCENTAGE = 0.02e18; // 2%
+    /// @notice Maximum early-unstake penalty as a WAD fraction (0.2e18 = 20%)
     uint256 public constant MAX_PENALTY_PERCENTAGE = 0.2e18; // 20%
+    /// @notice Remaining-lockup threshold (in seconds) below which the fixed minimum penalty applies
     uint256 public constant FIXED_PENALTY_PERIOD = 110 days;
 
+    /// @notice Base coefficient (WAD, 60.18 fixed-point) for the weighted-stake multiplier
     uint256 public constant WEIGHTED_STAKE_BASE = Constants.WAD; // 1 in 60.18 fixed-point
+    /// @notice Quadratic coefficient applied to lockup time in the weighted-stake multiplier (60.18 fixed-point)
     uint256 public constant WEIGHTED_STAKE_COEFFICIENT = 700; // 7e-16 * 1e18 in 60.18 fixed-point
 
+    /// @notice Stake-array index reserved for the aggregated no-lockup position
     uint256 public constant NO_LOCKUP_INDEX = 0;
+    /// @notice Minimum lockup (in seconds) classified into the ShortTerm bucket
     uint256 public constant BUCKET_SHORT_TERM_MIN = 1;
+    /// @notice Inclusive upper bound (in seconds) of the ShortTerm bucket (14 days)
     uint256 public constant BUCKET_SHORT_TERM_MAX = 14 days;
+    /// @notice Inclusive upper bound (in seconds) of the TwoWeeksToThreeMonths bucket (90 days)
     uint256 public constant BUCKET_TWO_WEEKS_TO_THREE_MONTHS_MAX = 90 days;
+    /// @notice Inclusive upper bound (in seconds) of the ThreeToSixMonths bucket (180 days)
     uint256 public constant BUCKET_THREE_TO_SIX_MAX = 180 days;
+    /// @notice Inclusive upper bound (in seconds) of the SixToTwelveMonths bucket (365 days)
     uint256 public constant BUCKET_SIX_TO_TWELVE_MAX = 365 days;
+    /// @notice Inclusive upper bound (in seconds) of the OneToTwoYears bucket (2 years)
     uint256 public constant BUCKET_ONE_TO_TWO_MAX = 2 * 365 days;
+    /// @notice Inclusive upper bound (in seconds) of the TwoToThreeYears bucket (3 years)
     uint256 public constant BUCKET_TWO_TO_THREE_MAX = MAX_LOCKUP_PERIOD;
 
     // ============ STORAGE ============
 
+    /// @notice Returns the stake position of an owner at a given array index
     mapping(address owner => UserStake[] stakes) public stakesByOwner;
 
+    /// @notice Returns the total weighted (reward-bearing) balance for an owner
     mapping(address owner => uint256 weightedBalance) public weightedBalances;
+    /// @notice Returns the per-bucket accounting data (cap and currently staked total) for a bucket
     mapping(Bucket bucketId => BucketData bucketData) public bucketData;
+    /// @notice Returns whether a caller is authorized to stake/unstake on behalf of an owner
     mapping(address owner => mapping(address authorizedCaller => bool isAuthorized))
         public isAuthorized;
+    /// @notice Whether the early-unstake penalty is currently applied
     bool public penaltyEnabled = true;
 
     // ============ CONSTRUCTOR ============

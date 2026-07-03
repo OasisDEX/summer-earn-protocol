@@ -14,12 +14,19 @@ import {Ark} from "../Ark.sol";
 import {ArkParams} from "../../types/ArkTypes.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @notice Thrown when the pool manager reports a zero withdrawal manager address
 error InvalidWithdrawalManager();
+/// @notice Thrown when the resolved pool manager address is invalid
 error InvalidManager();
+/// @notice Thrown when the supplied Syrup router address is the zero address
 error InvalidRouterAddress();
+/// @notice Thrown when cancelling a withdrawal returns a different share amount than was escrowed
 error WrongAmountOfSharesReturned();
+/// @notice Thrown when authorizeAndDeposit is called while the Ark already has deposit permission
 error AlreadyWhitelisted();
+/// @notice Thrown when authorizeAndDeposit fails to grant the Ark deposit permission
 error WhitelistFailed();
+/// @notice Thrown when the router reports a zero pool permission manager address
 error InvalidPoolPermissionManagerAddress();
 
 /**
@@ -35,10 +42,15 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The Syrup pool (ERC4626-style vault) this Ark deposits into
     ISyrupPool public immutable VAULT;
+    /// @notice The Syrup pool manager, used to resolve the withdrawal manager
     ISyrupManager public immutable MANAGER;
+    /// @notice The Syrup V2 withdrawal manager that escrows shares and processes redemptions
     ISyrupWithdrawalManagerV2 public immutable WITHDRAWAL_MANAGER;
+    /// @notice The Syrup router used to deposit (and authorize) with a referral code
     ISyrupRouter public immutable ROUTER;
+    /// @notice Referral code passed to the Syrup router on deposit
     bytes32 public immutable SUMMER_REFERRAL_CODE;
 
     /*//////////////////////////////////////////////////////////////
@@ -115,6 +127,12 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
     /**
      * @notice Authorizes and deposits assets into the Syrup pool
      * @dev Can only be called once by the keeper when not yet whitelisted. Pulls funds from the keeper.
+     * @param bitmap Permission bitmap forwarded to the router's authorize step
+     * @param deadline Expiry timestamp for the authorization signature
+     * @param authV ECDSA signature v component for the authorization
+     * @param authR ECDSA signature r component for the authorization
+     * @param authS ECDSA signature s component for the authorization
+     * @param amount Amount of the asset to pull from the keeper and deposit
      */
     function authorizeAndDeposit(
         uint256 bitmap,
@@ -273,6 +291,7 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
      *      Only includes tokens already processed by Maple's withdrawal manager
      *      and sent back to the Ark — not shares or escrowed amounts.
      */
+    /// @notice Returns only the asset balance already processed by the withdrawal manager and held by the Ark
     function _withdrawableTotalAssets()
         internal
         view
@@ -282,16 +301,19 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         return IERC20(VAULT.asset()).balanceOf(address(this));
     }
 
+    /// @notice Deposits the asset into the Syrup pool via the router, passing the referral code
     function _board(uint256 amount, bytes calldata) internal override {
         IERC20(VAULT.asset()).forceApprove(address(ROUTER), amount);
         ROUTER.deposit(amount, SUMMER_REFERRAL_CODE);
     }
 
+    /// @notice No-op disembark hook; exits are asynchronous via requestWithdrawal through the withdrawal manager
     function _disembark(uint256, bytes calldata) internal override {
         // No-op: disembark is handled by Ark contract implementation
         // Withdrawals must be requested through withdrawal manager
     }
 
+    /// @notice No-op harvest: the Syrup pool auto-accrues yield, so no rewards are claimed here
     function _harvest(
         bytes calldata
     )
@@ -305,10 +327,12 @@ contract SyrupArkV2 is ArkWithWithdrawalRequest {
         rewardAmounts = new uint256[](0);
     }
 
+    /// @notice Validates the board data (no-op; this Ark requires no board data)
     function _validateBoardData(bytes calldata) internal override {
         // No additional validation needed
     }
 
+    /// @notice Validates the disembark data (no-op; this Ark requires no disembark data)
     function _validateDisembarkData(bytes calldata) internal override {}
 
     /**

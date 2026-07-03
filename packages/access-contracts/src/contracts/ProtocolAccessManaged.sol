@@ -128,6 +128,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Governor role.
+     */
     function _revertIfNotGovernor() private view {
         if (!_accessManager.hasRole(GOVERNOR_ROLE, _msgSender())) {
             revert CallerIsNotGovernor(_msgSender());
@@ -153,6 +156,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Keeper or Super Keeper role.
+     */
     function _revertIfNotKeeper() private view {
         if (
             !_accessManager.hasRole(
@@ -181,6 +187,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Super Keeper role.
+     */
     function _revertIfNotSuperKeeper() private view {
         if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, _msgSender())) {
             revert CallerIsNotSuperKeeper(_msgSender());
@@ -197,6 +206,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Curator role for the specified fleet address.
+     * @param fleetAddress The address of the fleet to check.
+     */
     function _revertIfNotCurator(address fleetAddress) private view {
         if (
             fleetAddress == address(0) ||
@@ -226,6 +239,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Guardian role.
+     */
     function _revertIfNotGuardian() private view {
         if (!_accessManager.hasRole(GUARDIAN_ROLE, _msgSender())) {
             revert CallerIsNotGuardian(_msgSender());
@@ -251,6 +267,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have either the Guardian or Governor role.
+     */
     function _revertIfNotGuardianOrGovernor() private view {
         if (
             !_accessManager.hasRole(GUARDIAN_ROLE, _msgSender()) &&
@@ -268,6 +287,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Decay Controller role.
+     */
     function _revertIfNotDecayController() private view {
         if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, _msgSender())) {
             revert CallerIsNotDecayController(_msgSender());
@@ -286,6 +308,9 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Reverts if the caller does not have the Foundation role.
+     */
     function _revertIfNotFoundation() private view {
         if (
             !_accessManager.hasRole(
@@ -339,6 +364,11 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         return _accessManager.hasRole(GOVERNOR_ROLE, account);
     }
 
+    /**
+     * @notice Helper function to check if an address has the Decay Controller role.
+     * @param account The address to check.
+     * @return bool True if the address has the Decay Controller role, false otherwise.
+     */
     function _isDecayController(address account) internal view returns (bool) {
         return _accessManager.hasRole(DECAY_CONTROLLER_ROLE, account);
     }

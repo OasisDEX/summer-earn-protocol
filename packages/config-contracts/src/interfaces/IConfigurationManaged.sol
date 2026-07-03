@@ -53,5 +53,8 @@ interface IConfigurationManaged {
         view
         returns (address);
 
+    /**
+     * @notice Thrown when the configuration manager address is set to address(0)
+     */
     error ConfigurationManagerZeroAddress();
 }

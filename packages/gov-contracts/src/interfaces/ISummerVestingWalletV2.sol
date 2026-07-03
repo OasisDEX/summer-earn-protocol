@@ -3,6 +3,9 @@ pragma solidity 0.8.28;
 
 /**
  * @title ISummerVestingWalletV2
+ * @notice Interface for SummerVestingWalletV2, a vesting wallet with a configurable cliff, time-based
+ * release over a configurable number of periods, and custom performance goals, with recallable
+ * unvested tokens and delegation support.
  * @dev Interface for SummerVestingWalletV2, an improved vesting wallet with configurable parameters
  *
  * Key Features:
@@ -48,21 +51,27 @@ interface ISummerVestingWalletV2 {
     ///             VIEW FUNCTIONS             ///
     //////////////////////////////////////////////
 
-    /// @dev The token being vested
+    /// @notice Returns the address of the ERC20 token being vested
+    /// @return The address of the vested token
     function token() external view returns (address);
 
-    /// @dev Get vesting parameters
+    /// @notice Returns the configured vesting parameters (cliff, amounts and periods)
+    /// @return The VestingParams struct for this wallet
     function vestingParams() external view returns (VestingParams memory);
 
-    /// @dev Get performance goal by index
+    /// @notice Returns a performance goal by its 1-indexed goal number
+    /// @param index The 1-indexed goal number (1..goalCount); reverts with InvalidGoalNumber otherwise
+    /// @return The PerformanceGoal struct for the given goal number
     function performanceGoals(
         uint256 index
     ) external view returns (PerformanceGoal memory);
 
-    /// @dev Get number of performance goals
+    /// @notice Returns the number of configured performance goals
+    /// @return The count of performance goals
     function getPerformanceGoalsCount() external view returns (uint256);
 
-    /// @dev Get amount per vesting period
+    /// @notice Returns the token amount released per time-based vesting period after the cliff
+    /// @return The amount vested per period
     function getAmountPerPeriod() external view returns (uint256);
 
     //////////////////////////////////////////////

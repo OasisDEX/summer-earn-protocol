@@ -31,6 +31,7 @@
     "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern --ignore-path \".prettierignore\"",
     "test": "forge test",
     "test:coverage": "forge coverage",
-    "test:coverage:report": "forge coverage --ir-minimum --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
+    "test:coverage:report": "forge coverage --ir-minimum --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
+    "docs:gen": "forge doc"
   }
 }

@@ -1,0 +1,59 @@
+{
+  "contracts": [
+    {
+      "package": "core-contracts",
+      "section": "Core Contracts",
+      "out": "contracts/core/reference"
+    },
+    {
+      "package": "gov-contracts",
+      "section": "Governance Contracts",
+      "out": "governance/reference"
+    },
+    {
+      "package": "dutch-auction",
+      "section": "Dutch Auction",
+      "out": "contracts/dutch-auction/reference"
+    },
+    {
+      "package": "access-contracts",
+      "section": "Access Control",
+      "out": "contracts/access/reference"
+    },
+    {
+      "package": "config-contracts",
+      "section": "Configuration",
+      "out": "contracts/config/reference"
+    },
+    {
+      "package": "rewards-contracts",
+      "section": "Rewards",
+      "out": "contracts/rewards/reference"
+    },
+    {
+      "package": "rwa-oracles",
+      "section": "RWA Oracles",
+      "out": "contracts/oracles/reference"
+    },
+    {
+      "package": "percentage",
+      "section": "Percentage Library",
+      "out": "contracts/libraries/percentage"
+    },
+    {
+      "package": "price-utils",
+      "section": "Price Library",
+      "out": "contracts/libraries/price"
+    },
+    {
+      "package": "math-utils",
+      "section": "Math Library",
+      "out": "contracts/libraries/math"
+    },
+    {
+      "package": "voting-decay",
+      "section": "Voting Decay Library",
+      "out": "governance/voting-decay"
+    }
+  ]
+}

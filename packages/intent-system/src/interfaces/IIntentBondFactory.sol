@@ -25,8 +25,13 @@ interface IIntentBondFactory {
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when the solver address is invalid (e.g., zero address)
     error InvalidSolver();
+
+    /// @notice Thrown when attempting to create a bond contract for a solver that already has one
     error BondAlreadyExists();
+
+    /// @notice Thrown when a bond contract for the specified solver does not exist
     error BondNotFound();
 
     /*//////////////////////////////////////////////////////////////

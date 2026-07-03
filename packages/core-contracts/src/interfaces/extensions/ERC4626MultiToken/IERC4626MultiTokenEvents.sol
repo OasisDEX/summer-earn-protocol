@@ -2,6 +2,8 @@
 pragma solidity 0.8.28;
 
 /**
+    @title IERC4626MultiTokenEvents
+
     @notice Events for the VaultWithReceipts contract
 
     @author Roberto Cano <robercano>

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {IProtocolAccessManagerV2} from "../interfaces/IProtocolAccessManagerV2.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManagerV2} from "../interfaces/IProtocolAccessManagerV2.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManagedV2
@@ -41,8 +41,12 @@ abstract contract ProtocolAccessManagedV2 is ProtocolAccessManaged {
         _;
     }
 
-    /// @dev Reverts with `CallerIsNotOperator(account)` if `account` does not hold the Operator
-    ///      role on this contract. Helper for `onlyOperator` and ad-hoc checks.
+    /**
+     * @notice Reverts if the account does not hold the Operator role on this contract.
+     * @dev Reverts with `CallerIsNotOperator(account)` if `account` does not hold the Operator
+     *      role on this contract. Helper for `onlyOperator` and ad-hoc checks.
+     * @param account The address to check.
+     */
     function _revertIfNotOperator(address account) internal view {
         if (!hasOperatorRole(account)) {
             revert CallerIsNotOperator(account);

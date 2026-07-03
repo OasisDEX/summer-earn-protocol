@@ -1,0 +1,147 @@
+{
+  "group": "earn:intent-arks",
+  "docs": [
+    {
+      "doc": "packages/intent-system/README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 23,
+      "staleClaims": [
+        {
+          "claim": "\"Solver calls IntentBondFactory.createBond(solver)\" (flow diagram step 1 and 'How It Works' step 1 show the solver creating their own bond)",
+          "currentTruth": "createBond is gated by onlyKeeper; only a keeper can deploy a SolverBond for a solver, not the solver themselves",
+          "evidence": "packages/intent-system/src/contracts/IntentBondFactory.sol:73-75"
+        },
+        {
+          "claim": "\"Ark can cancel intent before solving via resignByUser() (only in Created state)\"",
+          "currentTruth": "resignByUser is onlyKeeper (not callable by the Ark) and also accepts the Solved state, in which case the escrowed yield is returned to the solver; only states other than Created/Solved revert",
+          "evidence": "packages/intent-system/src/contracts/IntentHandler.sol:182-196"
+        },
+        {
+          "claim": "State diagram shows only Created/Solved/Settled/UserResigned/SolverResigned with transitions Created→UserResigned and Solved→SolverResigned",
+          "currentTruth": "The IntentState enum also contains None and Active; resignBySolver is accepted from both Solved and Active states, and resignByUser is accepted from Solved as well as Created (Solved→UserResigned missing from diagram)",
+          "evidence": "packages/intent-system/src/interfaces/IIntentHandler.sol:76-84; packages/intent-system/src/contracts/IntentHandler.sol:185-191,201"
+        },
+        {
+          "claim": "Solving only requires a bond: 'Solver sees intent and calls solveIntent... directly' with bond verification as the only gate",
+          "currentTruth": "solveIntent is additionally gated by onlySolver, which requires the keeper to have pre-registered an escrow for the solver via addSolverEscrow (onlyKeeper); it also enforces an oracle staleness check (MAX_PRICE_AGE = 1 hour) never mentioned in the doc",
+          "evidence": "packages/intent-system/src/contracts/IntentHandler.sol:91-95,115-136,230-243"
+        }
+      ],
+      "unverifiable": [
+        "Off-chain steps: 'Ark posts intent offchain' and 'Keeper is obliged to deposit to solvers protocol' are process descriptions with no on-chain enforcement to check (the 10-minute BUFFER_TIME itself is confirmed at IntentHandler.sol:39)"
+      ],
+      "notes": "Core architecture confirmed: 4 components exist (IntentHandler.sol, IntentBondFactory.sol, SolverBond.sol, Escrow.sol); solveIntent(intent, escrowedYield) and settleIntent (permissionless) signatures match; settled yield goes to the Ark's buffer via IFleetCommander(...).bufferArk() (IntentHandler.sol:172-176); 50% slash on resignBySolver (bondAmount/2, IntentHandler.sol:210-216); BUFFER_TIME = 10 minutes (IntentHandler.sol:39); hasCommitted signature including the 'isCommited' typo matches exactly (IntentHandler.sol:273-279); bonds are Summer-token-only (SolverBond.sol:26-29); GenericIntentArk indeed removed (only core-contracts/src/contracts/arks/legacy/GenericIntentArk.sol.old remains)."
+    },
+    {
+      "doc": "packages/intent-system/solver-mvp/SOLVER_README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 30,
+      "staleClaims": [
+        {
+          "claim": "Installation: 'pip install -r requirements.txt'",
+          "currentTruth": "There is no requirements.txt in solver-mvp; the directory contains only env.example, simple_solver.py, example_usage.py and the two READMEs",
+          "evidence": "directory listing of packages/intent-system/solver-mvp/"
+        },
+        {
+          "claim": "'Solver creates a bond by calling IntentBondFactory.createBond()' / 'SUMMER tokens for bonding (minimum 1000 tokens)' / 'Bond must contain at least 1000 SUMMER tokens to be vouched'",
+          "currentTruth": "On-chain, createBond is onlyKeeper so the solver's own transaction would revert, and there is no 1000-SUMMER minimum: isSolverVouched converts a per-intent requiredBond (USD, 18 decimals) to SUMR via the oracle price. The 1000 figure is only a hardcoded local check in the Python script",
+          "evidence": "packages/intent-system/src/contracts/IntentBondFactory.sol:73-75,116-129; packages/intent-system/solver-mvp/simple_solver.py:211"
+        },
+        {
+          "claim": "Programmatic-usage intent_data has fields user, requiredNotional, term, targetYield, token, oracle, expiry",
+          "currentTruth": "The deployed Intent struct is (user, requiredNotional, requiredBond, term, targetYield, token, oracle, expiry) — the documented example (and the script's minimal ABI) omit requiredBond, so the ABI-encoded tuple does not match the contract",
+          "evidence": "packages/intent-system/src/interfaces/IIntentHandler.sol:65-74 vs simple_solver.py:88-100,353-361"
+        },
+        {
+          "claim": "'After term completion, solver calls IntentHandler.settleIntent(intent)'",
+          "currentTruth": "Settlement is gated on block.timestamp >= intent.expiry, not on solve-time + term; the term field is only range-checked at creation (MIN_TERM 1 day / MAX_TERM 365 days)",
+          "evidence": "packages/intent-system/src/contracts/IntentHandler.sol:106-107,158-160"
+        },
+        {
+          "claim": "'Continuous Monitoring: Monitor for new intents to solve' (monitor_intents)",
+          "currentTruth": "monitor_intents only polls the solver's own bond status and token balances in a loop; it never scans for or detects new intents/events",
+          "evidence": "packages/intent-system/solver-mvp/simple_solver.py:323-347"
+        }
+      ],
+      "unverifiable": [
+        "That the five listed contract addresses are actually deployed on Base staging (addresses match the script constants at simple_solver.py:25-31, but on-chain deployment was not checked)",
+        "'Python 3.8+' prerequisite — no requirements.txt/setup file pins a Python version",
+        "'10,000 USDC (18 decimals)' comment — matches the script's to_wei usage, but real Base USDC (0x8335...2913) has 6 decimals; cannot reconcile from the repo alone"
+      ],
+      "notes": "Claims describing the script itself check out: all 5 addresses, chain id 8453/Base RPC, interactive menu options 1-5 (simple_solver.py:391-395), gas figures 200k/300k/200k (lines 241, 281, 307), class IntentSolver with the six documented methods and four properties, .env PRIVATE_KEY without 0x prefix (env.example). 10-minute buffer (IntentHandler.sol:39), permissionless settle, yield-to-buffer-via-FleetCommander and hasCommitted return tuple all confirmed against the contracts."
+    },
+    {
+      "doc": "packages/intent-system/solver-mvp/README.md",
+      "verdict": "obsolete",
+      "claimsChecked": 10,
+      "staleClaims": [
+        {
+          "claim": "This README documents the package it sits in: a Next.js 'Summer Earn Protocol Interface' with npm install / npm run dev / npm run build, RainbowKit/wagmi/viem, fleets from Harbor Command, deposit/withdraw/rebalance UI",
+          "currentTruth": "packages/intent-system/solver-mvp contains only Python solver files (simple_solver.py, example_usage.py, env.example) — no package.json, no npm scripts, no Next.js/React code. The described app actually lives in packages/simple-interface-app (its build artifacts reference @rainbow-me/rainbowkit 2.2.4)",
+          "evidence": "directory listing of packages/intent-system/solver-mvp/; packages/simple-interface-app/.next/static/chunks (rainbowkit chunks); packages/simple-interface-app/src/app"
+        }
+      ],
+      "unverifiable": [
+        "'View all available fleets from Harbor Command', 'Rebalance assets between arks (for keepers)', multicall usage — not checkable in this directory since the app code is not here",
+        "Supported chains list (Ethereum, Arbitrum, Base, Sonic) — no config in this directory to check against"
+      ],
+      "notes": "This is a misplaced/copied create-next-app README (it even retains the next/font Geist boilerplate and Vercel deploy section). Every command it gives fails in this directory. Recommend deleting it from solver-mvp or replacing it with SOLVER_README.md content; the interface README belongs with packages/simple-interface-app."
+    },
+    {
+      "doc": "packages/core-contracts/src/contracts/arks/README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 45,
+      "staleClaims": [
+        {
+          "claim": "'It must inherit from either the base Ark contract or ArkWithWithdrawalRequest contract' and the swap/slippage features are presented as ArkWithWithdrawalRequest additions",
+          "currentTruth": "A third base now exists: abstract ArkWithSwap (is Ark) owns the swap, slippage and router-whitelisting features, ArkWithWithdrawalRequest extends ArkWithSwap, and some arks inherit ArkWithSwap directly (BenjiArk) or other intermediates (BaseSuperstateArk, ERC4626Ark subclasses)",
+          "evidence": "packages/core-contracts/src/contracts/ArkWithSwap.sol:26; packages/core-contracts/src/contracts/ArkWithWithdrawalRequest.sol:34-37; packages/core-contracts/src/contracts/arks/BenjiArk.sol:73"
+        },
+        {
+          "claim": "Ark classification lists 16 standard arks and 4 withdrawal-request arks as the full set",
+          "currentTruth": "The list is badly outdated: ~20 arks are missing. Additional ArkWithWithdrawalRequest arks: AeraArk, ArmArk, MapleInstitutionalArk, OriginUSDArk, UpshiftArk, SyrupArkV2, WisdomTreeArk. Additional standard (Ark/ERC4626Ark-based) arks: StargateV2PoolArk, HypurrfiArk, HyperlendArk, FluidFTokenArk, MorphoV2VaultArk, Psm3ERC4626Ark, PsmLiteERC4626Ark, SiUSDArk, SiloManagedVaultArk, SiloVaultArkV2. Plus BenjiArk (ArkWithSwap) and SuperstateStandardArk/SuperstateSubscribeArk (BaseSuperstateArk). All 20 arks that ARE listed still exist and inherit as stated",
+          "evidence": "grep of 'contract .* is' across packages/core-contracts/src/contracts/arks/*.sol (e.g. AeraArk.sol:16, ArmArk.sol:13, MapleInstitutionalArk.sol:17, OriginUSDArk.sol:14, UpshiftArk.sol:15, SyrupArkV2.sol:30, WisdomTreeArk.sol:51, StargateV2PoolArk.sol:17, SuperstateStandardArk.sol:39)"
+        },
+        {
+          "claim": "withdrawUsingSwap per-protocol bullets: 'the amount of tokens to swap (encoded in data)' — OriginETH = totalAssets balance, Fluid Lite = stETH withdrawn, Syrup = shares from convertToShares",
+          "currentTruth": "The swap amount is never encoded in `data`: `data` abi-decodes to SwapData{address router; bytes swapCalldata} only. Swap input amounts are computed on-chain — OriginETHArk swaps the `amount` parameter directly, FluidLiteArk swaps the actually-withdrawn stETH balance delta, SyrupArk computes vault.convertToShares(amount) itself. (The factual numbers are still right: Fluid fee = WITHDRAWAL_FEE 5 / SLIPPAGE_BASE 10000 = 0.05%; Syrup uses convertToShares)",
+          "evidence": "packages/core-contracts/src/interfaces/IArkWithSwap.sol:25-30; OriginETHArk.sol:101-117; FluidLiteArk.sol:38,207-232; SyrupArk.sol:160-176"
+        },
+        {
+          "claim": "sweep() declared as `function sweep() external returns (...)`",
+          "currentTruth": "Actual declaration is `function sweep() public virtual onlyKeeper nonReentrant returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)` — public, not external (keeper-only claim is correct)",
+          "evidence": "packages/core-contracts/src/contracts/ArkWithWithdrawalRequest.sol:60-66"
+        }
+      ],
+      "unverifiable": [],
+      "notes": "Core guidance is sound and confirmed: hook signatures _board(uint256,bytes calldata)/_disembark/_withdrawableTotalAssets/_harvest match Ark.sol:188-218; AaveV3Ark _board/_disembark/totalAssets/_harvest snippets match AaveV3Ark.sol:57-134 (the _withdrawableTotalAssets snippet is a condensed but semantically faithful version — code uses a ternary, doc shows Math.min); requestWithdrawal(uint256)/claimWithdrawal() are onlyKeeper in all implementations; SyrupArk.claimWithdrawal is a no-op and isWithdrawalClaimRequired() returns false (SyrupArk.sol:138-148); whitelistRouter(address,bool) and setSlippage(uint256) are onlyCurator with SLIPPAGE_BASE=10000 and MAX_SLIPPAGE=1000 (10%) (ArkWithSwap.sol:33-35,62-79). Worth a refresh given ~20 unlisted arks and the ArkWithSwap refactor."
+    },
+    {
+      "doc": "packages/dutch-auction/README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 30,
+      "staleClaims": [
+        {
+          "claim": "Support for 'linear and exponential' price decay (stated 3x: Overview, Key Features, Python-script section)",
+          "currentTruth": "The code implements Linear and Quadratic decay, not exponential: enum DecayType {Linear, Quadratic}, DutchAuctionMath.linearDecay/quadraticDecay, and the Python script generates 'linear' and 'quadratic' series",
+          "evidence": "packages/dutch-auction/src/DecayFunctions.sol:10-19,69-81; src/DutchAuctionMath.sol:58-75; utils/generate_price_data.py:14-31"
+        },
+        {
+          "claim": "Project structure: src/ contains exactly DutchAuctionManager/Library/Errors/Events; test/ contains DutchAuction.t.sol and DutchAuction.fuzz.t.sol; utils/ has 3 files",
+          "currentTruth": "src/ also contains DecayFunctions.sol, DutchAuctionMath.sol and lib/; test/ also has DutchAuctionDecimals.t.sol, TokenLibrary.t.sol and mocks/; utils/ also contains lifecycle.png (referenced later in the same README); package root also has docs/ and LICENSE.md",
+          "evidence": "directory listing of packages/dutch-auction/{src,test,utils}"
+        },
+        {
+          "claim": "'This project is licensed under the MIT License'",
+          "currentTruth": "Package LICENSE.md is indeed MIT (Oazo Apps Limited), but every core source file carries an SPDX BUSL-1.1 identifier, so the blanket MIT statement contradicts the contracts' license headers",
+          "evidence": "packages/dutch-auction/LICENSE.md:1-3 vs SPDX headers in src/DutchAuctionManager.sol:1, src/DutchAuctionLibrary.sol:1, src/DecayFunctions.sol:1, src/DutchAuctionMath.sol:1, src/DutchAuctionErrors.sol:1, src/DutchAuctionEvents.sol:1"
+        }
+      ],
+      "unverifiable": [
+        "forge install / foundryup setup steps (generic toolchain commands; foundry.toml exists so the Foundry claim itself is confirmed)"
+      ],
+      "notes": "Everything else checks out: DutchAuctionManager (contract, auctions mapping + createAuction, DutchAuctionManager.sol:19,26,43), DutchAuctionLibrary is a library holding price/purchase logic (DutchAuctionLibrary.sol:56), Errors/Events contracts exist; kicker reward paid at creation (DutchAuctionLibrary.sol:48-50,147); auto-finalize when remainingTokens == 0 and anyone-can-finalize after endTime with unsold tokens sent to unsoldTokensRecipient (DutchAuctionLibrary.sol:262-305); script contract DeployDutchAuction exists (script/DeployDutchAuction.s.sol:7); python script uses matplotlib, has num_intervals (generate_price_data.py:67) and writes expected_prices.json + price_decay_comparison.png (lines 35-37, 63); clone URL matches the OasisDEX/summer-earn-protocol origin remote."
+    }
+  ],
+  "summary": "Audited 5 docs in group earn:intent-arks. None fully current. (1) intent-system/README.md: partially-stale — architecture, signatures, 10-min BUFFER_TIME, 50% slash and hasCommitted all confirmed, but createBond is keeper-only (doc says solver calls it), resignByUser is keeper-only and also works in Solved state (doc says Ark-only, Created-only), and the state diagram omits the Active state. (2) solver-mvp/SOLVER_README.md: partially-stale — script-facing claims (addresses, menu, gas, API) match simple_solver.py, but requirements.txt doesn't exist, the '1000 SUMMER minimum' isn't an on-chain rule, the documented Intent struct omits the contract's requiredBond field, and createBond is keeper-gated. (3) solver-mvp/README.md: obsolete — a misplaced Next.js interface README (the app lives in packages/simple-interface-app); nothing in solver-mvp matches it. (4) arks/README.md: partially-stale — hook signatures, access roles and slippage constants confirmed, but the ark classification list is missing ~20 arks, the new ArkWithSwap base invalidates the 'Ark or ArkWithWithdrawalRequest' dichotomy, and the withdrawUsingSwap 'amount encoded in data' bullets no longer match SwapData{router,swapCalldata}. (5) dutch-auction/README.md: partially-stale — structure/lifecycle/kicker/deploy claims confirmed, but decay is Linear/Quadratic (not 'exponential'), the structure tree omits DutchAuctionMath/DecayFunctions and extra tests, and the MIT license claim conflicts with BUSL-1.1 SPDX headers in src."
+}

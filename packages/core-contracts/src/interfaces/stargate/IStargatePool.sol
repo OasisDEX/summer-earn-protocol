@@ -15,7 +15,8 @@ interface IStargatePool {
 
     /// @notice Redeem an amount of LP tokens from the senders account, claiming rewards.
     /// @param _amountLD The amount of LP tokens to redeem
-    /// @param _receiver The account to transfer the
+    /// @param _receiver The account to transfer the redeemed tokens to
+    /// @return amountLD The actual amount of tokens redeemed in LD
     function redeem(
         uint256 _amountLD,
         address _receiver

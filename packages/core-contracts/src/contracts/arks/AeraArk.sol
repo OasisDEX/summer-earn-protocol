@@ -45,21 +45,31 @@ contract AeraArk is ArkWithWithdrawalRequest {
     /// @notice The vault contract (multi-depositor vault)
     IERC20 public immutable vault;
 
+    /// @notice Tracks an outstanding async deposit/redeem request
+    /// @param hash The provisioner request hash, used to check whether it is still pending
+    /// @param amount The underlying asset amount associated with the request
     struct ArkRequest {
         bytes32 hash;
         uint256 amount;
     }
 
+    /// @notice The currently outstanding async deposit request (if any)
     ArkRequest public asyncDepositRequest;
 
+    /// @notice The currently outstanding async redeem request (if any)
     ArkRequest public asyncRedeemRequest;
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when a required address is the zero address
+    /// @param name The name of the offending parameter
+    /// @param addr The invalid address supplied
     error InvalidAddress(string name, address addr);
+    /// @notice Thrown when boarding while an async deposit request is already outstanding
     error AsyncDepositAlreadyExists();
+    /// @notice Thrown when requesting a withdrawal while an async redeem request is already outstanding
     error AsyncRedeemAlreadyExists();
 
     /*//////////////////////////////////////////////////////////////
@@ -232,6 +242,8 @@ contract AeraArk is ArkWithWithdrawalRequest {
         return 0;
     }
 
+    /// @notice Returns assets currently in the async deposit queue
+    /// @return The underlying asset amount of the outstanding deposit request, or 0 if none is pending
     function assetsInDepositQueue() public view returns (uint256) {
         if (provisioner.asyncDepositHashes(asyncDepositRequest.hash)) {
             return asyncDepositRequest.amount;

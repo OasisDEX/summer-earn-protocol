@@ -61,18 +61,18 @@ contract RoundsVaultInput is
      * INTERNAL FUNCTIONS
      */
 
-    /**
-     * @inheritdoc RoundsVaultBase
-     * @dev Deposits the round's frozen underlying balance into the target vault and returns the
-     *      amount of target-vault shares received. The shares stay in this contract and back
-     *      `redeemExchangeAsset` payouts for the round.
-     */
     // @audit Re-entrancy posture: `_operate` is only reachable via `_setRoundSettled`, which is
     // gated by `onlyKeeper` on `setRoundSettled` / `setRoundSettledBatch`. The Keeper is a trusted
     // role. Even if a Keeper attempted to re-enter `setRoundSettled` for the same round, the round
     // state is flipped to `Settled` before `_operate` runs, so the second call would revert on
     // `InvalidRoundState`. And the round's deposit balance has already been transferred to the
     // target FleetCommander, leaving this contract with nothing to move on a re-entrant pass.
+    /**
+     * @inheritdoc RoundsVaultBase
+     * @dev Deposits the round's frozen underlying balance into the target vault and returns the
+     *      amount of target-vault shares received. The shares stay in this contract and back
+     *      `redeemExchangeAsset` payouts for the round.
+     */
     function _operate(
         uint256 assets,
         uint256 roundId

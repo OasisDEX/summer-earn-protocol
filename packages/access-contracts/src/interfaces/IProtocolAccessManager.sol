@@ -52,6 +52,7 @@ interface IProtocolAccessManager {
     function revokeSuperKeeperRole(address account) external;
 
     /**
+     * @notice Generates a unique role identifier based on the role name and target contract address.
      * @dev Generates a unique role identifier based on the role name and target contract address
      * @param roleName The name of the role (from ContractSpecificRoles enum)
      * @param roleTargetContract The address of the contract the role is for

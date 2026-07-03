@@ -3,6 +3,8 @@ pragma solidity 0.8.28;
 
 import {ISummerVestingWalletV2} from "./ISummerVestingWalletV2.sol";
 
+/// @title ISummerVestingWalletFactoryV2
+/// @notice Interface for the factory that deploys SummerVestingWalletV2 instances and tracks their owners
 interface ISummerVestingWalletFactoryV2 {
     //////////////////////////////////////////////
     ///                 ERRORS                 ///

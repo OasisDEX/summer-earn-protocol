@@ -12,6 +12,8 @@ import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title ISummerToken
+ * @notice Interface for the SUMR governance token, combining ERC20, EIP-2612 permit, LayerZero OFT
+ * cross-chain transfers, and voting-power decay mechanisms.
  * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
  * and voting decay mechanisms
  */
@@ -68,8 +70,8 @@ interface ISummerToken is
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /*
-     * @dev Error thrown when the chain is not the hub chain
+    /**
+     * @notice Error thrown when an action restricted to the hub chain is attempted on another chain
      * @param chainId The chain ID
      * @param hubChainId The hub chain ID
      */

@@ -178,11 +178,13 @@ abstract contract ArkConfigProvider is
         emit FleetCommanderUnregistered(msg.sender);
     }
 
+    /// @notice Restricts a function to the registered commander (FleetCommander) of this Ark
     modifier onlyCommander() {
         _revertIfNotCommander();
         _;
     }
 
+    /// @notice Reverts unless the caller is the registered commander of this Ark
     function _revertIfNotCommander() internal view {
         if (_msgSender() != config.commander) {
             revert CallerIsNotCommander(_msgSender());

@@ -24,6 +24,9 @@ import {IERC20Extended} from "../../interfaces/IERC20Extended.sol";
 
 /**
  * @title PendlePtOracleArk
+ * @notice Ark for Pendle Principal Tokens that prices PT via the Pendle oracle
+ *         and converts between the market asset and the Ark (Fleet) asset using
+ *         a Curve EMA, with EMA-bounded trade execution.
  * @dev An Ark implementation for Pendle Principal Tokens with oracle-based pricing.
  *
  * This contract combines functionality from Ark, CurveExchangeRateProvider,
@@ -76,36 +79,61 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Maximum allowed slippage percentage
     Percentage public constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
+    /// @notice Minimum allowed oracle TWAP duration
     uint256 public constant MIN_ORACLE_DURATION = 15 minutes;
+    /// @notice Maximum allowed oracle TWAP duration
     uint256 public constant MAX_ORACLE_DURATION = 1 hours;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The market (SY) asset used by the Pendle PT market (e.g. USDe)
     address public immutable marketAsset;
+    /// @notice Address of the current Pendle market
     address public market;
+    /// @notice Address of the Pendle router
     address public immutable router;
+    /// @notice Address of the next Pendle market to roll into after expiry
     address public nextMarket;
+    /// @notice Address of the Pendle PY/LP oracle
     address public immutable oracle;
+    /// @notice Decimals of the Ark (Fleet) asset
     uint8 public immutable configTokenDecimals;
+    /// @notice Decimals of the market asset
     uint8 public immutable marketAssetDecimals;
+    /// @notice Decimals of the current market's Principal Token
     uint8 public ptDecimals;
+    /// @notice Oracle TWAP duration used when fetching rates
     uint32 public oracleDuration;
+    /// @notice Standardized Yield token associated with the current market
     IStandardizedYield public SY;
+    /// @notice Principal Token associated with the current market
     IPPrincipalToken public PT;
+    /// @notice Yield Token associated with the current market
     IPYieldToken public YT;
+    /// @notice Slippage tolerance applied to swaps
     Percentage public slippagePercentage;
+    /// @notice Expiry timestamp of the current market
     uint256 public marketExpiry;
+    /// @notice Parameters for the Pendle router approximation
     ApproxParams public routerParams;
+    /// @notice Empty limit order data for Pendle operations
     LimitOrderData emptyLimitOrderData;
+    /// @notice Empty swap data for Pendle operations
     SwapData public emptySwap;
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Curve-based exchange-rate / EMA-bound configuration parameters
+    /// @param curvePool The Curve pool used as the market-asset price oracle
+    /// @param basePrice The reference (base) exchange rate
+    /// @param lowerPercentageRange Lower bound for the EMA, as a percentage of basePrice
+    /// @param upperPercentageRange Upper bound for the EMA, as a percentage of basePrice
     struct CurveSwapArkConstructorParams {
         address curvePool;
         uint256 basePrice;
@@ -113,16 +141,24 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         Percentage upperPercentageRange;
     }
 
+    /// @notice Pendle PT-specific constructor parameters
+    /// @param market Address of the Pendle market
+    /// @param oracle Address of the Pendle PY/LP oracle
+    /// @param router Address of the Pendle router
     struct PendlePtArkConstructorParams {
         address market;
         address oracle;
         address router;
     }
 
+    /// @notice Keeper-supplied data for boarding
+    /// @param swapForPtParams ABI-encoded Pendle swapExactTokenForPt calldata (selector + args)
     struct BoardData {
         bytes swapForPtParams;
     }
 
+    /// @notice Keeper-supplied data for disembarking
+    /// @param swapPtForTokenParams ABI-encoded Pendle swapExactPtForToken calldata (selector + args)
     struct DisembarkData {
         bytes swapPtForTokenParams;
     }
@@ -139,32 +175,50 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when an operation requires a live market but the current market has expired
     error MarketExpired();
+    /// @notice Thrown when the keeper-supplied swap params are shorter than a 4-byte selector
     error InvalidParamsLength();
+    /// @notice Thrown when the keeper-supplied swap params do not match the expected Pendle function selector
     error InvalidFunctionSelector();
+    /// @notice Thrown when the decoded swap receiver is not this Ark
     error InvalidReceiver();
+    /// @notice Thrown when the decoded swap market does not match the Ark's current market
     error InvalidMarket();
+    /// @notice Thrown when the Curve EMA exchange rate is outside the configured lower/upper bounds
     error EmaOutOfRange();
+    /// @notice Thrown when boarding into a market whose expiry is within the 20-day minimum buffer
     error MarketExpirationTooClose();
+    /// @notice Thrown when a swap returns fewer tokens than the slippage-adjusted minimum
     error InsufficientOutputAmount();
+    /// @notice Thrown when the configured next market is zero or equal to the current market
     error InvalidNextMarket();
+    /// @notice Thrown when the requested slippage exceeds MAX_SLIPPAGE_PERCENTAGE
     error SlippagePercentageTooHigh(
         Percentage slippagePercentage,
         Percentage maxSlippagePercentage
     );
+    /// @notice Thrown when the requested oracle duration is below MIN_ORACLE_DURATION
     error OracleDurationTooLow(
         uint32 oracleDuration,
         uint256 minOracleDuration
     );
+    /// @notice Thrown when the requested oracle duration is above MAX_ORACLE_DURATION
     error OracleDurationTooHigh(
         uint32 oracleDuration,
         uint256 maxOracleDuration
     );
+    /// @notice Thrown when the market asset is not a valid SY token-in/token-out for the market
     error InvalidAssetForSY();
+    /// @notice Thrown when the supplied Pendle router address is the zero address
     error InvalidRouterAddress(address router);
+    /// @notice Thrown when the supplied Pendle oracle address is the zero address
     error InvalidOracleAddress(address oracle);
+    /// @notice Thrown when the supplied Pendle market address is the zero address
     error InvalidMarketAddress(address market);
+    /// @notice Thrown when a swap's token-in/token-out does not match the Ark's configured asset
     error InvalidAsset(address asset);
+    /// @notice Thrown when a decoded swap amount is inconsistent with the requested amount or slippage bounds
     error InvalidAmount();
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -242,9 +296,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     /**
      * @notice Calculates the total assets held by the Ark
      * @return The total assets in underlying token
-     * @dev We handle this differently based on whether the market has expired:
-     * 1. If the market has expired: return the exact PT / LP balance (1:1 ratio)
-     * 2. If the market has not expired: subtract slippage from the calculated asset amount
+     * @dev In both branches the value is computed by totalAssetsNoSlippage(),
+     * which prices the PT balance via the Pendle oracle (_ptToMarketAssetRate)
+     * and converts the market asset to the Ark asset via the Curve EMA
+     * (getSafeExchangeRateEma) — not a 1:1 ratio. The two branches differ only
+     * in slippage handling:
+     * 1. If the market has expired: return the oracle/EMA-valued amount with no slippage deduction
+     * 2. If the market has not expired: subtract slippage from the oracle/EMA-valued amount
      */
     function totalAssets() public view override returns (uint256) {
         return
@@ -355,6 +413,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         return block.timestamp >= marketExpiry;
     }
 
+    /**
+     * @notice Emergency governor action that redeems the Ark's PT into the
+     *         market asset (only if the current market has expired) and sweeps
+     *         the resulting market-asset balance to the caller
+     */
     function withdrawExpiredMarket() public onlyGovernor {
         if (this.isMarketExpired()) {
             uint256 amount = IERC20(PT).balanceOf(address(this));
@@ -398,6 +461,12 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         emit SlippageUpdated(_slippagePercentage);
     }
 
+    /**
+     * @notice Sets the lower and upper EMA bounds (relative to the base price)
+     *         used to gate trade execution
+     * @param _lowerPercentageRange New lower bound, as a percentage of the base price
+     * @param _upperPercentageRange New upper bound, as a percentage of the base price
+     */
     function setEmaRange(
         Percentage _lowerPercentageRange,
         Percentage _upperPercentageRange
@@ -405,6 +474,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         _setEmaRange(_lowerPercentageRange, _upperPercentageRange);
     }
 
+    /**
+     * @notice Sets the reference (base) exchange rate against which the EMA
+     *         bounds are evaluated
+     * @param _basePrice New base price
+     */
     function setBasePrice(
         uint256 _basePrice
     ) external onlyCurator(config.commander) {
@@ -479,7 +553,12 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
     /**
      * @notice Internal function to swap Principal Tokens (PT) for fleet asset
-     * @param _amount Minimum amount of fleet asset to receive from swap
+     * @param _amount The disembark (withdrawal) amount of fleet asset requested.
+     *        It acts as an upper bound: the swap reverts unless the
+     *        keeper-supplied output.minTokenOut is <= _amount, and the decoded
+     *        exactPtIn is within slippage of the PT equivalent of _amount. The
+     *        actual minimum tokens received is the keeper-supplied
+     *        output.minTokenOut, not _amount.
      * @param data Additional data for the swap
      * @dev This function is called during the disembarking process
      */
@@ -777,8 +856,10 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
     /**
      * @notice Modifier to check if buying should be allowed
-     * @dev This modifier ensures that the market is not expired and that the market expiration is not too close to the
-     * current block timestamp.
+     * @dev First calls _shouldTrade(), which reverts EmaOutOfRange unless the
+     * Curve EMA exchange rate is within the configured [lowerBound, upperBound]
+     * range, then additionally requires that the market expiry is more than
+     * 20 days away (reverting MarketExpirationTooClose otherwise).
      */
     modifier shouldBuy() {
         _shouldTrade();
@@ -790,6 +871,8 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
     /**
      * @notice Modifier to check if trading should be allowed
+     * @dev Calls _shouldTrade(), which reverts EmaOutOfRange unless the Curve
+     * EMA exchange rate is within the configured [lowerBound, upperBound] range.
      */
     modifier shouldTrade() {
         _shouldTrade();

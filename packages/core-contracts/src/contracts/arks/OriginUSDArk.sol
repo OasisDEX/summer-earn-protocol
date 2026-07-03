@@ -152,8 +152,9 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev Returns the sum of the direct asset balance and the redeemable amount from Origin USD
-     *      limited by the ARM balance
+     * @dev Returns only the direct asset (USDC) balance held by this Ark. The
+     *      OUSD position is not synchronously redeemable here: exits go through
+     *      requestWithdrawal/claimWithdrawal or withdrawUsingSwap.
      * @return withdrawableAssets Assets that can be immediately withdrawn
      */
     function _withdrawableTotalAssets()
@@ -239,7 +240,9 @@ contract OriginUSDArk is ArkWithWithdrawalRequest {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when the asset in ArkParams doesn't match USDC
+    /// @notice Declared to signal a mismatch between the configured asset and
+    ///         the expected underlying. Currently unused: the constructor does
+    ///         not perform this check, so the error is never reverted.
     error AssetMismatch();
 
     /// @notice Error thrown when an invalid Origin USD address is provided

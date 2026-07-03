@@ -10,6 +10,7 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
  * @custom:see IConfigurationManaged
  */
 abstract contract ConfigurationManaged is IConfigurationManaged {
+    /// @inheritdoc IConfigurationManaged
     IConfigurationManager public immutable configurationManager;
 
     /**

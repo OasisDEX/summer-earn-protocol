@@ -19,5 +19,6 @@ import "../ERC4626MultiToken/IERC4626MultiToken.sol";
  */
 interface IERC4626MultiTokenWrapper is IERC4626MultiToken {
     /// @notice Returns the address of the target ERC-4626 vault this wrapper batches deposits for.
+    /// @return vaultAddress The address of the wrapped target vault
     function vault() external view returns (address vaultAddress);
 }

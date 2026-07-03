@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+/// @title IPoolAddressesProvider
+/// @notice Interface for the Spark registry of addresses for a single market (Aave V3 fork)
 interface IPoolAddressesProvider {
     /**
      * @dev Emitted when the market identifier is updated.

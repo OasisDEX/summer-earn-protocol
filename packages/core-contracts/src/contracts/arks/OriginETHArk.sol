@@ -242,7 +242,9 @@ contract OriginETHArk is ArkWithWithdrawalRequest {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when the asset in ArkParams doesn't match WETH
+    /// @notice Declared to signal a mismatch between the configured asset and
+    ///         the expected underlying. Currently unused: the constructor does
+    ///         not perform this check, so the error is never reverted.
     error AssetMismatch();
 
     /// @notice Error thrown when an invalid Origin ETH address is provided

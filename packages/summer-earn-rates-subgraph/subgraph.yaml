@@ -6,7 +6,7 @@ features:
   - grafting
 graft:
   base: QmSPfC1JSceUWAJNw5yjYrbQzCd13MMtqYE86qYAdVzK95
-  block: 25029442
+  block: 25420943
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
@@ -97,3 +97,43 @@ dataSources:
             kind: polling
             every: 50    
       file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: BenjiTransferAgent
+    network: mainnet
+    source:
+      abi: TransferAgentModule
+      address: "0x8C8Bfc3151C2161a4baD77268e246A08e5D9c666"
+      startBlock: 20500000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.8
+      language: wasm/assemblyscript
+      entities:
+        - VaultState
+      abis:
+        - name: TransferAgentModule
+          file: ./abis/franklin/TransferAgentModule.json
+      eventHandlers:
+        - event: DividendDistributed(indexed address,indexed uint256,int256,uint256,uint256,uint256,uint256,bool)
+          handler: handleDividendDistributed
+      file: ./src/franklinMapping.ts
+  - kind: ethereum/contract
+    name: IBenjiTransferAgent
+    network: mainnet
+    source:
+      abi: TransferAgentModule
+      address: "0xaB266e4fa5D088cC440433C3EA1e066fD710a0a5"
+      startBlock: 22000000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.8
+      language: wasm/assemblyscript
+      entities:
+        - VaultState
+      abis:
+        - name: TransferAgentModule
+          file: ./abis/franklin/TransferAgentModule.json
+      eventHandlers:
+        - event: DividendDistributed(indexed address,indexed uint256,int256,uint256,uint256,uint256,uint256,bool)
+          handler: handleDividendDistributed
+      file: ./src/franklinMapping.ts

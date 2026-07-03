@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.15;
 
+/// @title IPoolAddressesProvider
+/// @notice Interface for the Aave V3 registry of addresses for a single market
 interface IPoolAddressesProvider {
     /**
      * @dev Emitted when the market identifier is updated.

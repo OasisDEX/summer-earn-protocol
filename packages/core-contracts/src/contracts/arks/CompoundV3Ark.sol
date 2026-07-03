@@ -58,7 +58,9 @@ contract CompoundV3Ark is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev CompoundV3Ark is always withdrawable
+     * @dev Returns the full balance when withdrawals are enabled on the Comet
+     *      market, but returns 0 while comet.isWithdrawPaused() is true (the
+     *      Comet pause guardian can pause withdrawals).
      */
     function _withdrawableTotalAssets()
         internal
