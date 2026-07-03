@@ -5,6 +5,7 @@ import { connection } from 'next/server'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DelegatesList } from '@/components/DelegatesList'
 import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
+import { getCuriaDelegates } from '@/services/curia'
 import { getCuriaDelegatesCached } from '@/services/curia-cached'
 import { getEnsNamesCached } from '@/services/ens-cached'
 import { getDelegatesCached } from '@/services/subgraph-cached'
@@ -35,9 +36,12 @@ async function DelegatesListServer() {
     const subgraphDelegates = await getDelegatesCached()
     const addresses = subgraphDelegates.map((d) => d.id)
     // Normalize (dedupe + sort) so the ENS cache key is independent of order.
+    // CURIA_DEBUG bypasses the in-process cache too, so the [curia] logs fire on
+    // every render (getCuriaDelegates skips the DynamoDB layer itself in debug).
+    const curiaDebug = ['1', 'true'].includes((process.env.CURIA_DEBUG || '').toLowerCase())
     const [ensMap, curiaMap] = await Promise.all([
       getEnsNamesCached([...new Set(addresses.map((a) => a.toLowerCase()))].sort()),
-      getCuriaDelegatesCached(),
+      curiaDebug ? getCuriaDelegates() : getCuriaDelegatesCached(),
     ])
 
     delegates = subgraphDelegates.map((d) => {

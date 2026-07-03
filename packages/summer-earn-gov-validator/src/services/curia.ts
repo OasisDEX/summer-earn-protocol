@@ -24,6 +24,19 @@ const DAO_SLUG = process.env.CURIA_DAO_SLUG || 'summer'
 const PRS_WINDOW_DAYS = 365
 const CACHE_TTL_SECONDS = 24 * 60 * 60 // one day, per team decision
 
+// CURIA_DEBUG=1 bypasses the DynamoDB cache (every render fetches live) and logs
+// each pipeline stage — row counts, samples, and PRS-join hits/misses — so a "PRS
+// shows — for everyone" situation can be diagnosed from the server log.
+const CURIA_DEBUG = ['1', 'true'].includes((process.env.CURIA_DEBUG || '').toLowerCase())
+
+function debugLog(...args: unknown[]) {
+  if (CURIA_DEBUG) console.log('[curia]', ...args)
+}
+
+function sample(value: unknown): string {
+  return JSON.stringify(value)?.slice(0, 300) ?? String(value)
+}
+
 interface CuriaParticipationRow {
   address: string
   ens: string | null
@@ -128,6 +141,12 @@ async function fetchCuriaDelegatesFromApi(
   const socials = unwrapArray<CuriaSocialRow>(socialsRaw, 'data', 'socials', 'profiles', 'result')
   const prsRows = unwrapArray<CuriaPrsRow>(prsRaw, 'data', 'prs', 'scores', 'result')
 
+  debugLog(`participation: ${participation.length} rows; first: ${sample(participation[0])}`)
+  debugLog(
+    `socials: ${socials.length} rows (sources: ${sample([...new Set(socials.map((s) => s.source))])}); first: ${sample(socials[0])}`,
+  )
+  debugLog(`prs: ${prsRows.length} rows; first: ${sample(prsRows[0])}`)
+
   // Discourse usernames are case-insensitive; normalize both sides of the join.
   const addressByUsername = new Map<string, string>()
   for (const social of socials) {
@@ -141,6 +160,17 @@ async function fetchCuriaDelegatesFromApi(
     const address = addressByUsername.get(row.user_name?.toLowerCase() ?? '')
     if (!address) continue
     prsByAddress.set(address, (prsByAddress.get(address) ?? 0) + (row.normalized_score || 0))
+  }
+
+  if (CURIA_DEBUG) {
+    const prsUsernames = [...new Set(prsRows.map((r) => r.user_name?.toLowerCase() ?? ''))]
+    const unmatched = prsUsernames.filter((u) => !addressByUsername.has(u))
+    debugLog(
+      `discourse mappings: ${addressByUsername.size}; sample usernames: ${sample([...addressByUsername.keys()].slice(0, 5))}`,
+    )
+    debugLog(
+      `distinct PRS usernames: ${prsUsernames.length}; unmatched (no discourse mapping): ${unmatched.length}; sample unmatched: ${sample(unmatched.slice(0, 5))}`,
+    )
   }
 
   const result: Record<string, CuriaDelegateData> = {}
@@ -157,6 +187,13 @@ async function fetchCuriaDelegatesFromApi(
     }
   }
 
+  // Always-on one-line summary: fires only on live fetches (at most ~once per cache
+  // TTL in normal operation), and makes a silent PRS-join failure visible in prod.
+  const withPrs = Object.values(result).filter((d) => d.prsScore !== null).length
+  console.log(
+    `[curia] dao=${DAO_SLUG}: ${participation.length} delegates, ${addressByUsername.size} discourse mappings, ${prsRows.length} PRS rows → ${withPrs} delegates with a PRS score`,
+  )
+
   return result
 }
 
@@ -169,6 +206,18 @@ export async function getCuriaDelegates(): Promise<Record<string, CuriaDelegateD
   if (!apiKey) {
     // No key configured — the feature is simply off.
     return {}
+  }
+
+  if (CURIA_DEBUG) {
+    // Debug mode: hit the API live on every render (nothing read from or written to
+    // the DynamoDB cache) so the [curia] pipeline logs reflect the current API state.
+    console.log('[curia] CURIA_DEBUG on — bypassing the DynamoDB cache')
+    try {
+      return await fetchCuriaDelegatesFromApi(apiKey)
+    } catch (error) {
+      console.error('[curia] live fetch failed:', error)
+      return {}
+    }
   }
 
   const cached = await getCachedOrFetch('curia', `delegates:${DAO_SLUG}`, CACHE_TTL_SECONDS, () =>
