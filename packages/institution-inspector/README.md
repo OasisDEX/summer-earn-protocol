@@ -92,6 +92,23 @@ it.
   viewer at request time — stale snapshots look like a real deployment-state bug if regeneration is
   forgotten after a deploy.
 
+## Deployment
+
+Hosted on **AWS Amplify** as a static export (Terraform: `module "institution_inspector"` in
+`infrastructure/main.tf`, platform `WEB`). The Amplify buildspec runs `pnpm build:static`
+(`scripts/build-static.mjs`), which stashes `app/api`, builds with `NEXT_PUBLIC_STATIC_EXPORT=1` and
+serves the `out/` directory — there is no server runtime and no `/api/refresh` in the hosted build.
+
+- **Production:** pushes to `main` touching this package auto-build the Amplify `main` branch;
+  `.github/workflows/amplify-prod-deploys.yaml` records the result in the repo's GitHub Deployments
+  UI.
+- **PR previews:** add the `preview` label to a same-repo PR that touches this package;
+  `.github/workflows/amplify-previews.yaml` builds a preview branch and posts the URL as a sticky PR
+  comment. Removing the label or closing the PR tears the preview down.
+- **Data freshness:** the deployed viewer renders the committed `data/*.json` snapshots — run
+  `pnpm generate:all` and commit the result after protocol deployments, or the hosted graph goes
+  stale (see Gotchas above).
+
 ## Notes / TODO
 
 - Theme adopted from `summer-earn-interface`.

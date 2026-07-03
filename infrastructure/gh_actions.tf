@@ -1,5 +1,16 @@
 locals {
   github_repo = "OasisDEX/summer-earn-protocol"
+
+  # Amplify apps the CI role may manage PR-preview branches for
+  # (.github/workflows/amplify-previews.yaml / amplify-prod-deploys.yaml).
+  amplify_app_arns = [
+    module.gov_validator.arn,
+    module.auctions_frontend.arn,
+    module.interface.arn,
+    module.dca_app.arn,
+    module.rwa_app.arn,
+    module.institution_inspector.arn,
+  ]
 }
 
 data "aws_caller_identity" "current" {}
@@ -117,6 +128,60 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       # summer-earn-dca-keeper-mainnet, …) created by the dca_keeper for_each.
       "arn:aws:lambda:*:${data.aws_caller_identity.current.account_id}:function:summer-earn-dca-keeper-*"
     ]
+  }
+
+  # Amplify: name -> appId discovery for the preview workflows.
+  # ListApps supports no resource-level scoping.
+  statement {
+    sid       = "AmplifyDiscover"
+    actions   = ["amplify:ListApps"]
+    resources = ["*"]
+  }
+
+  # Amplify: PR-preview branch/job management + prod deploy observation, scoped
+  # to the frontend apps and their branches/jobs. Actions are allowed on all
+  # three ARN shapes because Amplify binds different actions to different
+  # resource types (CreateBranch -> app, Get/DeleteBranch -> branch, job
+  # actions -> job); the union stays scoped to these apps.
+  statement {
+    sid = "AmplifyPreviewManage"
+    actions = [
+      "amplify:GetApp",
+      "amplify:GetBranch",
+      "amplify:ListBranches",
+      "amplify:CreateBranch",
+      "amplify:DeleteBranch",
+      "amplify:StartJob",
+      "amplify:StopJob",
+      "amplify:GetJob",
+      "amplify:ListJobs",
+    ]
+    resources = concat(
+      local.amplify_app_arns,
+      [for a in local.amplify_app_arns : "${a}/branches/*"],
+      [for a in local.amplify_app_arns : "${a}/branches/*/jobs/*"],
+    )
+  }
+
+  # Hard guardrail: CI must never mutate the production branch or the apps
+  # themselves — main deploys happen via Amplify auto-build; CI only observes
+  # them (GetJob/ListJobs/GetBranch stay allowed).
+  statement {
+    sid    = "AmplifyProtectProd"
+    effect = "Deny"
+    actions = [
+      "amplify:DeleteBranch",
+      "amplify:UpdateBranch",
+      "amplify:StartJob",
+      "amplify:StopJob",
+      "amplify:DeleteApp",
+      "amplify:UpdateApp",
+    ]
+    resources = concat(
+      local.amplify_app_arns,
+      [for a in local.amplify_app_arns : "${a}/branches/main"],
+      [for a in local.amplify_app_arns : "${a}/branches/main/jobs/*"],
+    )
   }
 }
 

@@ -1,0 +1,454 @@
+# PR previews for the Amplify-hosted frontend apps.
+#
+# Native Amplify web previews cannot work for this repo: it is public and the
+# apps run on the WEB_COMPUTE platform, which AWS blocks from previews on
+# public repos (PR code would execute under the apps' IAM roles). Instead this
+# workflow drives previews explicitly through the Amplify API:
+#
+#   - only for same-repo PRs (never forks) carrying the `preview` label
+#   - only for the apps whose files actually changed in the PR
+#   - branch create / build / teardown via CreateBranch / StartJob / DeleteBranch
+#
+# Results surface as a sticky PR comment and as GitHub Deployments in the
+# `preview/<app>` environments. Removing the label or closing the PR tears the
+# previews down.
+name: Amplify PR Previews
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled, closed]
+
+env:
+  AWS_REGION: eu-central-1
+
+permissions: {}
+
+jobs:
+  detect:
+    name: Detect changed apps
+    # Same-repo + labeled `preview` + an event that warrants a (re)deploy.
+    # A `labeled` event only deploys when the added label IS `preview`.
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'preview') && (
+        contains(fromJSON('["opened","reopened","synchronize"]'), github.event.action) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'preview')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      apps: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Filter names must equal both the Amplify app name and the package dir.
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            summer-earn-gov-validator:
+              - 'packages/summer-earn-gov-validator/**'
+            summer-earn-auctions-frontend:
+              - 'packages/summer-earn-auctions-frontend/**'
+            summer-earn-interface:
+              - 'packages/summer-earn-interface/**'
+              # Extension point: shared deployment config consumed by sync-config.mjs
+              # - 'packages/deployment/config/**'
+              # - 'packages/deployment/ignition/deployments/**'
+            summer-earn-dca-app:
+              - 'packages/summer-earn-dca-app/**'
+            summer-earn-rwa-app:
+              - 'packages/summer-earn-rwa-app/**'
+            institution-inspector:
+              - 'packages/institution-inspector/**'
+
+  deploy:
+    name: Deploy preview (${{ matrix.app }})
+    needs: detect
+    if: needs.detect.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      id-token: write
+      contents: read
+      deployments: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    # Shared with `cleanup` so a label removal / close cancels an in-flight deploy
+    # before the branch gets deleted.
+    concurrency:
+      group: amplify-preview-${{ github.event.pull_request.number }}-${{ matrix.app }}
+      cancel-in-progress: true
+    env:
+      APP_NAME: ${{ matrix.app }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve Amplify app
+        id: app
+        run: |
+          set -euo pipefail
+          APP_ID=$(aws amplify list-apps --query "apps[?name=='${APP_NAME}'].appId | [0]" --output text)
+          if [ -z "$APP_ID" ] || [ "$APP_ID" = "None" ]; then
+            echo "::error::Amplify app '${APP_NAME}' not found in ${AWS_REGION}"
+            exit 1
+          fi
+          DOMAIN=$(aws amplify get-app --app-id "$APP_ID" --query 'app.defaultDomain' --output text)
+          # Mirror the main branch's framework label (SSR apps vs the static inspector).
+          FRAMEWORK=$(aws amplify get-branch --app-id "$APP_ID" --branch-name main \
+            --query 'branch.framework' --output text 2>/dev/null || echo "Next.js - SSR")
+          # Amplify subdomain for a branch: lowercase, non [a-z0-9-] replaced with '-'.
+          SUB=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          {
+            echo "app_id=$APP_ID"
+            echo "url=https://${SUB}.${DOMAIN}"
+            echo "framework=$FRAMEWORK"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub deployment (in progress)
+        id: ghd
+        uses: actions/github-script@v7
+        env:
+          ENV_URL: ${{ steps.app.outputs.url }}
+        with:
+          script: |
+            const { data: dep } = await github.rest.repos.createDeployment({
+              ...context.repo,
+              ref: process.env.SHA,
+              environment: `preview/${process.env.APP_NAME}`,
+              transient_environment: true,
+              auto_merge: false,
+              required_contexts: [],
+              description: `Amplify preview for PR #${process.env.PR_NUMBER}`,
+              payload: { pr: Number(process.env.PR_NUMBER) },
+            });
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: dep.id,
+              state: 'in_progress',
+              environment_url: process.env.ENV_URL,
+            });
+            core.setOutput('deployment_id', dep.id);
+
+      - name: Ensure Amplify branch exists
+        env:
+          APP_ID: ${{ steps.app.outputs.app_id }}
+          FRAMEWORK: ${{ steps.app.outputs.framework }}
+        run: |
+          set -euo pipefail
+          if aws amplify get-branch --app-id "$APP_ID" --branch-name "$BRANCH" >/dev/null 2>&1; then
+            echo "Amplify branch '$BRANCH' already exists"
+          else
+            # --no-enable-auto-build: this workflow is the sole build trigger, so
+            # Amplify's push webhook never double-builds and removing the label
+            # genuinely stops previews.
+            aws amplify create-branch \
+              --app-id "$APP_ID" \
+              --branch-name "$BRANCH" \
+              --framework "$FRAMEWORK" \
+              --stage PULL_REQUEST \
+              --no-enable-auto-build \
+              --environment-variables _HARDENED_SECRETS_ACTIVE=true \
+              || aws amplify get-branch --app-id "$APP_ID" --branch-name "$BRANCH" >/dev/null
+          fi
+
+      - name: Stop superseded Amplify jobs
+        env:
+          APP_ID: ${{ steps.app.outputs.app_id }}
+        run: |
+          set -euo pipefail
+          # GitHub's cancel-in-progress only cancels the runner job; the Amplify
+          # build keeps running server-side unless stopped explicitly.
+          RUNNING=$(aws amplify list-jobs --app-id "$APP_ID" --branch-name "$BRANCH" --max-results 25 \
+            --query "jobSummaries[?status=='PENDING' || status=='PROVISIONING' || status=='RUNNING'].jobId" \
+            --output text)
+          for J in $RUNNING; do
+            echo "Stopping superseded Amplify job $J"
+            aws amplify stop-job --app-id "$APP_ID" --branch-name "$BRANCH" --job-id "$J" || true
+          done
+
+      - name: Start Amplify build
+        id: job
+        env:
+          APP_ID: ${{ steps.app.outputs.app_id }}
+        run: |
+          set -euo pipefail
+          COMMIT_TIME=$(git show -s --format=%cI "$SHA")
+          start() {
+            aws amplify start-job \
+              --app-id "$APP_ID" --branch-name "$BRANCH" \
+              --job-type RELEASE \
+              --commit-id "$SHA" \
+              --commit-time "$COMMIT_TIME" \
+              --commit-message "PR #${PR_NUMBER} preview" \
+              --query 'jobSummary.jobId' --output text
+          }
+          # Freshly created branches can take a moment to become startable.
+          JOB_ID=$(start) || { echo "start-job failed, retrying in 15s"; sleep 15; JOB_ID=$(start); }
+          echo "Started Amplify job $JOB_ID"
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Amplify build
+        env:
+          APP_ID: ${{ steps.app.outputs.app_id }}
+          JOB_ID: ${{ steps.job.outputs.job_id }}
+          URL: ${{ steps.app.outputs.url }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 80); do
+            STATUS=$(aws amplify get-job --app-id "$APP_ID" --branch-name "$BRANCH" --job-id "$JOB_ID" \
+              --query 'job.summary.status' --output text)
+            echo "[$i/80] Amplify job $JOB_ID: $STATUS"
+            case "$STATUS" in
+              SUCCEED) echo "Preview deployed: $URL"; exit 0 ;;
+              FAILED|CANCELLED) echo "::error::Amplify job for ${APP_NAME} finished with status ${STATUS}"; exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "::error::Timed out waiting for Amplify job ${JOB_ID}"
+          exit 1
+
+      - name: Mark deployment succeeded
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_ID: ${{ steps.ghd.outputs.deployment_id }}
+          ENV_URL: ${{ steps.app.outputs.url }}
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'success',
+              environment_url: process.env.ENV_URL,
+            });
+
+      - name: Mark deployment failed
+        if: (failure() || cancelled()) && steps.ghd.outputs.deployment_id
+        uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_ID: ${{ steps.ghd.outputs.deployment_id }}
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'failure',
+            });
+
+  comment:
+    name: Update sticky PR comment
+    needs: [detect, deploy]
+    if: always() && needs.detect.result == 'success' && needs.detect.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    env:
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # The table is rebuilt from live Amplify state for ALL apps on every run,
+      # so it stays complete even when only a subset deployed this time.
+      - name: Build preview table
+        run: |
+          set -euo pipefail
+          APPS=(
+            summer-earn-gov-validator
+            summer-earn-auctions-frontend
+            summer-earn-interface
+            summer-earn-dca-app
+            summer-earn-rwa-app
+            institution-inspector
+          )
+          SUB=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          {
+            echo "<!-- amplify-previews -->"
+            echo "### Amplify previews"
+            echo ""
+            echo "| App | Status | Preview | Commit |"
+            echo "|---|---|---|---|"
+          } > comment.md
+          for APP in "${APPS[@]}"; do
+            APP_ID=$(aws amplify list-apps --query "apps[?name=='${APP}'].appId | [0]" --output text)
+            if [ -z "$APP_ID" ] || [ "$APP_ID" = "None" ]; then
+              echo "| \`$APP\` | ⚠️ app not found | — | — |" >> comment.md
+              continue
+            fi
+            if ! aws amplify get-branch --app-id "$APP_ID" --branch-name "$BRANCH" >/dev/null 2>&1; then
+              echo "| \`$APP\` | — | — | — |" >> comment.md
+              continue
+            fi
+            DOMAIN=$(aws amplify get-app --app-id "$APP_ID" --query 'app.defaultDomain' --output text)
+            read -r STATUS COMMIT <<< "$(aws amplify list-jobs --app-id "$APP_ID" --branch-name "$BRANCH" \
+              --max-results 1 --query 'jobSummaries[0].[status,commitId]' --output text)"
+            case "$STATUS" in
+              SUCCEED) ICON="✅ deployed" ;;
+              FAILED) ICON="❌ failed" ;;
+              CANCELLED) ICON="🚫 cancelled" ;;
+              PENDING|PROVISIONING|RUNNING) ICON="🔄 building" ;;
+              *) ICON="—" ;;
+            esac
+            SHORT="${COMMIT:0:7}"
+            echo "| \`$APP\` | $ICON | https://${SUB}.${DOMAIN} | \`$SHORT\` |" >> comment.md
+          done
+          {
+            echo ""
+            echo "_Previews are label-gated (\`preview\`) and only build the apps changed in this PR. Last update: \`${SHA:0:7}\`_"
+          } >> comment.md
+
+      - name: Find existing comment
+        id: fc
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- amplify-previews -->'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment.md
+          edit-mode: replace
+
+  cleanup:
+    name: Tear down preview (${{ matrix.app }})
+    # PR closed, or the `preview` label removed.
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository && (
+        github.event.action == 'closed' ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'preview')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      deployments: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # All apps, not a diff-derived subset: earlier runs may have deployed
+        # apps a fresh diff evaluation would no longer flag.
+        app:
+          - summer-earn-gov-validator
+          - summer-earn-auctions-frontend
+          - summer-earn-interface
+          - summer-earn-dca-app
+          - summer-earn-rwa-app
+          - institution-inspector
+    # Same group as `deploy`: tearing down cancels an in-flight deploy first.
+    concurrency:
+      group: amplify-preview-${{ github.event.pull_request.number }}-${{ matrix.app }}
+      cancel-in-progress: true
+    env:
+      APP_NAME: ${{ matrix.app }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Delete Amplify branch
+        run: |
+          set -euo pipefail
+          APP_ID=$(aws amplify list-apps --query "apps[?name=='${APP_NAME}'].appId | [0]" --output text)
+          if [ -z "$APP_ID" ] || [ "$APP_ID" = "None" ]; then
+            echo "Amplify app '${APP_NAME}' not found; nothing to clean"
+            exit 0
+          fi
+          # delete-branch also cancels any in-flight job on the branch. Amplify's
+          # enable_branch_auto_deletion remains the backstop when the git branch
+          # itself is deleted after merge — NotFound here is fine.
+          aws amplify delete-branch --app-id "$APP_ID" --branch-name "$BRANCH" 2>/dev/null \
+            || echo "No preview branch for ${APP_NAME}"
+
+      - name: Deactivate GitHub deployments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = `preview/${process.env.APP_NAME}`;
+            const prNumber = Number(process.env.PR_NUMBER);
+            const deployments = await github.paginate(github.rest.repos.listDeployments, {
+              ...context.repo,
+              environment,
+              per_page: 100,
+            });
+            for (const d of deployments) {
+              // Only touch this PR's deployments — other open PRs share the environment.
+              let pr;
+              try {
+                const payload = typeof d.payload === 'string' ? JSON.parse(d.payload || '{}') : (d.payload || {});
+                pr = payload.pr;
+              } catch { pr = undefined; }
+              if (pr !== prNumber) continue;
+              await github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: d.id,
+                state: 'inactive',
+              });
+            }
+
+  cleanup-comment:
+    name: Update comment after teardown
+    needs: cleanup
+    if: >
+      always() && needs.cleanup.result != 'skipped' && github.event.pull_request.head.repo.full_name
+      == github.repository && (
+        github.event.action == 'closed' ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'preview')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Find existing comment
+        id: fc
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- amplify-previews -->'
+
+      - name: Update comment
+        if: steps.fc.outputs.comment-id
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            <!-- amplify-previews -->
+            ### Amplify previews
+
+            Previews torn down (${{ github.event.action == 'closed' && 'PR closed' || 'label removed' }}). Re-add the `preview` label to recreate them.
