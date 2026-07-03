@@ -237,8 +237,11 @@ export async function getCuriaDelegates(): Promise<Record<string, CuriaDelegateD
     }
   }
 
-  const cached = await getCachedOrFetch('curia', `delegates:${DAO_SLUG}`, CACHE_TTL_SECONDS, () =>
-    fetchCuriaDelegatesFromApi(apiKey),
+  const cached = await getCachedOrFetch(
+    'curia',
+    `delegates:${DAO_SLUG}:v2`,
+    CACHE_TTL_SECONDS,
+    () => fetchCuriaDelegatesFromApi(apiKey),
   )
   return cached ?? {}
 }
