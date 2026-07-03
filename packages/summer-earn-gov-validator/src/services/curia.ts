@@ -70,18 +70,17 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-async function fetchCuriaDelegatesFromApi(): Promise<Record<string, CuriaDelegateData>> {
-  let apiKey: string
+async function getCuriaApiKey(): Promise<string> {
   try {
-    apiKey = await getSecret('CURIA_API_KEY')
+    return (await getSecret('CURIA_API_KEY')) || ''
   } catch {
-    apiKey = ''
+    return ''
   }
-  if (!apiKey) {
-    // No key configured — the feature is simply off.
-    return {}
-  }
+}
 
+async function fetchCuriaDelegatesFromApi(
+  apiKey: string,
+): Promise<Record<string, CuriaDelegateData>> {
   const end = new Date()
   const start = new Date(end.getTime() - PRS_WINDOW_DAYS * 24 * 60 * 60 * 1000)
 
@@ -136,12 +135,17 @@ async function fetchCuriaDelegatesFromApi(): Promise<Record<string, CuriaDelegat
 
 // DynamoDB-cached entry point (1-day TTL, stale-on-error). Returns an empty map when
 // both the cache and the API are unavailable so the delegates page still renders.
+// The key check happens BEFORE the cache so an unconfigured deployment never caches
+// an empty result — the data appears on the first render after the key is added.
 export async function getCuriaDelegates(): Promise<Record<string, CuriaDelegateData>> {
-  const cached = await getCachedOrFetch(
-    'curia',
-    `delegates:${DAO_SLUG}`,
-    CACHE_TTL_SECONDS,
-    fetchCuriaDelegatesFromApi,
+  const apiKey = await getCuriaApiKey()
+  if (!apiKey) {
+    // No key configured — the feature is simply off.
+    return {}
+  }
+
+  const cached = await getCachedOrFetch('curia', `delegates:${DAO_SLUG}`, CACHE_TTL_SECONDS, () =>
+    fetchCuriaDelegatesFromApi(apiKey),
   )
   return cached ?? {}
 }
