@@ -211,10 +211,17 @@ async function fetchCuriaDelegatesFromApi(
 // both the cache and the API are unavailable so the delegates page still renders.
 // The key check happens BEFORE the cache so an unconfigured deployment never caches
 // an empty result — the data appears on the first render after the key is added.
+let warnedMissingKey = false
+
 export async function getCuriaDelegates(): Promise<Record<string, CuriaDelegateData>> {
   const apiKey = await getCuriaApiKey()
   if (!apiKey) {
-    // No key configured — the feature is simply off.
+    // No key configured — the feature is simply off. Log once per instance so a
+    // deployment missing the secret is diagnosable from the server logs.
+    if (!warnedMissingKey) {
+      warnedMissingKey = true
+      console.log('[curia] CURIA_API_KEY not configured — delegate analytics disabled')
+    }
     return {}
   }
 
