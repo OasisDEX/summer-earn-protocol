@@ -1,6 +1,12 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+locals {
+  # Static (WEB) apps have no server runtime: skip the compute role and
+  # everything that only exists to serve it.
+  is_compute = var.platform == "WEB_COMPUTE"
+}
+
 data "aws_iam_policy_document" "amplify_deployment_trust" {
   statement {
     actions = ["sts:AssumeRole", "sts:TagSession"]
@@ -45,6 +51,8 @@ resource "aws_iam_role" "deployment" {
 }
 
 resource "aws_iam_role" "compute" {
+  count = local.is_compute ? 1 : 0
+
   name               = "${var.app_name}-amplify-compute-role"
   assume_role_policy = data.aws_iam_policy_document.amplify_compute_trust.json
 
@@ -62,6 +70,8 @@ resource "aws_iam_role_policy_attachment" "deployment_backend" {
 }
 
 resource "aws_iam_policy" "deployment_pass_role" {
+  count = local.is_compute ? 1 : 0
+
   name        = "${var.app_name}-pass-role"
   description = "Allow Amplify deployment role to pass the compute role"
 
@@ -71,15 +81,17 @@ resource "aws_iam_policy" "deployment_pass_role" {
       {
         Action   = "iam:PassRole"
         Effect   = "Allow"
-        Resource = aws_iam_role.compute.arn
+        Resource = aws_iam_role.compute[0].arn
       }
     ]
   })
 }
 
 resource "aws_iam_role_policy_attachment" "deployment_pass_role" {
+  count = local.is_compute ? 1 : 0
+
   role       = aws_iam_role.deployment.name
-  policy_arn = aws_iam_policy.deployment_pass_role.arn
+  policy_arn = aws_iam_policy.deployment_pass_role[0].arn
 }
 
 resource "aws_iam_policy" "ssm_access" {
@@ -103,7 +115,9 @@ resource "aws_iam_policy" "ssm_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.compute.name
+  count = local.is_compute ? 1 : 0
+
+  role       = aws_iam_role.compute[0].name
   policy_arn = aws_iam_policy.ssm_access.arn
 }
 
@@ -137,12 +151,14 @@ resource "aws_iam_policy" "dynamodb_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "compute_dynamodb" {
-  count      = var.dynamodb_arn != null ? 1 : 0
-  role       = aws_iam_role.compute.name
+  count      = var.dynamodb_arn != null && local.is_compute ? 1 : 0
+  role       = aws_iam_role.compute[0].name
   policy_arn = aws_iam_policy.dynamodb_access[0].arn
 }
 
 resource "aws_iam_policy" "compute_logging" {
+  count = local.is_compute ? 1 : 0
+
   name        = "${var.app_name}-compute-logging"
   description = "Allow Amplify compute to write logs to the correct Amplify namespace"
 
@@ -166,8 +182,10 @@ resource "aws_iam_policy" "compute_logging" {
 }
 
 resource "aws_iam_role_policy_attachment" "compute_logging" {
-  role       = aws_iam_role.compute.name
-  policy_arn = aws_iam_policy.compute_logging.arn
+  count = local.is_compute ? 1 : 0
+
+  role       = aws_iam_role.compute[0].name
+  policy_arn = aws_iam_policy.compute_logging[0].arn
 }
 
 resource "aws_amplify_app" "this" {
@@ -176,7 +194,7 @@ resource "aws_amplify_app" "this" {
 
   access_token         = var.github_token
   iam_service_role_arn = aws_iam_role.deployment.arn
-  compute_role_arn     = var.platform == "WEB_COMPUTE" ? aws_iam_role.compute.arn : null
+  compute_role_arn     = local.is_compute ? aws_iam_role.compute[0].arn : null
 
   environment_variables = merge(var.environment_variables, {
     AMPLIFY_MONOREPO_APP_ROOT = var.package_root
@@ -260,4 +278,36 @@ moved {
 moved {
   from = aws_iam_role_policy_attachment.amplify_backend_deploy
   to   = aws_iam_role_policy_attachment.deployment_backend
+}
+
+# Compute-role resources gained `count` (gated on WEB_COMPUTE); migrate the
+# existing SSR apps' state to the [0] addresses instead of recreating.
+moved {
+  from = aws_iam_role.compute
+  to   = aws_iam_role.compute[0]
+}
+
+moved {
+  from = aws_iam_policy.deployment_pass_role
+  to   = aws_iam_policy.deployment_pass_role[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.deployment_pass_role
+  to   = aws_iam_role_policy_attachment.deployment_pass_role[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.ssm
+  to   = aws_iam_role_policy_attachment.ssm[0]
+}
+
+moved {
+  from = aws_iam_policy.compute_logging
+  to   = aws_iam_policy.compute_logging[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.compute_logging
+  to   = aws_iam_role_policy_attachment.compute_logging[0]
 }

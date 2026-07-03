@@ -67,6 +67,11 @@ variable "build_compute_type" {
   description = "Amplify build compute size (STANDARD_8GB, LARGE_16GB or XLARGE_72GB)"
   type        = string
   default     = "XLARGE_72GB"
+
+  validation {
+    condition     = contains(["STANDARD_8GB", "LARGE_16GB", "XLARGE_72GB"], var.build_compute_type)
+    error_message = "build_compute_type must be one of STANDARD_8GB, LARGE_16GB, XLARGE_72GB."
+  }
 }
 
 variable "tags" {
