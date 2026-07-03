@@ -55,12 +55,22 @@ interface CuriaSocialRow {
   username: string
 }
 
+// The swagger documents `user_name`/`normalized_score`, but the live API returns
+// `username` and (at least sometimes) only `raw_score` — accept both spellings.
 interface CuriaPrsRow {
-  topic_id: number
   post_number: number
-  user_name: string
-  normalized_score: number
-  raw_score: number
+  user_name?: string
+  username?: string
+  normalized_score?: number
+  raw_score?: number
+}
+
+function prsUsername(row: CuriaPrsRow): string {
+  return (row.user_name ?? row.username ?? '').toLowerCase()
+}
+
+function prsScoreOf(row: CuriaPrsRow): number {
+  return row.normalized_score ?? row.raw_score ?? 0
 }
 
 // Shape lives in types/governance.ts (CuriaDelegateStats) so client components can
@@ -157,13 +167,13 @@ async function fetchCuriaDelegatesFromApi(
 
   const prsByAddress = new Map<string, number>()
   for (const row of prsRows) {
-    const address = addressByUsername.get(row.user_name?.toLowerCase() ?? '')
+    const address = addressByUsername.get(prsUsername(row))
     if (!address) continue
-    prsByAddress.set(address, (prsByAddress.get(address) ?? 0) + (row.normalized_score || 0))
+    prsByAddress.set(address, (prsByAddress.get(address) ?? 0) + prsScoreOf(row))
   }
 
   if (CURIA_DEBUG) {
-    const prsUsernames = [...new Set(prsRows.map((r) => r.user_name?.toLowerCase() ?? ''))]
+    const prsUsernames = [...new Set(prsRows.map(prsUsername))]
     const unmatched = prsUsernames.filter((u) => !addressByUsername.has(u))
     debugLog(
       `discourse mappings: ${addressByUsername.size}; sample usernames: ${sample([...addressByUsername.keys()].slice(0, 5))}`,
