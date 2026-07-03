@@ -35,6 +35,27 @@ pnpm cicheck    # CI check suite + total coverage
 pnpm docs:build # regenerate gitbook/ reference docs (forge doc + TypeDoc + assemble)
 ```
 
+## Deployed apps
+
+The Next.js apps are hosted on AWS Amplify (Terraform in [`infrastructure/`](infrastructure/)); the
+`main` branch of each app auto-deploys on merge. Live per-commit status is on the repo's
+[Deployments page](https://github.com/OasisDEX/summer-earn-protocol/deployments), recorded by
+`.github/workflows/amplify-prod-deploys.yaml`. PR previews are label-gated: add the `preview` label
+to a same-repo PR and `.github/workflows/amplify-previews.yaml` deploys previews for the apps the PR
+touches.
+
+| App                             | Production URL                             |
+| ------------------------------- | ------------------------------------------ |
+| `summer-earn-interface`         | https://test.summer.fi                     |
+| `summer-earn-gov-validator`     | https://gov-test.summer.fi                 |
+| `summer-earn-auctions-frontend` | https://auctions.summer.fi                 |
+| `summer-earn-rwa-app`           | https://main.d3f4hwyptmmvf0.amplifyapp.com |
+| `summer-earn-dca-app`           | https://main.d22o2u30xqvh5.amplifyapp.com  |
+| `institution-inspector`         | https://main.dwmxy1o36bkcv.amplifyapp.com  |
+
+URLs are the Amplify custom domains where configured, otherwise the app's default
+`main.<appId>.amplifyapp.com` domain — both keep working if a custom domain is added later.
+
 ## Package directory
 
 Contracts (Foundry):
@@ -86,7 +107,7 @@ Apps and services:
 | ------------------------------- | ------------------------------------------------------------------------------------------ |
 | `summer-earn-interface`         | Main Next.js app: fleet browsing, deposits/withdrawals, vesting, staking, rewards          |
 | `summer-earn-rwa-app`           | Next.js app for the institutional/RWA whitelist stack (hand-maintained institution config) |
-| `institution-inspector`         | Next.js graph viewer for institutions, fleets, arks, and roles (static export for Vercel)  |
+| `institution-inspector`         | Next.js graph viewer for institutions, fleets, arks, and roles (static export on Amplify)  |
 | `summer-earn-dca-app`           | Next.js frontend for DCA strategies (Base)                                                 |
 | `summer-earn-auctions-frontend` | Next.js app showing and buying Raft dutch auctions                                         |
 | `summer-earn-gov-validator`     | Next.js app for decoding, validating, and executing governance proposals                   |
