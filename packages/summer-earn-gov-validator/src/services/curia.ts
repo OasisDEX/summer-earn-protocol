@@ -56,14 +56,34 @@ interface CuriaPrsRow {
 // Discourse account or no scored posts in the window.
 export type CuriaDelegateData = CuriaDelegateStats
 
-async function curiaFetch<T>(apiKey: string, path: string): Promise<T> {
+async function curiaFetch(apiKey: string, path: string): Promise<unknown> {
   const response = await fetch(`${CURIA_API_BASE}${path}`, {
     headers: { accept: 'application/json', 'x-api-key': apiKey },
   })
   if (!response.ok) {
     throw new Error(`Curia API ${path} failed with status ${response.status}`)
   }
-  return (await response.json()) as T
+  return response.json()
+}
+
+// The (beta) API wraps some list payloads in an envelope object instead of returning
+// a bare array. Accept either: a bare array, one of the expected envelope keys, or —
+// as a last resort — the first array-valued property. Logs the keys when nothing
+// matches so the real shape shows up in the server logs instead of a TypeError.
+function unwrapArray<T>(payload: unknown, ...candidateKeys: string[]): T[] {
+  if (Array.isArray(payload)) return payload as T[]
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    for (const key of candidateKeys) {
+      if (Array.isArray(record[key])) return record[key] as T[]
+    }
+    const firstArray = Object.values(record).find(Array.isArray)
+    if (firstArray) return firstArray as T[]
+    console.error('Curia API returned an unexpected object shape; keys:', Object.keys(record))
+    return []
+  }
+  console.error('Curia API returned a non-list payload of type:', typeof payload)
+  return []
 }
 
 function isoDate(date: Date): string {
@@ -86,20 +106,27 @@ async function fetchCuriaDelegatesFromApi(
 
   // Participation metrics are the core payload; socials/PRS only enrich it, so their
   // failures degrade to prsScore: null instead of failing the whole fetch.
-  const [participation, socials, prsRows] = await Promise.all([
-    curiaFetch<CuriaParticipationRow[]>(apiKey, `/daos/${DAO_SLUG}/metrics/delegate_participation`),
-    curiaFetch<CuriaSocialRow[]>(apiKey, `/daos/${DAO_SLUG}/socials`).catch((error) => {
+  const [participationRaw, socialsRaw, prsRaw] = await Promise.all([
+    curiaFetch(apiKey, `/daos/${DAO_SLUG}/metrics/delegate_participation`),
+    curiaFetch(apiKey, `/daos/${DAO_SLUG}/socials`).catch((error) => {
       console.error('Curia socials fetch failed:', error)
-      return [] as CuriaSocialRow[]
+      return []
     }),
-    curiaFetch<CuriaPrsRow[]>(
-      apiKey,
-      `/daos/${DAO_SLUG}/prs/${isoDate(start)}/${isoDate(end)}`,
-    ).catch((error) => {
+    curiaFetch(apiKey, `/daos/${DAO_SLUG}/prs/${isoDate(start)}/${isoDate(end)}`).catch((error) => {
       console.error('Curia PRS fetch failed:', error)
-      return [] as CuriaPrsRow[]
+      return []
     }),
   ])
+
+  const participation = unwrapArray<CuriaParticipationRow>(
+    participationRaw,
+    'data',
+    'delegates',
+    'delegate_participation',
+    'result',
+  )
+  const socials = unwrapArray<CuriaSocialRow>(socialsRaw, 'data', 'socials', 'profiles', 'result')
+  const prsRows = unwrapArray<CuriaPrsRow>(prsRaw, 'data', 'prs', 'scores', 'result')
 
   // Discourse usernames are case-insensitive; normalize both sides of the join.
   const addressByUsername = new Map<string, string>()
