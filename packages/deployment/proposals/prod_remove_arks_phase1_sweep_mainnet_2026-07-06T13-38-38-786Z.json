@@ -1,0 +1,201 @@
+{
+  "version": "1.0",
+  "chainId": "1",
+  "createdAt": 1783345118786,
+  "meta": {
+    "name": "Remove arks — phase 1: sweep stuck assets",
+    "description": "Recovers stuck receipt tokens from ark(s) 0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2 to 0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2 via Raft.socializeLosses, temporarily flipping the sweepable whitelist/blacklist and restoring it afterwards.",
+    "txBuilderVersion": "1.16.5",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+      "value": "0",
+      "data": "0xe9eea17700000000000000000000000098c49e13bf99d7cad8069faa2a370933ec9ecf17000000000000000000000000b0f53fc4e15301147de9b3e49c3db942e3f118f2",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "fleetCommanderAddress",
+            "type": "address"
+          },
+          {
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "grantCuratorRole",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "fleetCommanderAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+        "account": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xd37f4b5c00000000000000000000000061d7063041d83c8ca3e42c39181dfd14b3bc76c20000000000000000000000008399c8fc273bd165c346af74a02e65f10e4fd78f0000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2",
+        "token": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F",
+        "isSweepable": "true"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b625000000000000000000000000061d7063041d83c8ca3e42c39181dfd14b3bc76c20000000000000000000000008399c8fc273bd165c346af74a02e65f10e4fd78f0000000000000000000000000000000000000000000000000000000000000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isNonSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setNonSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2",
+        "token": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F",
+        "isNonSweepable": "false"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xe1b8510f00000000000000000000000061d7063041d83c8ca3e42c39181dfd14b3bc76c20000000000000000000000000000000000000000000000000000000000000060000000000000000000000000b0f53fc4e15301147de9b3e49c3db942e3f118f200000000000000000000000000000000000000000000000000000000000000010000000000000000000000008399c8fc273bd165c346af74a02e65f10e4fd78f",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "tokens",
+            "type": "address[]"
+          },
+          {
+            "name": "receiver",
+            "type": "address"
+          }
+        ],
+        "name": "socializeLosses",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2",
+        "tokens": "[\"0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F\"]",
+        "receiver": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b625000000000000000000000000061d7063041d83c8ca3e42c39181dfd14b3bc76c20000000000000000000000008399c8fc273bd165c346af74a02e65f10e4fd78f0000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isNonSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setNonSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2",
+        "token": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F",
+        "isNonSweepable": "true"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xd37f4b5c00000000000000000000000061d7063041d83c8ca3e42c39181dfd14b3bc76c20000000000000000000000008399c8fc273bd165c346af74a02e65f10e4fd78f0000000000000000000000000000000000000000000000000000000000000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x61d7063041d83C8ca3E42c39181dFd14B3Bc76c2",
+        "token": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F",
+        "isSweepable": "false"
+      }
+    },
+    {
+      "to": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+      "value": "0",
+      "data": "0xe929666500000000000000000000000098c49e13bf99d7cad8069faa2a370933ec9ecf17000000000000000000000000b0f53fc4e15301147de9b3e49c3db942e3f118f2",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "fleetCommanderAddress",
+            "type": "address"
+          },
+          {
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "revokeCuratorRole",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "fleetCommanderAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+        "account": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+      }
+    }
+  ]
+}
