@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "chainId": "1",
+  "createdAt": 1783345517049,
+  "meta": {
+    "name": "Remove arks — phase 2: removeArk",
+    "description": "Removes ark(s) 0xfD899321B1FD8d75e255119766D9097C98568519 from their FleetCommander(s). NOT EXECUTABLE BEFORE 2026-07-08T10:25:35.000Z.",
+    "txBuilderVersion": "1.16.5",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+      "value": "0",
+      "data": "0x3f4ba83a",
+      "contractMethod": {
+        "inputs": [],
+        "name": "unpause",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+      "value": "0",
+      "data": "0x96c25a38000000000000000000000000fd899321b1fd8d75e255119766d9097c98568519",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          }
+        ],
+        "name": "removeArk",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0xfD899321B1FD8d75e255119766D9097C98568519"
+      }
+    }
+  ]
+}
