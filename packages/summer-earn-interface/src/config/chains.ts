@@ -3,6 +3,20 @@ import { arbitrum, base, Chain, hyperliquid, mainnet, sepolia, sonic } from 'vie
 
 import { ChainId } from '../types'
 
+// viem's built-in `hyperliquid` chain definition omits the Multicall3 contract, so
+// `publicClient.multicall(...)` throws immediately for this chain. Multicall3 is deployed at the
+// same canonical CREATE2 address on nearly every EVM chain, HyperEVM included — extend the chain
+// definition with it rather than relying on viem's default.
+const hyperliquidWithMulticall: Chain = {
+  ...hyperliquid,
+  contracts: {
+    ...hyperliquid.contracts,
+    multicall3: {
+      address: '0xca11bde05977b3631167028862be2a173976ca11',
+    },
+  },
+}
+
 export const CHAIN_NAMES: Record<ChainId, string> = {
   [mainnet.id]: 'Ethereum',
   [arbitrum.id]: 'Arbitrum',
@@ -162,7 +176,7 @@ export const VIEM_CHAIN_ENTITIES: Record<ChainId, Chain> = {
   [arbitrum.id]: arbitrum,
   [base.id]: base,
   [sonic.id]: sonic,
-  [hyperliquid.id]: hyperliquid,
+  [hyperliquid.id]: hyperliquidWithMulticall,
   [sepolia.id]: sepolia,
 }
 
