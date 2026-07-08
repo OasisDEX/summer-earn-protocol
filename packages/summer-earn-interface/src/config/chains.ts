@@ -128,7 +128,7 @@ export const CHAIN_BLOCK_EXPLORERS: Record<ChainId, string> = {
   [mainnet.id]: 'https://etherscan.io',
   [arbitrum.id]: 'https://arbiscan.io',
   [base.id]: 'https://basescan.org',
-  [sonic.id]: 'https://explorer.sonic.network',
+  [sonic.id]: 'https://sonicscan.org',
   [hyperliquid.id]: hyperliquid.blockExplorers.default.url,
   [sepolia.id]: 'https://sepolia.etherscan.io',
 }
