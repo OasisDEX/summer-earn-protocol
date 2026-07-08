@@ -1,0 +1,223 @@
+{
+  "version": "1.0",
+  "chainId": "1",
+  "createdAt": 1783520108646,
+  "meta": {
+    "name": "Fleet cleanup — LazyVault_HigherRisk_USDC",
+    "description": "socialize OriginUSD-usdc-1 (0x1C354B455bEf33744397A561dC518A2a9F4f5bab) pool 0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86 → 0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2. NOT EXECUTABLE BEFORE 2026-07-08T10:25:35.000Z (unpause gated by minimum pause time). Fleet is re-paused at the end of the batch.",
+    "txBuilderVersion": "1.16.5",
+    "createdFromSafeAddress": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+      "value": "0",
+      "data": "0x3f4ba83a",
+      "contractMethod": {
+        "inputs": [],
+        "name": "unpause",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+      "value": "0",
+      "data": "0xe9eea177000000000000000000000000e9cda459bed6dcfb8ac61cd8ce08e2d52370cb06000000000000000000000000b0f53fc4e15301147de9b3e49c3db942e3f118f2",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "fleetCommanderAddress",
+            "type": "address"
+          },
+          {
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "grantCuratorRole",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "fleetCommanderAddress": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+        "account": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xd37f4b5c0000000000000000000000001c354b455bef33744397a561dc518a2a9f4f5bab0000000000000000000000002a8e1e676ec238d8a992307b495b45b3feaa5e860000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+        "token": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86",
+        "isSweepable": "true"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b62500000000000000000000000001c354b455bef33744397a561dc518a2a9f4f5bab0000000000000000000000002a8e1e676ec238d8a992307b495b45b3feaa5e860000000000000000000000000000000000000000000000000000000000000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isNonSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setNonSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+        "token": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86",
+        "isNonSweepable": "false"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xe1b8510f0000000000000000000000001c354b455bef33744397a561dc518a2a9f4f5bab0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000b0f53fc4e15301147de9b3e49c3db942e3f118f200000000000000000000000000000000000000000000000000000000000000010000000000000000000000002a8e1e676ec238d8a992307b495b45b3feaa5e86",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "tokens",
+            "type": "address[]"
+          },
+          {
+            "name": "receiver",
+            "type": "address"
+          }
+        ],
+        "name": "socializeLosses",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+        "tokens": "[\"0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86\"]",
+        "receiver": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xa71b62500000000000000000000000001c354b455bef33744397a561dc518a2a9f4f5bab0000000000000000000000002a8e1e676ec238d8a992307b495b45b3feaa5e860000000000000000000000000000000000000000000000000000000000000001",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isNonSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setNonSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+        "token": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86",
+        "isNonSweepable": "true"
+      }
+    },
+    {
+      "to": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
+      "value": "0",
+      "data": "0xd37f4b5c0000000000000000000000001c354b455bef33744397a561dc518a2a9f4f5bab0000000000000000000000002a8e1e676ec238d8a992307b495b45b3feaa5e860000000000000000000000000000000000000000000000000000000000000000",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "ark",
+            "type": "address"
+          },
+          {
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "name": "isSweepable",
+            "type": "bool"
+          }
+        ],
+        "name": "setSweepableToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "ark": "0x1C354B455bEf33744397A561dC518A2a9F4f5bab",
+        "token": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86",
+        "isSweepable": "false"
+      }
+    },
+    {
+      "to": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694",
+      "value": "0",
+      "data": "0xe9296665000000000000000000000000e9cda459bed6dcfb8ac61cd8ce08e2d52370cb06000000000000000000000000b0f53fc4e15301147de9b3e49c3db942e3f118f2",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "fleetCommanderAddress",
+            "type": "address"
+          },
+          {
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "revokeCuratorRole",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "fleetCommanderAddress": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+        "account": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+      }
+    },
+    {
+      "to": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+      "value": "0",
+      "data": "0x8456cb59",
+      "contractMethod": {
+        "inputs": [],
+        "name": "pause",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

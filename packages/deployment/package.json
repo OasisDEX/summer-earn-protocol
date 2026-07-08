@@ -40,6 +40,8 @@
     "gov:setup-raft": "hardhat run scripts/governance/setup-raft.ts --network $NETWORK",
     "gov:sweep-ark-on-arbitrum": "hardhat run scripts/governance/sweep-ark-on-arbitrum.ts --network $NETWORK",
     "gov:remove-arks": "hardhat run scripts/governance/remove-arks-safe.ts --network $NETWORK",
+    "gov:cleanup-fleets:init": "hardhat run scripts/governance/fleet-cleanup/init.ts --network $NETWORK",
+    "gov:cleanup-fleets": "hardhat run scripts/governance/fleet-cleanup/build-batches.ts --network $NETWORK",
     "gov:revoke-aq-operator": "hardhat run scripts/revoke-aq-operator.ts --network $NETWORK",
     "deploy:fleet": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-fleet.ts --network $NETWORK",
     "deploy:ark": "REPORT_CONTRACT_SIZE=true hardhat run scripts/deploy-ark.ts --network $NETWORK",
