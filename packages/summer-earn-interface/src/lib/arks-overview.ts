@@ -465,7 +465,7 @@ export async function getAllArksOverview(environment: Environment): Promise<Chai
     chainIds.map(async (chainId): Promise<ChainArksOverview> => {
       try {
         const fleets = await getFleetsForChain(chainId, environment)
-        const fleetOverviews = await Promise.all(
+        const fleetResults = await Promise.allSettled(
           fleets.map(async (fleet): Promise<FleetOverview> => {
             const arks = await getArksForFleet(chainId, fleet.address)
             const bufferArk = arks.find((a) => a.isBufferArk)
@@ -484,6 +484,22 @@ export async function getAllArksOverview(environment: Environment): Promise<Chai
             }
           }),
         )
+
+        // A single fleet's arks failing to load (e.g. an RPC hiccup) must not blank the
+        // whole chain — isolate each fleet's failure and drop only that fleet, logging it
+        // for visibility, while every other successfully-loaded fleet is still returned.
+        const fleetOverviews: FleetOverview[] = []
+        for (const [index, result] of fleetResults.entries()) {
+          if (result.status === 'fulfilled') {
+            fleetOverviews.push(result.value)
+          } else {
+            console.error(
+              `getAllArksOverview: failed to load arks for fleet ${fleets[index].address} on chain ${chainId}`,
+              result.reason,
+            )
+          }
+        }
+
         return { chainId, fleets: fleetOverviews }
       } catch (err) {
         return { chainId, fleets: [], error: (err as Error).message }
