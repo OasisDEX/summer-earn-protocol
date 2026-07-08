@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
 
-import { CHAIN_NAMES } from '../../config/chains'
+import { CHAIN_BLOCK_EXPLORERS, CHAIN_NAMES } from '../../config/chains'
 import { useEnvironment } from '../../hooks/useEnvironment'
 import { ChainId } from '../../types'
 
@@ -105,6 +105,17 @@ function formatAmount(raw: string, decimals: number): string {
 function formatCap(raw: string, decimals: number, symbol: string): string {
   if (BigInt(raw) === MAX_UINT256) return 'MAX'
   return `${formatAmount(raw, decimals)} ${symbol}`
+}
+
+// Unrounded, full-precision amount — for tooltips where a rounded display would
+// misleadingly show "0" (e.g. dust balances far below the 2-decimal display threshold).
+function formatExact(raw: string, decimals: number): string {
+  return formatUnits(BigInt(raw), decimals)
+}
+
+function explorerAddressUrl(chainId: ChainId, address: string): string | null {
+  const base = CHAIN_BLOCK_EXPLORERS[chainId]
+  return base ? `${base}/address/${address}` : null
 }
 
 async function fetchArksOverview(environment: string): Promise<ApiResponse> {
@@ -330,7 +341,22 @@ export default function ArksOverviewPage() {
                     {row.fleetName}
                   </td>
                   <td className="p-3">
-                    {row.ark.name}
+                    {(() => {
+                      const explorerUrl = explorerAddressUrl(row.chainId, row.ark.address)
+                      return explorerUrl ? (
+                        <a
+                          href={explorerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-slate-200 hover:text-blue-400 hover:underline"
+                          title={row.ark.address}
+                        >
+                          {row.ark.name}
+                        </a>
+                      ) : (
+                        row.ark.name
+                      )
+                    })()}
                     {row.ark.isBufferArk && (
                       <span className="ml-2 text-xs text-blue-400">
                         (buffer
@@ -362,7 +388,10 @@ export default function ArksOverviewPage() {
                       {row.ark.status}
                     </span>
                     {row.ark.needsSweep && (
-                      <span className="ml-1 px-2 py-0.5 rounded text-xs bg-orange-500/20 text-orange-400">
+                      <span
+                        className="ml-1 px-2 py-0.5 rounded text-xs bg-orange-500/20 text-orange-400 cursor-help"
+                        title={`Idle balance: ${formatExact(row.ark.assetBalance ?? '0', row.assetDecimals)} ${row.assetSymbol}`}
+                      >
                         dust
                       </span>
                     )}
