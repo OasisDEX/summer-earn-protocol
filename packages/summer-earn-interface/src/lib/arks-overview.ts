@@ -1,8 +1,11 @@
 import { createPublicClient } from 'viem'
 
+import { arkAbi } from '@/abis/Ark'
+import { arkWithWithdrawalRequestAbi } from '@/abis/ArkWithWithdrawalRequest'
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
 import { harborCommandAbi } from '@/abis/HarborCommand'
+import { wisdomTreeArkAbi } from '@/abis/WisdomTreeArk'
 import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { type Environment, HARBOR_COMMAND_ADDRESSES } from '@/config/environments'
 
@@ -125,8 +128,10 @@ export async function getFleetsForChain(
 
   for (let i = 0; i < allFleets.length; i++) {
     const base = i * FLEET_READS_PER_CONTRACT
-    const [nameRes, symbolRes, assetRes, totalRes, withdrawableRes, configRes] =
-      fleetResults.slice(base, base + FLEET_READS_PER_CONTRACT)
+    const [nameRes, symbolRes, assetRes, totalRes, withdrawableRes, configRes] = fleetResults.slice(
+      base,
+      base + FLEET_READS_PER_CONTRACT,
+    )
 
     if (
       nameRes.status === 'failure' ||
@@ -191,6 +196,244 @@ export async function getFleetsForChain(
       assetDecimals,
       assetSymbol,
       fleetDecimals: assetDecimals,
+    }
+  })
+}
+
+const CALLS_PER_ARK_BASE = 7
+
+export interface ArkOverview {
+  address: `0x${string}`
+  totalAssets: string
+  withdrawableTotalAssets: string
+  name: string
+  depositCap: string
+  maxDepositPercentageOfTVL: string
+  maxRebalanceInflow: string
+  maxRebalanceOutflow: string
+  isBufferArk: boolean
+  status: ArkStatus
+  details: ArkDetails | null
+  poolBalance: string | null
+  withdrawalRequestId?: string
+  assetsInWithdrawalQueue?: string
+  isWithdrawalClaimRequired?: boolean
+  assetBalance?: string
+  needsSweep: boolean
+  pendingDepositAssets?: string
+  sharesToAssets1e18?: string
+}
+
+export async function getArksForFleet(
+  chainId: string,
+  fleetAddress: `0x${string}`,
+): Promise<ArkOverview[]> {
+  const rpcUrls = CHAIN_RPC_URLS[chainId as keyof typeof CHAIN_RPC_URLS]
+  if (!rpcUrls) throw new ArksOverviewError('Unsupported chainId', 400)
+
+  const client = createPublicClient({
+    transport: createRpcTransport(rpcUrls),
+    chain: VIEM_CHAIN_ENTITIES[chainId as keyof typeof VIEM_CHAIN_ENTITIES],
+  })
+
+  // Multicall 1: fleet contract - getActiveArks, bufferArk, asset
+  const fleetContracts = [
+    { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'getActiveArks' as const },
+    { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'bufferArk' as const },
+    { address: fleetAddress, abi: fleetCommanderAbi, functionName: 'asset' as const },
+  ]
+  // @ts-ignore - viem multicall types are overly strict
+  const fleetResults = await client.multicall({ contracts: fleetContracts, allowFailure: true })
+
+  const activeArksRes = fleetResults[0]
+  const bufferArkRes = fleetResults[1]
+  const assetRes = fleetResults[2]
+  if (activeArksRes.status === 'failure' || bufferArkRes.status === 'failure') {
+    throw new ArksOverviewError('Failed to read fleet arks', 502)
+  }
+
+  const activeArks = activeArksRes.result as `0x${string}`[]
+  const bufferArkAddress = bufferArkRes.result as `0x${string}`
+  const assetAddress = assetRes.status === 'success' ? (assetRes.result as `0x${string}`) : null
+  const allArks = [...activeArks, bufferArkAddress]
+  if (allArks.length === 0) return []
+
+  const callsPerArk = CALLS_PER_ARK_BASE + 5 + (assetAddress ? 1 : 0)
+
+  // Multicall 2: base ark reads + optional IArkWithWithdrawalRequest reads + asset balanceOf
+  // (unchanged from the pre-extraction route — do not add new calls to this batch, see Step 3
+  // note below for why details()/pool-balance are separate batches)
+  const arkCalls = allArks.flatMap((arkAddress) => [
+    { address: arkAddress, abi: arkAbi, functionName: 'totalAssets' as const },
+    { address: arkAddress, abi: arkAbi, functionName: 'withdrawableTotalAssets' as const },
+    { address: arkAddress, abi: arkAbi, functionName: 'name' as const },
+    { address: arkAddress, abi: arkAbi, functionName: 'depositCap' as const },
+    { address: arkAddress, abi: arkAbi, functionName: 'maxDepositPercentageOfTVL' as const },
+    { address: arkAddress, abi: arkAbi, functionName: 'maxRebalanceInflow' as const },
+    { address: arkAddress, abi: arkAbi, functionName: 'maxRebalanceOutflow' as const },
+    {
+      address: arkAddress,
+      abi: arkWithWithdrawalRequestAbi,
+      functionName: 'withdrawalRequestId' as const,
+    },
+    {
+      address: arkAddress,
+      abi: arkWithWithdrawalRequestAbi,
+      functionName: 'assetsInWithdrawalQueue' as const,
+    },
+    {
+      address: arkAddress,
+      abi: arkWithWithdrawalRequestAbi,
+      functionName: 'isWithdrawalClaimRequired' as const,
+    },
+    { address: arkAddress, abi: wisdomTreeArkAbi, functionName: 'pendingDepositAssets' as const },
+    {
+      address: arkAddress,
+      abi: wisdomTreeArkAbi,
+      functionName: 'sharesToAssets' as const,
+      args: [1000000000000000000n] as const,
+    },
+    ...(assetAddress
+      ? [
+          {
+            address: assetAddress,
+            abi: erc20Abi,
+            functionName: 'balanceOf' as const,
+            args: [arkAddress] as const,
+          },
+        ]
+      : []),
+  ])
+
+  // @ts-ignore - viem multicall types are overly strict with flatMap'd contracts
+  const arkResults = await client.multicall({ contracts: arkCalls as any, allowFailure: true })
+
+  for (let i = 0; i < allArks.length; i++) {
+    const base = i * callsPerArk
+    const hasBaseFailure = arkResults
+      .slice(base, base + CALLS_PER_ARK_BASE)
+      .some((r) => r.status === 'failure')
+    if (hasBaseFailure) throw new ArksOverviewError('Failed to read ark data', 502)
+  }
+
+  // Multicall 3 (NEW): best-effort details() per ark — never gates on failure
+  const detailsCalls = allArks.map((arkAddress) => ({
+    address: arkAddress,
+    abi: arkAbi,
+    functionName: 'details' as const,
+  }))
+  // @ts-ignore - viem multicall types are overly strict
+  const detailsResults = await client.multicall({ contracts: detailsCalls, allowFailure: true })
+  const parsedDetails = detailsResults.map((r) =>
+    parseArkDetails(r.status === 'success' ? (r.result as string) : undefined),
+  )
+
+  // Multicall 4 (NEW): best-effort pool-token balanceOf(ark), only for arks whose details().pool
+  // resolved to a valid 20-byte address (see design doc table — Aave-fork/Sky/Morpho-Blue arks
+  // will not have a resolvable pool here, and that's expected)
+  const poolLookups: Array<{
+    index: number
+    arkAddress: `0x${string}`
+    poolAddress: `0x${string}`
+  }> = []
+  allArks.forEach((arkAddress, i) => {
+    const pool = parsedDetails[i]?.pool
+    if (pool) poolLookups.push({ index: i, arkAddress, poolAddress: pool })
+  })
+  const poolBalanceResults = poolLookups.length
+    ? // @ts-ignore - viem multicall types are overly strict
+      await client.multicall({
+        contracts: poolLookups.map(({ arkAddress, poolAddress }) => ({
+          address: poolAddress,
+          abi: erc20Abi,
+          functionName: 'balanceOf' as const,
+          args: [arkAddress] as const,
+        })),
+        allowFailure: true,
+      })
+    : []
+  const poolBalanceByIndex = new Map<number, string>()
+  poolLookups.forEach(({ index }, j) => {
+    const res = poolBalanceResults[j]
+    if (res && res.status === 'success') {
+      poolBalanceByIndex.set(index, (res.result as bigint).toString())
+    }
+  })
+
+  return allArks.map((arkAddress, i) => {
+    const base = i * callsPerArk
+    const slice = arkResults.slice(base, base + callsPerArk)
+    const [
+      totalRes,
+      withdrawableRes,
+      nameRes,
+      capRes,
+      maxPctRes,
+      inflowRes,
+      outflowRes,
+      withdrawalRequestIdRes,
+      assetsInWithdrawalQueueRes,
+      isWithdrawalClaimRequiredRes,
+      pendingDepositAssetsRes,
+      sharesToAssets1e18Res,
+    ] = slice
+    const assetBalanceRes = assetAddress ? slice[12] : undefined
+
+    const withdrawalRequestId =
+      withdrawalRequestIdRes?.status === 'success'
+        ? (withdrawalRequestIdRes.result as bigint).toString()
+        : undefined
+    const assetsInWithdrawalQueue =
+      assetsInWithdrawalQueueRes?.status === 'success'
+        ? (assetsInWithdrawalQueueRes.result as bigint).toString()
+        : undefined
+    const isWithdrawalClaimRequired =
+      isWithdrawalClaimRequiredRes?.status === 'success'
+        ? (isWithdrawalClaimRequiredRes.result as boolean)
+        : undefined
+    const assetBalance =
+      assetBalanceRes?.status === 'success'
+        ? (assetBalanceRes.result as bigint).toString()
+        : undefined
+    const pendingDepositAssets =
+      pendingDepositAssetsRes?.status === 'success'
+        ? (pendingDepositAssetsRes.result as bigint).toString()
+        : undefined
+    const sharesToAssets1e18 =
+      sharesToAssets1e18Res?.status === 'success'
+        ? (sharesToAssets1e18Res.result as bigint).toString()
+        : undefined
+    const hasWithdrawalQueue =
+      withdrawalRequestIdRes?.status === 'success' ||
+      assetsInWithdrawalQueueRes?.status === 'success' ||
+      isWithdrawalClaimRequiredRes?.status === 'success'
+
+    const isBufferArk = i === allArks.length - 1
+    const depositCap = capRes.result as bigint
+    const totalAssets = totalRes.result as bigint
+
+    return {
+      address: arkAddress,
+      totalAssets: totalAssets.toString(),
+      withdrawableTotalAssets: (withdrawableRes.result as bigint).toString(),
+      name: String(nameRes.result),
+      depositCap: depositCap.toString(),
+      maxDepositPercentageOfTVL: (maxPctRes.result as bigint).toString(),
+      maxRebalanceInflow: (inflowRes.result as bigint).toString(),
+      maxRebalanceOutflow: (outflowRes.result as bigint).toString(),
+      isBufferArk,
+      status: getArkStatus({ isBufferArk, depositCap, totalAssets }),
+      details: parsedDetails[i],
+      poolBalance: poolBalanceByIndex.get(i) ?? null,
+      ...(hasWithdrawalQueue && {
+        withdrawalRequestId,
+        assetsInWithdrawalQueue,
+        isWithdrawalClaimRequired,
+      }),
+      assetBalance,
+      needsSweep: assetBalance !== undefined && assetBalance !== '0',
+      ...(pendingDepositAssets !== undefined && { pendingDepositAssets }),
+      ...(sharesToAssets1e18 !== undefined && { sharesToAssets1e18 }),
     }
   })
 }

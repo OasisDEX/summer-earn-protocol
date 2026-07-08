@@ -64,3 +64,17 @@ describe('parseArkDetails', () => {
     })
   })
 })
+
+describe('getArkStatus integration with parsed details', () => {
+  it('a ready-to-remove non-buffer ark with an unresolvable pool still gets a status', () => {
+    const details = parseArkDetails(
+      JSON.stringify({
+        protocol: 'MorphoBlue',
+        pool: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', // 32-byte market id, not an address
+      }),
+    )
+    expect(details?.pool).toBeUndefined()
+    const status = getArkStatus({ isBufferArk: false, depositCap: 0n, totalAssets: 0n })
+    expect(status).toBe('ready-to-remove')
+  })
+})
