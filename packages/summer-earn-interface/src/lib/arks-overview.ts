@@ -1,7 +1,6 @@
 import { createPublicClient } from 'viem'
 
 import { arkAbi } from '@/abis/Ark'
-import type { ChainId } from '@/types'
 import { arkWithWithdrawalRequestAbi } from '@/abis/ArkWithWithdrawalRequest'
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
@@ -9,6 +8,7 @@ import { harborCommandAbi } from '@/abis/HarborCommand'
 import { wisdomTreeArkAbi } from '@/abis/WisdomTreeArk'
 import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'
 import { type Environment, HARBOR_COMMAND_ADDRESSES } from '@/config/environments'
+import type { ChainId } from '@/types'
 
 const POOL_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
 
