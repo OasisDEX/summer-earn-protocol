@@ -53,6 +53,7 @@ interface FlatRow {
   key: string
   chainId: ChainId
   chainName: string
+  fleetAddress: `0x${string}`
   fleetName: string
   assetSymbol: string
   assetDecimals: number
@@ -76,9 +77,34 @@ const STATUS_STYLES: Record<ArkStatus, string> = {
   'stuck-needs-sweep': 'bg-amber-500/20 text-amber-400',
 }
 
+// Validated categorical palette (dark-mode steps, dataviz skill's reference palette),
+// used to visually group rows by fleet. CVD-safe fixed order; identity is never carried
+// by color alone since the fleet name is always shown as a direct label.
+const FLEET_PALETTE = [
+  '#3987e5', // blue
+  '#199e70', // aqua
+  '#c98500', // yellow
+  '#008300', // green
+  '#9085e9', // violet
+  '#e66767', // red
+  '#d55181', // magenta
+  '#d95926', // orange
+]
+
+const MAX_UINT256 = 2n ** 256n - 1n
+
+function fleetKeyFor(chainId: ChainId, fleetAddress: string): string {
+  return `${chainId}-${fleetAddress}`
+}
+
 function formatAmount(raw: string, decimals: number): string {
   const value = Number(formatUnits(BigInt(raw), decimals))
   return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+}
+
+function formatCap(raw: string, decimals: number, symbol: string): string {
+  if (BigInt(raw) === MAX_UINT256) return 'MAX'
+  return `${formatAmount(raw, decimals)} ${symbol}`
 }
 
 async function fetchArksOverview(environment: string): Promise<ApiResponse> {
@@ -90,6 +116,7 @@ async function fetchArksOverview(environment: string): Promise<ApiResponse> {
 export default function ArksOverviewPage() {
   const { environment } = useEnvironment()
   const [filter, setFilter] = useState<FilterKey>('all')
+  const [selectedFleet, setSelectedFleet] = useState<string>('all')
 
   const { data, isLoading, error, refetch } = useQuery<ApiResponse>({
     queryKey: ['arks-overview', environment],
@@ -104,6 +131,7 @@ export default function ArksOverviewPage() {
           key: `${chain.chainId}-${fleet.address}-${ark.address}`,
           chainId: chain.chainId,
           chainName: CHAIN_NAMES[chain.chainId] ?? chain.chainId,
+          fleetAddress: fleet.address,
           fleetName: fleet.name,
           assetSymbol: fleet.assetSymbol,
           assetDecimals: fleet.assetDecimals,
@@ -114,20 +142,53 @@ export default function ArksOverviewPage() {
     )
   }, [data])
 
+  // Distinct fleets in first-appearance order, for the fleet filter dropdown.
+  const fleetOptions = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const r of rows) {
+      const key = fleetKeyFor(r.chainId, r.fleetAddress)
+      if (!seen.has(key)) {
+        seen.set(key, `${r.chainName} — ${r.fleetName}`)
+      }
+    }
+    return Array.from(seen.entries()).map(([key, label]) => ({ key, label }))
+  }, [rows])
+
+  // One palette color per distinct fleet, assigned in fixed first-appearance order.
+  // Cycles past 8 fleets — acceptable here because the fleet name is always shown as
+  // text alongside the color, so color is a supplementary grouping cue, not the sole
+  // identity channel.
+  const fleetColorByKey = useMemo(() => {
+    const map = new Map<string, string>()
+    let index = 0
+    for (const r of rows) {
+      const key = fleetKeyFor(r.chainId, r.fleetAddress)
+      if (!map.has(key)) {
+        map.set(key, FLEET_PALETTE[index % FLEET_PALETTE.length])
+        index += 1
+      }
+    }
+    return map
+  }, [rows])
+
   const filteredRows = useMemo(() => {
+    let result = rows
+    if (selectedFleet !== 'all') {
+      result = result.filter((r) => fleetKeyFor(r.chainId, r.fleetAddress) === selectedFleet)
+    }
     switch (filter) {
       case 'ready-to-remove':
-        return rows.filter((r) => r.ark.status === 'ready-to-remove')
+        return result.filter((r) => r.ark.status === 'ready-to-remove')
       case 'stuck-needs-sweep':
-        return rows.filter((r) => r.ark.status === 'stuck-needs-sweep')
+        return result.filter((r) => r.ark.status === 'stuck-needs-sweep')
       case 'dust':
-        return rows.filter((r) => r.ark.needsSweep)
+        return result.filter((r) => r.ark.needsSweep)
       case 'buffer':
-        return rows.filter((r) => r.ark.isBufferArk)
+        return result.filter((r) => r.ark.isBufferArk)
       default:
-        return rows
+        return result
     }
-  }, [rows, filter])
+  }, [rows, filter, selectedFleet])
 
   const summary = useMemo(
     () => ({
@@ -205,7 +266,7 @@ export default function ArksOverviewPage() {
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {FILTERS.map((f) => (
           <button
             key={f.key}
@@ -219,6 +280,19 @@ export default function ArksOverviewPage() {
             {f.label}
           </button>
         ))}
+
+        <select
+          value={selectedFleet}
+          onChange={(e) => setSelectedFleet(e.target.value)}
+          className="ml-2 px-3 py-1.5 rounded-full text-sm bg-gray-800 text-gray-300 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="all">All fleets</option>
+          {fleetOptions.map((f) => (
+            <option key={f.key} value={f.key}>
+              {f.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-x-auto">
@@ -237,46 +311,65 @@ export default function ArksOverviewPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row) => (
-              <tr key={row.key} className="border-b border-gray-800/50 text-slate-300">
-                <td className="p-3">{row.chainName}</td>
-                <td className="p-3">{row.fleetName}</td>
-                <td className="p-3">
-                  {row.ark.name}
-                  {row.ark.isBufferArk && (
-                    <span className="ml-2 text-xs text-blue-400">
-                      (buffer
-                      {row.fleetBufferSharePct !== null && ` — ${row.fleetBufferSharePct}% of TVL`})
+            {filteredRows.map((row) => {
+              const fleetKey = fleetKeyFor(row.chainId, row.fleetAddress)
+              const fleetColor = fleetColorByKey.get(fleetKey) ?? '#64748b'
+              return (
+                <tr
+                  key={row.key}
+                  className="border-b border-gray-800/50 text-slate-300"
+                  style={{ backgroundColor: `${fleetColor}1a` }}
+                >
+                  <td className="p-3">{row.chainName}</td>
+                  <td className="p-3">
+                    <span
+                      className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
+                      style={{ backgroundColor: fleetColor }}
+                      aria-hidden="true"
+                    />
+                    {row.fleetName}
+                  </td>
+                  <td className="p-3">
+                    {row.ark.name}
+                    {row.ark.isBufferArk && (
+                      <span className="ml-2 text-xs text-blue-400">
+                        (buffer
+                        {row.fleetBufferSharePct !== null &&
+                          ` — ${row.fleetBufferSharePct}% of TVL`}
+                        )
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-3 text-gray-500">{row.ark.details?.protocol ?? '—'}</td>
+                  <td className="p-3 text-right">
+                    {formatCap(row.ark.depositCap, row.assetDecimals, row.assetSymbol)}
+                  </td>
+                  <td className="p-3 text-right">
+                    {formatAmount(row.ark.totalAssets, row.assetDecimals)} {row.assetSymbol}
+                  </td>
+                  <td className="p-3 text-right">
+                    {formatAmount(row.ark.withdrawableTotalAssets, row.assetDecimals)}
+                  </td>
+                  <td className="p-3 text-right text-gray-500">
+                    {row.ark.poolBalance !== null
+                      ? formatAmount(row.ark.poolBalance, row.assetDecimals)
+                      : 'N/A'}
+                  </td>
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs ${STATUS_STYLES[row.ark.status]}`}
+                    >
+                      {row.ark.status}
                     </span>
-                  )}
-                </td>
-                <td className="p-3 text-gray-500">{row.ark.details?.protocol ?? '—'}</td>
-                <td className="p-3 text-right">
-                  {formatAmount(row.ark.depositCap, row.assetDecimals)} {row.assetSymbol}
-                </td>
-                <td className="p-3 text-right">
-                  {formatAmount(row.ark.totalAssets, row.assetDecimals)} {row.assetSymbol}
-                </td>
-                <td className="p-3 text-right">
-                  {formatAmount(row.ark.withdrawableTotalAssets, row.assetDecimals)}
-                </td>
-                <td className="p-3 text-right text-gray-500">
-                  {row.ark.poolBalance !== null
-                    ? formatAmount(row.ark.poolBalance, row.assetDecimals)
-                    : 'N/A'}
-                </td>
-                <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded text-xs ${STATUS_STYLES[row.ark.status]}`}>
-                    {row.ark.status}
-                  </span>
-                  {row.ark.needsSweep && (
-                    <span className="ml-1 px-2 py-0.5 rounded text-xs bg-orange-500/20 text-orange-400">
-                      dust
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    {row.ark.needsSweep && (
+                      <span className="ml-1 px-2 py-0.5 rounded text-xs bg-orange-500/20 text-orange-400">
+                        dust
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
         {filteredRows.length === 0 && (
