@@ -1,6 +1,7 @@
 import { createPublicClient } from 'viem'
 
 import { arkAbi } from '@/abis/Ark'
+import type { ChainId } from '@/types'
 import { arkWithWithdrawalRequestAbi } from '@/abis/ArkWithWithdrawalRequest'
 import { erc20Abi } from '@/abis/ERC20'
 import { fleetCommanderAbi } from '@/abis/FleetCommander'
@@ -436,4 +437,57 @@ export async function getArksForFleet(
       ...(sharesToAssets1e18 !== undefined && { sharesToAssets1e18 }),
     }
   })
+}
+
+export function computeBufferSharePct(bufferTotal: bigint, fleetTotal: bigint): number | null {
+  if (fleetTotal === 0n) return null
+  return Math.round(Number((bufferTotal * 1000000n) / fleetTotal) / 100) / 100
+}
+
+export interface FleetOverview extends FleetSummary {
+  chainId: ChainId
+  bufferArkAddress: `0x${string}`
+  bufferArkTotalAssets: string
+  bufferSharePct: number | null
+  arks: ArkOverview[]
+}
+
+export interface ChainArksOverview {
+  chainId: ChainId
+  fleets: FleetOverview[]
+  error?: string
+}
+
+export async function getAllArksOverview(environment: Environment): Promise<ChainArksOverview[]> {
+  const chainIds = Object.keys(HARBOR_COMMAND_ADDRESSES[environment]) as ChainId[]
+
+  return Promise.all(
+    chainIds.map(async (chainId): Promise<ChainArksOverview> => {
+      try {
+        const fleets = await getFleetsForChain(chainId, environment)
+        const fleetOverviews = await Promise.all(
+          fleets.map(async (fleet): Promise<FleetOverview> => {
+            const arks = await getArksForFleet(chainId, fleet.address)
+            const bufferArk = arks.find((a) => a.isBufferArk)
+            const bufferSharePct = computeBufferSharePct(
+              BigInt(bufferArk?.totalAssets ?? '0'),
+              BigInt(fleet.totalAssets),
+            )
+            return {
+              ...fleet,
+              chainId,
+              bufferArkAddress:
+                bufferArk?.address ?? ('0x0000000000000000000000000000000000000000' as const),
+              bufferArkTotalAssets: bufferArk?.totalAssets ?? '0',
+              bufferSharePct,
+              arks,
+            }
+          }),
+        )
+        return { chainId, fleets: fleetOverviews }
+      } catch (err) {
+        return { chainId, fleets: [], error: (err as Error).message }
+      }
+    }),
+  )
 }

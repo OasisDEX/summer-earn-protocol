@@ -1,4 +1,4 @@
-import { getArkStatus, parseArkDetails } from './arks-overview'
+import { computeBufferSharePct, getArkStatus, parseArkDetails } from './arks-overview'
 
 describe('getArkStatus', () => {
   it('returns active for a buffer ark regardless of cap/assets', () => {
@@ -76,5 +76,19 @@ describe('getArkStatus integration with parsed details', () => {
     expect(details?.pool).toBeUndefined()
     const status = getArkStatus({ isBufferArk: false, depositCap: 0n, totalAssets: 0n })
     expect(status).toBe('ready-to-remove')
+  })
+})
+
+describe('computeBufferSharePct', () => {
+  it('returns null when fleet total assets are zero (avoid divide-by-zero)', () => {
+    expect(computeBufferSharePct(0n, 0n)).toBeNull()
+  })
+
+  it('returns 100 when the buffer ark holds the entire fleet TVL', () => {
+    expect(computeBufferSharePct(1000n, 1000n)).toBe(100)
+  })
+
+  it('returns a rounded-to-2-decimals percentage', () => {
+    expect(computeBufferSharePct(1n, 3n)).toBe(33.33)
   })
 })
