@@ -279,9 +279,6 @@ export default function FleetDetail() {
             </GlassCard>
           )}
 
-          {/* Debug Info (Development Only) */}
-          {/* <DebugStakingInfo fleetAddress={address} chainId={chainId} userInfo={userInfo} /> */}
-
           {/* Deposit/Withdraw Tabs */}
           {isConnected && userInfo && fleetInfo && (
             <DepositWithdrawTabs
