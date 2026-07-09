@@ -34,13 +34,7 @@ module.exports = {
         'on-secondary': '#005d4f',
         outline: '#757578',
         'outline-variant': '#47484a',
-        // Legacy keys re-pointed to the semantic palette during the design-pass
-        // migration; deleted once the class sweep shows zero remaining uses.
-        'background-light': '#fdfbfe',
-        'background-dark': '#0d0e10',
-        charcoal: { 700: '#1e2022', 800: '#181a1c', 900: '#0d0e10' },
-        magenta: { 500: '#89acff', 600: '#739eff', 700: '#5a90ff' },
-        violet: { 400: '#a7c1ff', 500: '#89acff' },
+        accent: '#a7c1ff',
       },
       boxShadow: {
         // token-derived from `primary` #89acff — keep in sync if primary changes

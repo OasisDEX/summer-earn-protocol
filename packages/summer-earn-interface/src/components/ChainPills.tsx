@@ -35,7 +35,7 @@ export function ChainPills({ selectedChain, onChange, chains = CHAIN_ORDER }: Ch
             onClick={() => onChange(chainId)}
             className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg font-medium transition-all ${
               isActive
-                ? 'bg-white/10 text-white shadow-xl'
+                ? 'bg-white/10 text-on-surface shadow-xl'
                 : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
             }`}
           >

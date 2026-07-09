@@ -102,7 +102,7 @@ export default function RewardsPage() {
 
               <div className="bg-surface-container-high p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
                 <div className="flex items-center">
-                  <div className="p-3 bg-violet-400/15 rounded-lg">
+                  <div className="p-3 bg-accent/15 rounded-lg">
                     <span className="text-2xl">💰</span>
                   </div>
                   <div className="ml-4">

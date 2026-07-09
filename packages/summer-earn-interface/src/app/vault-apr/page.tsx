@@ -298,7 +298,7 @@ export default function VaultAprPage() {
                       {avg30Day !== null && (
                         <div className="flex justify-between">
                           <span className="text-on-surface-variant/80">30d Avg:</span>
-                          <span className="text-violet-400 font-medium tabular-nums">
+                          <span className="text-accent font-medium tabular-nums">
                             {avg30Day.toFixed(4)}%
                           </span>
                         </div>

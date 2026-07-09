@@ -236,7 +236,7 @@ export default function InterestRatesPage() {
                   onClick={() => toggleEma(p)}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     emaPeriods.includes(p)
-                      ? 'bg-violet-400 text-on-primary shadow-lg shadow-violet-400/20'
+                      ? 'bg-accent text-on-primary shadow-lg shadow-accent/20'
                       : 'text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]'
                   }`}
                 >

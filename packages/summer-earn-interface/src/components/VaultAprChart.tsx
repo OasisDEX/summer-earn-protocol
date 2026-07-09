@@ -146,7 +146,7 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
           {averages.avg30Day !== null && (
             <div className="bg-white/5 rounded-lg border border-white/10 p-3">
               <div className="text-xs text-on-surface-variant mb-1">30 Day Average</div>
-              <div className="text-lg font-semibold text-violet-400 tabular-nums">
+              <div className="text-lg font-semibold text-accent tabular-nums">
                 {averages.avg30Day.toFixed(4)}%
               </div>
             </div>
@@ -164,7 +164,7 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             className={checkboxBase}
           />
           <span className="text-on-surface">Weekly</span>
-          <div className="w-3 h-3 rounded-full bg-violet-400" />
+          <div className="w-3 h-3 rounded-full bg-accent" />
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input

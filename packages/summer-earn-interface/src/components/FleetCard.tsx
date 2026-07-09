@@ -187,7 +187,7 @@ export function FleetCard({
             type="button"
             onClick={handleDeposit}
             disabled={isApproveLoading || isDepositLoading || !amount}
-            className="bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg text-sm transition-all shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary hover:bg-primary-dim text-on-primary font-bold py-3 rounded-lg text-sm transition-all shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isApproveLoading
               ? 'Approving…'

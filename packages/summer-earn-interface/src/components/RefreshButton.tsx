@@ -48,8 +48,8 @@ export function RefreshButton({ lastUpdated }: { lastUpdated: number }) {
         disabled={disabled}
         className={`px-4 py-2 rounded font-mono text-xs font-bold transition-all ${
           disabled
-            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg hover:shadow-blue-500/20'
+            ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+            : 'bg-primary text-on-primary hover:bg-primary-dim shadow-lg hover:shadow-primary/20'
         }`}
       >
         {disabled ? `COOLING DOWN (${timeLeft})` : 'INVALIDATE CACHE'}
