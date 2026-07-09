@@ -200,6 +200,32 @@ contract AsyncFleetGateway is
         }
     }
 
+    /// @dev Ascending (FIFO) list of the controller's receipt ids for one flow, settled epochs only.
+    function _sortedSettledReceipts(
+        address controller,
+        bool redeemFlow
+    ) internal view returns (uint256[] memory ids, uint256 count) {
+        uint256 len = _receiptIdsOf[controller].length();
+        ids = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) {
+            uint256 id = _receiptIdsOf[controller].at(i);
+            if ((id & 1 == 1) != redeemFlow) continue;
+            uint256 epoch = id >> 1;
+            EpochState state = redeemFlow
+                ? _redeemEpochState[epoch]
+                : _depositEpochState[epoch];
+            if (state != EpochState.Settled) continue;
+            // insertion sort ascending — receipt sets are small (distinct epochs with holdings)
+            uint256 j = count;
+            while (j > 0 && ids[j - 1] > id) {
+                ids[j] = ids[j - 1];
+                j--;
+            }
+            ids[j] = id;
+            count++;
+        }
+    }
+
     /// @inheritdoc IERC7540Deposit
     function requestDeposit(
         uint256 assets,
@@ -255,8 +281,33 @@ contract AsyncFleetGateway is
         uint256 assets,
         address receiver,
         address controller
-    ) external returns (uint256 shares) {
-        revert("NotImplemented");
+    ) public returns (uint256 shares) {
+        if (assets == 0) revert ZeroAmount();
+        _requireControllerOrOperator(controller);
+        _revertIfNotWhitelisted(
+            address(FLEET),
+            controller,
+            receiver,
+            _msgSender()
+        );
+
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            false
+        );
+        uint256 remaining = assets;
+        for (uint256 i = 0; i < count && remaining > 0; i++) {
+            uint256 bal = balanceOf(controller, ids[i]);
+            uint256 take = bal < remaining ? bal : remaining;
+            _burn(controller, ids[i], take);
+            shares += _depositRate[ids[i] >> 1].quote(take);
+            remaining -= take;
+        }
+        if (remaining > 0)
+            revert ExceededMaxClaim(controller, assets, assets - remaining);
+
+        IERC20(address(FLEET)).safeTransfer(receiver, shares);
+        emit Deposit(controller, receiver, assets, shares);
     }
 
     /// @inheritdoc IERC7540Deposit
@@ -264,24 +315,65 @@ contract AsyncFleetGateway is
         uint256 shares,
         address receiver,
         address controller
-    ) external returns (uint256 assets) {
-        revert("NotImplemented");
+    ) public returns (uint256 assets) {
+        if (shares == 0) revert ZeroAmount();
+        _requireControllerOrOperator(controller);
+        _revertIfNotWhitelisted(
+            address(FLEET),
+            controller,
+            receiver,
+            _msgSender()
+        );
+
+        uint256 max = maxMint(controller);
+        if (shares > max) revert ExceededMaxClaim(controller, shares, max);
+
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            false
+        );
+        uint256 remainingShares = shares;
+        for (uint256 i = 0; i < count && remainingShares > 0; i++) {
+            uint256 bal = balanceOf(controller, ids[i]);
+            Price memory rate = _depositRate[ids[i] >> 1];
+            uint256 epochShares = rate.quote(bal);
+            if (epochShares <= remainingShares) {
+                _burn(controller, ids[i], bal);
+                assets += bal;
+                remainingShares -= epochShares;
+            } else {
+                // assets needed for the remaining shares, rounded up against the claimer
+                uint256 assetsPart = Math.mulDiv(
+                    remainingShares,
+                    rate.quoteAmount,
+                    rate.baseAmount,
+                    Math.Rounding.Ceil
+                );
+                if (assetsPart > bal) assetsPart = bal;
+                _burn(controller, ids[i], assetsPart);
+                assets += assetsPart;
+                remainingShares = 0;
+            }
+        }
+
+        IERC20(address(FLEET)).safeTransfer(receiver, shares);
+        emit Deposit(controller, receiver, assets, shares);
     }
 
     /// @inheritdoc IAsyncFleetGateway
     function deposit(
         uint256 assets,
         address receiver
-    ) external returns (uint256 shares) {
-        revert("NotImplemented");
+    ) public returns (uint256 shares) {
+        return deposit(assets, receiver, _msgSender());
     }
 
     /// @inheritdoc IAsyncFleetGateway
     function mint(
         uint256 shares,
         address receiver
-    ) external returns (uint256 assets) {
-        revert("NotImplemented");
+    ) public returns (uint256 assets) {
+        return mint(shares, receiver, _msgSender());
     }
 
     /// @inheritdoc IERC7540Redeem
@@ -338,13 +430,29 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function maxDeposit(address controller) external view returns (uint256) {
-        revert("NotImplemented");
+    function maxDeposit(
+        address controller
+    ) public view returns (uint256 total) {
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            false
+        );
+        for (uint256 i = 0; i < count; i++) {
+            total += balanceOf(controller, ids[i]);
+        }
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function maxMint(address controller) external view returns (uint256) {
-        revert("NotImplemented");
+    function maxMint(address controller) public view returns (uint256 total) {
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            false
+        );
+        for (uint256 i = 0; i < count; i++) {
+            total += _depositRate[ids[i] >> 1].quote(
+                balanceOf(controller, ids[i])
+            );
+        }
     }
 
     /// @inheritdoc IAsyncFleetGateway
