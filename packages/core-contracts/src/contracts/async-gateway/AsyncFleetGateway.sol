@@ -381,24 +381,50 @@ contract AsyncFleetGateway is
         uint256 shares,
         address controller,
         address owner
-    ) external returns (uint256 requestId) {
-        revert("NotImplemented");
+    ) public returns (uint256 requestId) {
+        if (shares == 0) revert ZeroAmount();
+        if (owner != _msgSender() && !_isOperator[owner][_msgSender()]) {
+            revert InvalidOperator(owner, _msgSender());
+        }
+        _revertIfNotWhitelisted(
+            address(FLEET),
+            owner,
+            controller,
+            _msgSender()
+        );
+
+        requestId = _currentRedeemEpoch;
+
+        // Pulls fleet shares from `owner`; requires owner→gateway ERC-20 approval on the fleet.
+        // POC deviation from ERC-7540's optional allowance-on-sender path: only owner or an
+        // approved ERC-7540 operator may initiate (documented in the report §6.4).
+        IERC20(address(FLEET)).safeTransferFrom(owner, address(this), shares);
+        _mint(controller, redeemReceiptId(requestId), shares, "");
+
+        emit RedeemRequest(controller, owner, requestId, _msgSender(), shares);
     }
 
     /// @inheritdoc IERC7540Redeem
     function pendingRedeemRequest(
         uint256 requestId,
         address controller
-    ) external view returns (uint256 pendingShares) {
-        revert("NotImplemented");
+    ) public view returns (uint256) {
+        EpochState state = _redeemEpochState[requestId];
+        if (state == EpochState.Open || state == EpochState.InSettlement) {
+            return balanceOf(controller, redeemReceiptId(requestId));
+        }
+        return 0;
     }
 
     /// @inheritdoc IERC7540Redeem
     function claimableRedeemRequest(
         uint256 requestId,
         address controller
-    ) external view returns (uint256 claimableShares) {
-        revert("NotImplemented");
+    ) public view returns (uint256) {
+        if (_redeemEpochState[requestId] == EpochState.Settled) {
+            return balanceOf(controller, redeemReceiptId(requestId));
+        }
+        return 0;
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -545,18 +571,65 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function closeRedeemEpoch() external {
-        revert("NotImplemented");
+    function closeRedeemEpoch() public onlyKeeper {
+        uint256 closing = _currentRedeemEpoch;
+        if (_redeemEpochState[closing] != EpochState.Open) {
+            revert InvalidEpochState(
+                closing,
+                _redeemEpochState[closing],
+                EpochState.Open
+            );
+        }
+        _redeemEpochState[closing] = EpochState.InSettlement;
+        _currentRedeemEpoch = closing + 1;
+        _redeemEpochState[closing + 1] = EpochState.Open;
+        emit RedeemEpochClosed(closing);
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function settleRedeemEpoch(uint256 epoch) external {
-        revert("NotImplemented");
+    function settleRedeemEpoch(uint256 epoch) public onlyKeeper {
+        if (_redeemEpochState[epoch] != EpochState.InSettlement) {
+            revert InvalidEpochState(
+                epoch,
+                _redeemEpochState[epoch],
+                EpochState.InSettlement
+            );
+        }
+        // Flip state before the external trade so any reentry observes the terminal state.
+        _redeemEpochState[epoch] = EpochState.Settled;
+
+        uint256 frozenShares = totalSupply(redeemReceiptId(epoch));
+        uint256 assetsOut = 0;
+        if (frozenShares > 0) {
+            assetsOut = FLEET.redeem(
+                frozenShares,
+                address(this),
+                address(this)
+            );
+            _redeemRate[epoch] = toPrice(assetsOut, frozenShares);
+        }
+        emit RedeemEpochSettled(
+            epoch,
+            frozenShares,
+            assetsOut,
+            _redeemRate[epoch]
+        );
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function retryRedeemEpoch(uint256 epoch) external {
-        revert("NotImplemented");
+    function retryRedeemEpoch(uint256 epoch) public onlyKeeper {
+        if (epoch >= _currentRedeemEpoch) {
+            revert CannotRetryCurrentEpoch(epoch, _currentRedeemEpoch);
+        }
+        if (_redeemEpochState[epoch] != EpochState.Open) {
+            revert InvalidEpochState(
+                epoch,
+                _redeemEpochState[epoch],
+                EpochState.Open
+            );
+        }
+        _redeemEpochState[epoch] = EpochState.InSettlement;
+        emit RedeemEpochRetried(epoch);
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -573,8 +646,16 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function rollbackRedeemEpoch(uint256 epoch) external {
-        revert("NotImplemented");
+    function rollbackRedeemEpoch(uint256 epoch) public onlyGovernor {
+        if (_redeemEpochState[epoch] != EpochState.InSettlement) {
+            revert InvalidEpochState(
+                epoch,
+                _redeemEpochState[epoch],
+                EpochState.InSettlement
+            );
+        }
+        _redeemEpochState[epoch] = EpochState.Open;
+        emit RedeemEpochRolledBack(epoch);
     }
 
     /// @inheritdoc IAsyncFleetGateway
