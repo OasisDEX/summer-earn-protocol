@@ -13,7 +13,7 @@ import { useEnvironment } from '../hooks/useEnvironment'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useSyncWalletChain } from '../hooks/useSyncWalletChain'
 import type { ChainId } from '../types'
-import { formatDecimalOutput } from '../utils/decimals'
+import { formatLargeNumber } from '../utils/decimals'
 
 const VALID_CHAINS: ChainId[] = ['1', '42161', '8453', '146', '11155111']
 
@@ -55,12 +55,37 @@ function HomeContent() {
     )
   }, [fleets, searchQuery])
 
+  // TVL per asset — different assets (USDC vs WETH) cannot be summed without a
+  // price feed, so the dominant asset leads and the rest go in the hint line.
   const totalTVL = useMemo(() => {
-    if (fleets.length === 0) return '0'
-    const primaryDecimals = fleets[0]?.assetDecimals ?? 18
-    const primarySymbol = fleets[0]?.assetSymbol ?? ''
-    const sum = fleets.reduce((acc, f) => acc + f.totalAssets, BigInt(0))
-    return `${formatDecimalOutput(sum, primaryDecimals)} ${primarySymbol}`
+    if (fleets.length === 0) return { value: '0', hint: undefined }
+    const byAsset = new Map<string, { total: bigint; decimals: number; count: number }>()
+    for (const f of fleets) {
+      const entry = byAsset.get(f.assetSymbol)
+      if (entry) {
+        entry.total += f.totalAssets
+        entry.count += 1
+      } else {
+        byAsset.set(f.assetSymbol, { total: f.totalAssets, decimals: f.assetDecimals, count: 1 })
+      }
+    }
+    const labels = [...byAsset.entries()]
+      .map(([symbol, { total, decimals, count }]) => ({
+        label: `${formatLargeNumber(total, decimals)} ${symbol}`,
+        count,
+        symbol,
+      }))
+      .sort((a, b) => b.count - a.count || a.symbol.localeCompare(b.symbol))
+    return {
+      value: labels[0].label,
+      hint:
+        labels.length > 1
+          ? `+ ${labels
+              .slice(1)
+              .map((l) => l.label)
+              .join(' · ')}`
+          : undefined,
+    }
   }, [fleets])
 
   const isLoading = loading
@@ -103,7 +128,11 @@ function HomeContent() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Value Locked" value={isLoading ? '…' : totalTVL} />
+        <StatCard
+          label="Total Value Locked"
+          value={isLoading ? '…' : totalTVL.value}
+          hint={isLoading ? undefined : totalTVL.hint}
+        />
         <StatCard label="Active Fleets" value={isLoading ? '…' : String(fleets.length)} />
         <StatCard label="24h Volume" value="—" hint="Not tracked" />
         <StatCard label="Average APY" value="—" hint="Not tracked" highlight />
