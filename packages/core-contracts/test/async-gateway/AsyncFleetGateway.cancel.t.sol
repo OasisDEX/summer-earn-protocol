@@ -57,4 +57,19 @@ contract AsyncFleetGatewayCancelTest is AsyncFleetGatewayTestBase {
         gateway.cancelDepositRequest(100e6, alice, alice); // proceeds go to alice
         assertEq(gateway.pendingDepositRequest(0, alice), 0);
     }
+
+    function test_AFG0706_CancelRolledBackEpochSucceeds() public {
+        _requestDeposit(alice, 100e6); // epoch 0, Open
+        vm.prank(keeper);
+        gateway.closeDepositEpoch(); // epoch 0 -> InSettlement, epoch 1 Open
+        vm.prank(governor);
+        gateway.rollbackDepositEpoch(0); // epoch 0 -> Open (rolled-back past epoch)
+
+        // alice still holds the epoch-0 receipt; a rolled-back Open epoch is cancelable
+        uint256 balBefore = assetToken.balanceOf(alice);
+        vm.prank(alice);
+        gateway.cancelDepositRequest(100e6, alice, alice);
+        assertEq(assetToken.balanceOf(alice) - balBefore, 100e6);
+        assertEq(gateway.pendingDepositRequest(0, alice), 0);
+    }
 }

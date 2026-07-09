@@ -750,8 +750,10 @@ contract AsyncFleetGateway is
     ///      never catch a request whose own epoch has since closed — it would instead fail later
     ///      with an unrelated insufficient-balance burn. Picking the *highest* held epoch means a
     ///      fresh request in the current epoch is always the one canceled, ignoring any older,
-    ///      already-closed request left unclaimed by the same owner (POC scope: current epoch
-    ///      only; see the note on rolled-back epochs below).
+    ///      already-closed request left unclaimed by the same owner — unless a governor has
+    ///      rolled that older epoch back to `Open` (see cancelDepositRequest /
+    ///      cancelRedeemRequest), in which case it becomes the highest *held-and-Open* epoch and
+    ///      is the one canceled.
     function _mostRecentHeldEpoch(
         address owner,
         bool redeemFlow
@@ -771,10 +773,12 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    /// @dev POC scope: only the CURRENT open epoch is cancelable. A past epoch that was
-    ///      rolled back to `Open` (epoch < currentDepositEpoch) is intentionally NOT
-    ///      cancelable — this diverges from a rounds-vault-style "any Opened round" policy,
-    ///      chosen here for simplicity.
+    /// @dev Cancels the caller's request in the newest epoch they still hold a receipt for,
+    ///      which must be in the `Open` state. This is normally the current open epoch, but
+    ///      also includes a past epoch a governor rolled back to `Open` via
+    ///      `rollbackDepositEpoch` — rolling an epoch back is a deliberate recovery path that
+    ///      lets holders exit, so such an epoch is cancelable. Epochs in `InSettlement` or
+    ///      `Settled` are not cancelable.
     function cancelDepositRequest(
         uint256 assets,
         address receiver,
@@ -805,7 +809,12 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    /// @dev POC scope: only the CURRENT open epoch is cancelable (see cancelDepositRequest).
+    /// @dev Cancels the caller's request in the newest epoch they still hold a receipt for,
+    ///      which must be in the `Open` state. This is normally the current open epoch, but
+    ///      also includes a past epoch a governor rolled back to `Open` via
+    ///      `rollbackRedeemEpoch` — rolling an epoch back is a deliberate recovery path that
+    ///      lets holders exit, so such an epoch is cancelable. Epochs in `InSettlement` or
+    ///      `Settled` are not cancelable.
     function cancelRedeemRequest(
         uint256 shares,
         address receiver,
