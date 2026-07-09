@@ -30,9 +30,14 @@ contract AsyncFleetGatewayRequestDepositTest is AsyncFleetGatewayTestBase {
     function test_AFG0203_OperatorMayRequestForOwner() public {
         vm.prank(alice);
         gateway.setOperator(bob, true);
+        uint256 aliceBefore = assetToken.balanceOf(alice);
+        uint256 bobBefore = assetToken.balanceOf(bob);
         vm.prank(bob);
         gateway.requestDeposit(25e6, alice, alice); // bob spends alice's assets as operator
         assertEq(gateway.pendingDepositRequest(0, alice), 25e6);
+        // assets are pulled from the OWNER (alice), never from the operator (bob)
+        assertEq(aliceBefore - assetToken.balanceOf(alice), 25e6);
+        assertEq(assetToken.balanceOf(bob), bobBefore);
     }
 
     function test_AFG0204_NonOperatorCannotSpendOwner() public {
@@ -76,5 +81,6 @@ contract AsyncFleetGatewayRequestDepositTest is AsyncFleetGatewayTestBase {
         assertEq(gateway.pendingDepositRequest(1, alice), 20e6);
         // epoch 0 still pending (InSettlement, not Settled)
         assertEq(gateway.pendingDepositRequest(0, alice), 10e6);
+        assertEq(gateway.claimableDepositRequest(0, alice), 0); // InSettlement is pending, not claimable
     }
 }

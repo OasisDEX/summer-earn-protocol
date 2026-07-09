@@ -250,8 +250,6 @@ contract AsyncFleetGateway is
         return 0;
     }
 
-    // ---------- everything below is implemented in later tasks ----------
-
     /// @inheritdoc IERC7540Deposit
     function deposit(
         uint256 assets,
