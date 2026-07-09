@@ -173,8 +173,6 @@ contract AsyncFleetGateway is
         }
     }
 
-    // ---------- everything below is implemented in later tasks ----------
-
     /// @inheritdoc IERC7540Operator
     function setOperator(
         address operator,
@@ -207,25 +205,52 @@ contract AsyncFleetGateway is
         uint256 assets,
         address controller,
         address owner
-    ) external returns (uint256 requestId) {
-        revert("NotImplemented");
+    ) public returns (uint256 requestId) {
+        if (assets == 0) revert ZeroAmount();
+        if (owner != _msgSender() && !_isOperator[owner][_msgSender()]) {
+            revert InvalidOperator(owner, _msgSender());
+        }
+        _revertIfNotWhitelisted(
+            address(FLEET),
+            owner,
+            controller,
+            _msgSender()
+        );
+
+        requestId = _currentDepositEpoch;
+
+        // CEI: mint receipt after the asset transfer-in (ERC-777-style pre-transfer hooks would
+        // reenter before any state change, which is a valid state).
+        ASSET.safeTransferFrom(owner, address(this), assets);
+        _mint(controller, depositReceiptId(requestId), assets, "");
+
+        emit DepositRequest(controller, owner, requestId, _msgSender(), assets);
     }
 
     /// @inheritdoc IERC7540Deposit
     function pendingDepositRequest(
         uint256 requestId,
         address controller
-    ) external view returns (uint256 pendingAssets) {
-        revert("NotImplemented");
+    ) public view returns (uint256) {
+        EpochState state = _depositEpochState[requestId];
+        if (state == EpochState.Open || state == EpochState.InSettlement) {
+            return balanceOf(controller, depositReceiptId(requestId));
+        }
+        return 0;
     }
 
     /// @inheritdoc IERC7540Deposit
     function claimableDepositRequest(
         uint256 requestId,
         address controller
-    ) external view returns (uint256 claimableAssets) {
-        revert("NotImplemented");
+    ) public view returns (uint256) {
+        if (_depositEpochState[requestId] == EpochState.Settled) {
+            return balanceOf(controller, depositReceiptId(requestId));
+        }
+        return 0;
     }
+
+    // ---------- everything below is implemented in later tasks ----------
 
     /// @inheritdoc IERC7540Deposit
     function deposit(
@@ -355,8 +380,19 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function closeDepositEpoch() external {
-        revert("NotImplemented");
+    function closeDepositEpoch() public onlyKeeper {
+        uint256 closing = _currentDepositEpoch;
+        if (_depositEpochState[closing] != EpochState.Open) {
+            revert InvalidEpochState(
+                closing,
+                _depositEpochState[closing],
+                EpochState.Open
+            );
+        }
+        _depositEpochState[closing] = EpochState.InSettlement;
+        _currentDepositEpoch = closing + 1;
+        _depositEpochState[closing + 1] = EpochState.Open;
+        emit DepositEpochClosed(closing);
     }
 
     /// @inheritdoc IAsyncFleetGateway
