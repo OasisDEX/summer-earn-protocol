@@ -6,6 +6,7 @@ import { useStakingRewards } from '../hooks/useStakingRewards'
 import type { ChainId, UserFleetInfo } from '../types'
 import { formatDecimalOutput } from '../utils/decimals'
 import { AmountInput } from './AmountInput'
+import { AddressDisplay } from './ui'
 
 interface StakingSectionProps {
   fleetAddress: string
@@ -65,28 +66,34 @@ export function StakingSection({
 
   return (
     <div className="glass rounded-2xl p-6">
-      <h3 className="font-bold text-lg text-white mb-6">xSUMMER Staking</h3>
+      <h3 className="font-headline font-bold text-lg text-on-surface mb-6">xSUMMER Staking</h3>
 
       {/* Staking Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-          <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Your Staked Balance</p>
-          <p className="text-lg font-bold text-white">
+          <p className="text-[11px] text-on-surface-variant uppercase font-bold mb-1">
+            Your Staked Balance
+          </p>
+          <p className="text-lg font-bold text-on-surface tabular-nums">
             {formatDecimalOutput(stakedBalance, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
 
         <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-          <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Total Staked</p>
-          <p className="text-lg font-bold text-white">
+          <p className="text-[11px] text-on-surface-variant uppercase font-bold mb-1">
+            Total Staked
+          </p>
+          <p className="text-lg font-bold text-on-surface tabular-nums">
             {formatDecimalOutput(totalStakedSupply, fleetDecimals)} {fleetSymbol}
           </p>
         </div>
 
         {rewardTokensLength > 0 && (
           <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-            <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Earned Rewards</p>
-            <p className="text-lg font-bold text-emerald-400">
+            <p className="text-[11px] text-on-surface-variant uppercase font-bold mb-1">
+              Earned Rewards
+            </p>
+            <p className="text-lg font-bold text-secondary tabular-nums">
               {formatDecimalOutput(earnedRewards, 18)}
             </p>
             {earnedRewards > BigInt(0) && (
@@ -95,8 +102,8 @@ export function StakingSection({
                 disabled={isClaimLoading}
                 className={`mt-2 px-4 py-2 text-xs rounded-xl font-bold transition-all ${
                   isClaimLoading
-                    ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
-                    : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
+                    ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+                    : 'bg-primary hover:bg-primary-dim border border-primary/50 text-on-primary'
                 }`}
               >
                 {isClaimLoading ? 'Claiming...' : 'Claim'}
@@ -109,7 +116,7 @@ export function StakingSection({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Stake Section */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-white">Stake Fleet Shares</h4>
+          <h4 className="text-lg font-medium text-on-surface">Stake Fleet Shares</h4>
 
           <AmountInput
             value={stakeAmount}
@@ -130,16 +137,16 @@ export function StakingSection({
             disabled={isStakeLoading || parsedStakeAmount === BigInt(0)}
             className={`w-full py-3 rounded-xl font-bold transition-all ${
               isStakeLoading || parsedStakeAmount === BigInt(0)
-                ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
-                : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
+                ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+                : 'bg-primary hover:bg-primary-dim border border-primary/50 text-on-primary'
             }`}
           >
             {isStakeLoading ? 'Staking...' : `Stake ${fleetSymbol}`}
           </button>
 
           {isStakeConfirmed && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-              <p className="text-green-200 text-sm">
+            <div className="p-3 bg-success/10 border border-success/20 rounded-xl">
+              <p className="text-success text-sm">
                 Successfully staked {stakeAmount} {fleetSymbol}!
               </p>
             </div>
@@ -148,7 +155,7 @@ export function StakingSection({
 
         {/* Unstake Section */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-white">Unstake Fleet Shares</h4>
+          <h4 className="text-lg font-medium text-on-surface">Unstake Fleet Shares</h4>
 
           <AmountInput
             value={unstakeAmount}
@@ -169,7 +176,7 @@ export function StakingSection({
             disabled={isUnstakeLoading || parsedUnstakeAmount === BigInt(0)}
             className={`w-full py-3 rounded-xl font-bold transition-all ${
               isUnstakeLoading || parsedUnstakeAmount === BigInt(0)
-                ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+                ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
                 : 'bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30'
             }`}
           >
@@ -177,8 +184,8 @@ export function StakingSection({
           </button>
 
           {isUnstakeConfirmed && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-              <p className="text-green-200 text-sm">
+            <div className="p-3 bg-success/10 border border-success/20 rounded-xl">
+              <p className="text-success text-sm">
                 Successfully unstaked {unstakeAmount} {fleetSymbol}!
               </p>
             </div>
@@ -188,8 +195,8 @@ export function StakingSection({
 
       {/* Staking Info */}
       <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/5">
-        <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">About Staking</h5>
-        <div className="text-sm text-slate-400 space-y-1">
+        <h5 className="text-xs font-bold text-on-surface-variant uppercase mb-2">About Staking</h5>
+        <div className="text-sm text-on-surface-variant space-y-1">
           <p>• Stake your {fleetSymbol} fleet shares to earn additional rewards</p>
           <p>• Staked shares continue earning fleet returns plus bonus rewards</p>
           <p>• You can unstake at any time, but rewards accrue over time</p>
@@ -199,9 +206,9 @@ export function StakingSection({
 
       {/* Contract Info */}
       <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/5">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-on-surface-variant">
           <strong>Staking Contract:</strong>{' '}
-          <span className="font-mono text-primary">{stakingRewardsManagerAddress}</span>
+          <AddressDisplay value={stakingRewardsManagerAddress} chars={6} className="text-primary" />
         </p>
       </div>
     </div>

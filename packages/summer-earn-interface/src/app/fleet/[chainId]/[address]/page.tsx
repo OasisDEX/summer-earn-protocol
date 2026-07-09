@@ -13,6 +13,7 @@ import { GlassCard } from '../../../../components/GlassCard'
 import { ProgressBar } from '../../../../components/ProgressBar'
 import { RebalanceForm } from '../../../../components/RebalanceForm'
 import { StakingSection } from '../../../../components/StakingSection'
+import { AddressDisplay, Badge, ErrorState } from '../../../../components/ui'
 import { useFleetActions } from '../../../../hooks/useFleetActions'
 import { useFleetArks } from '../../../../hooks/useFleetArks'
 import { useFleetInfo } from '../../../../hooks/useFleetInfo'
@@ -127,23 +128,17 @@ export default function FleetDetail() {
 
   if (fleetError || (!fleetLoading && !fleetInfo)) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <Link href="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">
-            ← Back to Fleets
-          </Link>
-          <h1 className="text-2xl font-bold text-white">Fleet Details</h1>
-          <div className="text-center text-red-400 mb-4">
-            {fleetError
-              ? 'Error loading fleet:'
-              : 'Fleet not found. Please check the address and try again.'}
-          </div>
-          {fleetError && (
-            <div className="text-center text-gray-400 text-sm mb-4 bg-gray-800 p-4 rounded">
-              <strong>Error details:</strong> {fleetError.message}
-            </div>
-          )}
-        </div>
+      <div>
+        <Link
+          href="/"
+          className="text-on-surface-variant hover:text-on-surface text-sm mb-6 inline-block transition-colors"
+        >
+          ← Back to Fleets
+        </Link>
+        <ErrorState
+          title={fleetError ? 'Error loading fleet' : 'Fleet not found'}
+          description={fleetError ? fleetError.message : 'Please check the address and try again.'}
+        />
       </div>
     )
   }
@@ -152,19 +147,23 @@ export default function FleetDetail() {
     <div>
       {/* Page title row: Back + Fleet name */}
       <div className="flex items-center gap-3 mb-8">
-        <Link href="/" className="text-slate-400 hover:text-white transition-colors text-sm">
+        <Link
+          href="/"
+          className="text-on-surface-variant hover:text-on-surface transition-colors text-sm whitespace-nowrap"
+        >
           ← Back to Fleets
         </Link>
-        <span className="text-slate-600">|</span>
+        <span className="text-outline-variant">|</span>
         {fleetInfo ? (
           <>
-            <h1 className="text-2xl font-bold text-white">
+            <h1
+              className="text-2xl font-headline font-bold text-on-surface truncate"
+              title={`${fleetInfo.name} (${fleetInfo.symbol})`}
+            >
               {fleetInfo.name} ({fleetInfo.symbol})
             </h1>
             {isConnected && userInfo && userInfo.balance > BigInt(0) && (
-              <span className="px-2.5 py-1 bg-primary/20 text-primary text-xs font-medium rounded-lg">
-                Active
-              </span>
+              <Badge tone="primary">Active</Badge>
             )}
           </>
         ) : (
@@ -176,32 +175,42 @@ export default function FleetDetail() {
         {/* Fleet Information & User Actions */}
         <div className="space-y-6">
           <GlassCard>
-            <h2 className="text-lg font-semibold text-white mb-6">Fleet Information</h2>
+            <h2 className="text-lg font-headline font-semibold text-on-surface mb-6">
+              Fleet Information
+            </h2>
 
             {fleetInfo ? (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Fleet Address</p>
-                  <p className="font-mono text-slate-300 break-all text-sm">{fleetInfo.address}</p>
+                  <p className="text-sm text-on-surface-variant mb-1">Fleet Address</p>
+                  <AddressDisplay
+                    value={fleetInfo.address}
+                    full
+                    className="text-sm text-on-surface/90"
+                  />
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Asset</p>
-                  <p className="font-mono text-slate-300 break-all text-sm">{fleetInfo.asset}</p>
+                  <p className="text-sm text-on-surface-variant mb-1">Asset</p>
+                  <AddressDisplay
+                    value={fleetInfo.asset}
+                    full
+                    className="text-sm text-on-surface/90"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-slate-500 mb-1">Total Assets</p>
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-sm text-on-surface-variant mb-1">Total Assets</p>
+                    <p className="text-lg font-semibold text-on-surface tabular-nums">
                       {formatDecimalOutput(fleetInfo.totalAssets, assetInfo.decimals)}{' '}
                       {assetInfo.symbol}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-slate-500 mb-1">Withdrawable</p>
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-sm text-on-surface-variant mb-1">Withdrawable</p>
+                    <p className="text-lg font-semibold text-on-surface tabular-nums">
                       {formatDecimalOutput(fleetInfo.withdrawableTotalAssets, assetInfo.decimals)}{' '}
                       {assetInfo.symbol}
                     </p>
@@ -211,8 +220,8 @@ export default function FleetDetail() {
                 {fleetInfo.depositCap > BigInt(0) && (
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-500">Deposit Cap</span>
-                      <span className="text-white">
+                      <span className="text-on-surface-variant">Deposit Cap</span>
+                      <span className="text-on-surface tabular-nums">
                         {formatPercentage(
                           (fleetInfo.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
                             fleetInfo.depositCap,
@@ -258,19 +267,23 @@ export default function FleetDetail() {
 
           {isConnected && userInfo && fleetInfo && (
             <GlassCard>
-              <h3 className="text-lg font-semibold text-white mb-6">Your Position</h3>
+              <h3 className="text-lg font-headline font-semibold text-on-surface mb-6">
+                Your Position
+              </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Your Fleet Tokens</p>
-                  <p className="text-lg font-semibold text-white">
+                  <p className="text-sm text-on-surface-variant mb-1">Your Fleet Tokens</p>
+                  <p className="text-lg font-semibold text-on-surface tabular-nums">
                     {formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals)}{' '}
                     {fleetInfo.symbol}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Your {assetInfo.symbol} Balance</p>
-                  <p className="text-lg font-semibold text-white">
+                  <p className="text-sm text-on-surface-variant mb-1">
+                    Your {assetInfo.symbol} Balance
+                  </p>
+                  <p className="text-lg font-semibold text-on-surface tabular-nums">
                     {formatDecimalOutput(userInfo.underlyingBalance, assetInfo.decimals)}{' '}
                     {assetInfo.symbol}
                   </p>
@@ -313,12 +326,16 @@ export default function FleetDetail() {
         <div className="space-y-6">
           {/* Arks Section */}
           <GlassCard>
-            <h2 className="text-lg font-semibold text-white mb-6">Active Fleet Arks</h2>
+            <h2 className="text-lg font-headline font-semibold text-on-surface mb-6">
+              Active Fleet Arks
+            </h2>
 
             {arksLoading ? (
-              <div className="text-center text-slate-400">Loading arks...</div>
+              <div className="text-center text-on-surface-variant">Loading arks...</div>
             ) : arks.length === 0 ? (
-              <div className="text-center text-slate-500">No arks found for this fleet.</div>
+              <div className="text-center text-on-surface-variant">
+                No arks found for this fleet.
+              </div>
             ) : (
               <div className="space-y-4">
                 {arks.map((ark) => (
@@ -326,42 +343,36 @@ export default function FleetDetail() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-white font-semibold">{ark.name}</h4>
-                          {ark.isBufferArk && (
-                            <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-lg">
-                              Buffer Ark
-                            </span>
-                          )}
-                          {ark.hasWithdrawalQueue && (
-                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-lg">
-                              Withdrawal Queue
-                            </span>
-                          )}
+                          <h4 className="text-on-surface font-semibold">{ark.name}</h4>
+                          {ark.isBufferArk && <Badge tone="primary">Buffer Ark</Badge>}
+                          {ark.hasWithdrawalQueue && <Badge tone="info">Withdrawal Queue</Badge>}
                           {ark.needsSweep && !ark.isBufferArk && (
-                            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg">
-                              Needs Sweep
-                            </span>
+                            <Badge tone="warning">Needs Sweep</Badge>
                           )}
                         </div>
                         {ark.withdrawalRequestId != null && (
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="text-xs text-on-surface-variant mt-0.5">
                             Withdrawal ID: {ark.withdrawalRequestId}
                           </p>
                         )}
-                        <p className="text-slate-500 text-sm font-mono">{ark.address}</p>
+                        <AddressDisplay
+                          value={ark.address}
+                          chars={8}
+                          className="text-sm text-on-surface-variant"
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                       <div>
-                        <p className="text-slate-500">Balance</p>
-                        <p className="text-white font-medium">
+                        <p className="text-on-surface-variant">Balance</p>
+                        <p className="text-on-surface font-medium tabular-nums">
                           {formatDecimalOutput(ark.totalAssets, assetInfo.decimals)}{' '}
                           {assetInfo.symbol}
                         </p>
                       </div>
                       <div>
-                        <p className="text-slate-500">Allocation</p>
-                        <p className="text-white font-medium">
+                        <p className="text-on-surface-variant">Allocation</p>
+                        <p className="text-on-surface font-medium tabular-nums">
                           {fleetInfo &&
                           fleetInfo.totalAssets > BigInt(0) &&
                           ark.totalAssets > BigInt(0)
@@ -376,19 +387,19 @@ export default function FleetDetail() {
 
                     {/* Ark Configuration Limits */}
                     <div className="border-t border-white/10 pt-4 mt-4">
-                      <p className="text-xs text-slate-500 mb-3 font-semibold uppercase tracking-wide">
+                      <p className="text-xs text-on-surface-variant mb-3 font-semibold uppercase tracking-wide">
                         Config Limits
                       </p>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-slate-500">Deposit Cap</p>
-                          <p className="text-white font-medium">
+                          <p className="text-on-surface-variant">Deposit Cap</p>
+                          <p className="text-on-surface font-medium tabular-nums">
                             {ark.depositCap === BigInt(0)
                               ? 'Zero'
                               : `${formatDecimalOutput(ark.depositCap, assetInfo.decimals)} ${assetInfo.symbol}`}
                           </p>
                           {ark.depositCap > BigInt(0) && (
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-on-surface-variant mt-1">
                               {formatPercentage(
                                 (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) / ark.depositCap,
                               )}{' '}
@@ -397,8 +408,8 @@ export default function FleetDetail() {
                           )}
                         </div>
                         <div>
-                          <p className="text-slate-500">Max Deposit % of TVL</p>
-                          <p className="text-white font-medium">
+                          <p className="text-on-surface-variant">Max Deposit % of TVL</p>
+                          <p className="text-on-surface font-medium tabular-nums">
                             {ark.maxDepositPercentageOfTVL === BigInt(0)
                               ? 'Zero'
                               : formatPercentage(ark.maxDepositPercentageOfTVL)}
@@ -406,7 +417,7 @@ export default function FleetDetail() {
                           {fleetInfo &&
                             fleetInfo.totalAssets > BigInt(0) &&
                             ark.totalAssets > BigInt(0) && (
-                              <p className="text-xs text-slate-500 mt-1">
+                              <p className="text-xs text-on-surface-variant mt-1">
                                 Current:{' '}
                                 {formatPercentage(
                                   (ark.totalAssets * BigInt(100) * BigInt(10 ** 18)) /
@@ -417,8 +428,8 @@ export default function FleetDetail() {
                             )}
                         </div>
                         <div>
-                          <p className="text-slate-500">Max Rebalance Inflow</p>
-                          <p className="text-white font-medium">
+                          <p className="text-on-surface-variant">Max Rebalance Inflow</p>
+                          <p className="text-on-surface font-medium tabular-nums">
                             {ark.maxRebalanceInflow ===
                             BigInt(
                               '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
@@ -428,8 +439,8 @@ export default function FleetDetail() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-slate-500">Max Rebalance Outflow</p>
-                          <p className="text-white font-medium">
+                          <p className="text-on-surface-variant">Max Rebalance Outflow</p>
+                          <p className="text-on-surface font-medium tabular-nums">
                             {ark.maxRebalanceOutflow ===
                             BigInt(
                               '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
@@ -486,7 +497,7 @@ export default function FleetDetail() {
           <GlassCard>
             <button
               onClick={() => setIsFleetManagementOpen(!isFleetManagementOpen)}
-              className="w-full flex items-center justify-between text-white py-3 px-1 rounded-md hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between text-on-surface py-3 px-1 rounded-md hover:bg-white/5 transition-colors"
             >
               <span className="text-lg font-semibold">Advanced Fleet Management</span>
               <span
