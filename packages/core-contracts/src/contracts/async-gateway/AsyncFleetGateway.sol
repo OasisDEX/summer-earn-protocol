@@ -394,13 +394,46 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function settleDepositEpoch(uint256 epoch) external {
-        revert("NotImplemented");
+    function settleDepositEpoch(uint256 epoch) public onlyKeeper {
+        if (_depositEpochState[epoch] != EpochState.InSettlement) {
+            revert InvalidEpochState(
+                epoch,
+                _depositEpochState[epoch],
+                EpochState.InSettlement
+            );
+        }
+        // Flip state before the external trade so any reentry observes the terminal state.
+        _depositEpochState[epoch] = EpochState.Settled;
+
+        uint256 frozenAssets = totalSupply(depositReceiptId(epoch));
+        uint256 sharesOut = 0;
+        if (frozenAssets > 0) {
+            SafeERC20.forceApprove(ASSET, address(FLEET), frozenAssets);
+            sharesOut = FLEET.deposit(frozenAssets, address(this));
+            _depositRate[epoch] = toPrice(sharesOut, frozenAssets);
+        }
+        emit DepositEpochSettled(
+            epoch,
+            frozenAssets,
+            sharesOut,
+            _depositRate[epoch]
+        );
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function retryDepositEpoch(uint256 epoch) external {
-        revert("NotImplemented");
+    function retryDepositEpoch(uint256 epoch) public onlyKeeper {
+        if (epoch >= _currentDepositEpoch) {
+            revert CannotRetryCurrentEpoch(epoch, _currentDepositEpoch);
+        }
+        if (_depositEpochState[epoch] != EpochState.Open) {
+            revert InvalidEpochState(
+                epoch,
+                _depositEpochState[epoch],
+                EpochState.Open
+            );
+        }
+        _depositEpochState[epoch] = EpochState.InSettlement;
+        emit DepositEpochRetried(epoch);
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -419,8 +452,16 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function rollbackDepositEpoch(uint256 epoch) external {
-        revert("NotImplemented");
+    function rollbackDepositEpoch(uint256 epoch) public onlyGovernor {
+        if (_depositEpochState[epoch] != EpochState.InSettlement) {
+            revert InvalidEpochState(
+                epoch,
+                _depositEpochState[epoch],
+                EpochState.InSettlement
+            );
+        }
+        _depositEpochState[epoch] = EpochState.Open;
+        emit DepositEpochRolledBack(epoch);
     }
 
     /// @inheritdoc IAsyncFleetGateway
