@@ -18,7 +18,7 @@ export function ProgressBar({
   return (
     <div className={`w-full h-1.5 bg-white/5 rounded-full overflow-hidden ${className}`}>
       <div
-        className={`bg-primary h-full transition-all ${showGlow ? 'shadow-[0_0_8px_rgba(255,46,143,0.5)]' : ''}`}
+        className={`bg-primary h-full transition-all ${showGlow ? 'shadow-[0_0_8px_rgba(137,172,255,0.5)]' : ''}`}
         style={{ width: `${percentage}%` }}
       />
     </div>

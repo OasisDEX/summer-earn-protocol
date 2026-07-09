@@ -20,7 +20,7 @@ const OPTIONS: { label: string; value: RangeOption }[] = [
 export const RangeSelector: React.FC<RangeSelectorProps> = ({ value, onChange, className }) => {
   return (
     <div className={className}>
-      <div className="flex bg-[#121316] p-1 rounded-lg border border-white/[0.06]">
+      <div className="flex bg-surface-container-low p-1 rounded-lg border border-white/[0.06]">
         {OPTIONS.map((option) => (
           <button
             key={option.value}
@@ -28,8 +28,8 @@ export const RangeSelector: React.FC<RangeSelectorProps> = ({ value, onChange, c
             onClick={() => onChange(option.value)}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
               value === option.value
-                ? 'bg-[#89acff] text-[#002b6a] shadow-lg shadow-[#89acff]/20'
-                : 'text-[#ababad] hover:text-[#fdfbfe] hover:bg-white/[0.04]'
+                ? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]'
             }`}
           >
             {option.label}

@@ -9,6 +9,22 @@ import { CreateBondModal } from '../../components/modals/CreateBondModal'
 import { CreateIntentModal } from '../../components/modals/CreateIntentModal'
 import { SetPriceModal } from '../../components/modals/SetPriceModal'
 import { SolveIntentModal } from '../../components/modals/SolveIntentModal'
+import {
+  AddressDisplay,
+  Badge,
+  Button,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  SectionHeader,
+  Table,
+  TableContainer,
+  TBody,
+  Td,
+  Th,
+  THead,
+  Tr,
+} from '../../components/ui'
 import { useEnvironment } from '../../hooks/useEnvironment'
 import type { IntentEvent } from '../../hooks/useIntentSystem'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
@@ -224,22 +240,23 @@ export default function IntentSystemPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
+    <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <a href="/" className="text-blue-400 hover:text-blue-300 transition-colors">
-              ← Back to Home
-            </a>
-          </div>
+          <a
+            href="/"
+            className="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors mb-4"
+          >
+            ← Back to Home
+          </a>
 
-          <h1 className="text-3xl font-bold text-white mb-2">Intent System Configuration</h1>
-          <p className="text-gray-300 mb-6">
-            Monitor and manage the deployed Intent System contracts on {getChainName()}
-          </p>
+          <PageHeader
+            title="Intent System Configuration"
+            description={`Monitor and manage the deployed Intent System contracts on ${getChainName()}`}
+          />
 
-          <div className="bg-gray-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
+          <div className="glass p-6 rounded-xl shadow-card">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ChainSelector selectedChain={selectedChain} onChange={setSelectedChain} />
             </div>
@@ -248,122 +265,114 @@ export default function IntentSystemPage() {
 
         {/* Deployment Status */}
         <div className="mb-8">
-          <div
-            className={`p-4 rounded-lg border ${
-              isDeployed
-                ? 'bg-green-900/20 border-green-500/30 text-green-300'
-                : 'bg-red-900/20 border-red-500/30 text-red-300'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full ${isDeployed ? 'bg-green-400' : 'bg-red-400'}`}
-              />
-              <span className="font-semibold">
-                {isDeployed ? 'Intent System Deployed' : 'Intent System Not Deployed'}
-              </span>
+          {isDeployed ? (
+            <div className="p-4 rounded-lg border bg-success/15 border-success/25 text-success">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-success" />
+                <span className="font-semibold">Intent System Deployed</span>
+              </div>
+              <p className="mt-2 text-sm opacity-80">
+                All core contracts are deployed and operational on {getChainName()}
+              </p>
             </div>
-            <p className="mt-2 text-sm opacity-80">
-              {isDeployed
-                ? `All core contracts are deployed and operational on ${getChainName()}`
-                : `No Intent System contracts found on ${getChainName()}`}
-            </p>
-          </div>
+          ) : (
+            <ErrorState
+              title="Intent System Not Deployed"
+              description={`No Intent System contracts found on ${getChainName()}`}
+            />
+          )}
         </div>
 
         {/* Real Data - Intent Events */}
         {isDeployed && (
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Live Intent Events</h2>
-              <button
-                onClick={fetchIntentEvents}
-                disabled={eventsLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-              >
-                {eventsLoading ? 'Loading...' : 'Refresh Events'}
-              </button>
-            </div>
+            <SectionHeader
+              title="Live Intent Events"
+              actions={
+                <Button onClick={fetchIntentEvents} disabled={eventsLoading} variant="primary">
+                  {eventsLoading ? 'Loading...' : 'Refresh Events'}
+                </Button>
+              }
+            />
 
             {eventsLoading ? (
-              <div className="bg-gray-800/50 p-8 rounded-xl border border-white/10 text-center">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading intent events...</p>
+              <div className="bg-surface-container-high border border-white/10 p-8 rounded-xl text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-on-surface-variant">Loading intent events...</p>
               </div>
             ) : intentEvents && intentEvents.length > 0 ? (
-              <div className="bg-gray-800/50 rounded-xl border border-white/10 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-700/50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-gray-300">Time</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Intent ID</th>
-                        <th className="px-4 py-3 text-left text-gray-300">User</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Solver</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Status</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Notional</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Bond</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Term</th>
-                        <th className="px-4 py-3 text-left text-gray-300">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formatIntentEvents().map((event, index) => (
-                        <tr key={index} className="border-t border-white/5 hover:bg-white/5">
-                          <td className="px-4 py-3 text-gray-300">{event.formattedTime}</td>
-                          <td className="px-4 py-3 font-mono text-blue-400">
-                            {event.shortIntentId}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-purple-400">{event.shortUser}</td>
-                          <td className="px-4 py-3 font-mono text-green-400">
-                            {event.shortSolver}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`px-2 py-1 rounded text-xs ${
-                                event.state === 'Settled'
-                                  ? 'bg-green-600 text-white'
-                                  : event.state === 'Solved'
-                                    ? 'bg-blue-600 text-white'
-                                    : event.state === 'Created'
-                                      ? 'bg-yellow-600 text-white'
-                                      : 'bg-gray-600 text-white'
-                              }`}
+              <TableContainer>
+                <Table>
+                  <THead className="bg-white/5">
+                    <Tr>
+                      <Th>Time</Th>
+                      <Th>Intent ID</Th>
+                      <Th>User</Th>
+                      <Th>Solver</Th>
+                      <Th>Status</Th>
+                      <Th numeric>Notional</Th>
+                      <Th numeric>Bond</Th>
+                      <Th numeric>Term</Th>
+                      <Th>Actions</Th>
+                    </Tr>
+                  </THead>
+                  <TBody>
+                    {formatIntentEvents().map((event, index) => (
+                      <Tr key={index} hover>
+                        <Td className="text-on-surface-variant whitespace-nowrap">
+                          {event.formattedTime}
+                        </Td>
+                        <Td className="font-mono text-info">{event.shortIntentId}</Td>
+                        <Td className="font-mono text-on-surface-variant">{event.shortUser}</Td>
+                        <Td className="font-mono text-on-surface-variant">{event.shortSolver}</Td>
+                        <Td>
+                          <Badge
+                            tone={
+                              event.state === 'Settled'
+                                ? 'success'
+                                : event.state === 'Solved'
+                                  ? 'info'
+                                  : event.state === 'Created'
+                                    ? 'warning'
+                                    : 'neutral'
+                            }
+                          >
+                            {event.state}
+                          </Badge>
+                        </Td>
+                        <Td numeric className="text-on-surface-variant">
+                          {event.requiredNotionalFormatted}
+                        </Td>
+                        <Td numeric className="text-on-surface-variant">
+                          {event.requiredBondFormatted}
+                        </Td>
+                        <Td numeric className="text-on-surface-variant">
+                          {event.termDays}
+                        </Td>
+                        <Td>
+                          {event.state === 'Created' && (
+                            <button
+                              onClick={() => openSolveModal(event)}
+                              className="px-3 py-1 bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25 text-xs rounded-lg transition-colors"
                             >
-                              {event.state}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-300">
-                            {event.requiredNotionalFormatted}
-                          </td>
-                          <td className="px-4 py-3 text-gray-300">{event.requiredBondFormatted}</td>
-                          <td className="px-4 py-3 text-gray-300">{event.termDays}</td>
-                          <td className="px-4 py-3">
-                            {event.state === 'Created' && (
-                              <button
-                                onClick={() => openSolveModal(event)}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
-                              >
-                                Solve
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                              Solve
+                            </button>
+                          )}
+                        </Td>
+                      </Tr>
+                    ))}
+                  </TBody>
+                </Table>
+              </TableContainer>
             ) : (
-              <div className="bg-gray-800/50 p-8 rounded-xl border border-white/10 text-center">
-                <p className="text-gray-400 mb-4">No intent events found in recent blocks</p>
-                <button
-                  onClick={fetchIntentEvents}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
-                >
-                  Refresh Events
-                </button>
-              </div>
+              <EmptyState
+                title="No intent events found in recent blocks"
+                action={
+                  <Button onClick={fetchIntentEvents} variant="primary">
+                    Refresh Events
+                  </Button>
+                }
+              />
             )}
           </div>
         )}
@@ -371,64 +380,66 @@ export default function IntentSystemPage() {
         {/* My Solver Bond - Actionable Content */}
         {isConnected && userAddress && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4">My Solver Bond</h2>
+            <SectionHeader title="My Solver Bond" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10">
+              <div className="bg-surface-container-high border border-white/10 p-6 rounded-xl">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">🏦</span>
+                  <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🏦</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Bond Status</h3>
-                    <p className="text-sm text-gray-400">Your solver bond information</p>
+                    <h3 className="text-lg font-headline font-semibold text-on-surface">
+                      Bond Status
+                    </h3>
+                    <p className="text-sm text-on-surface-variant">Your solver bond information</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-700/50 p-3 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-purple-400">
+                    <div className="bg-white/5 border border-white/10 p-3 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-primary tabular-nums">
                         {formatEther(bondAmount)} SUMMER
                       </div>
-                      <div className="text-sm text-gray-400">Bond Amount</div>
+                      <div className="text-sm text-on-surface-variant">Bond Amount</div>
                     </div>
-                    <div className="bg-gray-700/50 p-3 rounded-lg text-center">
+                    <div className="bg-white/5 border border-white/10 p-3 rounded-lg text-center">
                       <div
                         className={`text-2xl font-bold ${
                           solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
-                            ? 'text-green-400'
-                            : 'text-red-400'
+                            ? 'text-success'
+                            : 'text-error'
                         }`}
                       >
                         {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
                           ? 'Yes'
                           : 'No'}
                       </div>
-                      <div className="text-sm text-gray-400">Voucher Status</div>
+                      <div className="text-sm text-on-surface-variant">Voucher Status</div>
                     </div>
                   </div>
-                  <div className="bg-gray-700/50 p-3 rounded-lg">
-                    <div className="text-sm text-gray-400 mb-2">Wallet Address:</div>
-                    <div className="font-mono text-sm break-all">{userAddress}</div>
+                  <div className="bg-white/5 border border-white/10 p-3 rounded-lg">
+                    <div className="text-sm text-on-surface-variant mb-2">Wallet Address:</div>
+                    <AddressDisplay value={userAddress} full className="text-sm" />
                   </div>
 
-                  <div className="bg-gray-700/50 p-3 rounded-lg">
-                    <div className="text-sm text-gray-400 mb-2">Fund Bond:</div>
+                  <div className="bg-white/5 border border-white/10 p-3 rounded-lg">
+                    <div className="text-sm text-on-surface-variant mb-2">Fund Bond:</div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => fundBond(BigInt(1000) * BigInt(10 ** 18))} // 1000 SUMMER
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                        className="px-3 py-1 bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25 text-xs rounded-lg transition-colors"
                       >
                         +1000 SUMMER
                       </button>
                       <button
                         onClick={() => fundBond(BigInt(500) * BigInt(10 ** 18))} // 500 SUMMER
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                        className="px-3 py-1 bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25 text-xs rounded-lg transition-colors"
                       >
                         +500 SUMMER
                       </button>
                       <button
                         onClick={() => fundBond(BigInt(100) * BigInt(10 ** 18))} // 100 SUMMER
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                        className="px-3 py-1 bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25 text-xs rounded-lg transition-colors"
                       >
                         +100 SUMMER
                       </button>
@@ -436,18 +447,19 @@ export default function IntentSystemPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={() => setShowCreateBond(true)}
-                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
+                      variant="primary"
+                      className="flex-1"
                     >
                       {bondAmount > BigInt(0) ? 'Add to Bond' : 'Create Bond'}
-                    </button>
+                    </Button>
                     <button
                       onClick={() => copyToClipboard(userAddress)}
-                      className={`px-4 py-2 text-sm rounded transition-colors ${
+                      className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                         copiedAddress === userAddress
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-600 hover:bg-gray-700 text-white'
+                          ? 'bg-success/15 border border-success/30 text-success'
+                          : 'bg-white/5 border border-white/10 text-on-surface hover:bg-white/10'
                       }`}
                     >
                       {copiedAddress === userAddress ? 'Copied!' : 'Copy Address'}
@@ -456,31 +468,37 @@ export default function IntentSystemPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10">
+              <div className="bg-surface-container-high border border-white/10 p-6 rounded-xl">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">📊</span>
+                  <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📊</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Bond Requirements</h3>
-                    <p className="text-sm text-gray-400">Minimum requirements to be a solver</p>
+                    <h3 className="text-lg font-headline font-semibold text-on-surface">
+                      Bond Requirements
+                    </h3>
+                    <p className="text-sm text-on-surface-variant">
+                      Minimum requirements to be a solver
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                  <div className="bg-white/5 border border-white/10 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Minimum Bond:</span>
-                      <span className="font-semibold text-white">1,000 SUMMER</span>
+                      <span className="text-sm text-on-surface-variant">Minimum Bond:</span>
+                      <span className="font-semibold text-on-surface tabular-nums">
+                        1,000 SUMMER
+                      </span>
                     </div>
                   </div>
-                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                  <div className="bg-white/5 border border-white/10 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Voucher Status:</span>
+                      <span className="text-sm text-on-surface-variant">Voucher Status:</span>
                       <span
                         className={`font-semibold ${
                           solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
-                            ? 'text-green-400'
-                            : 'text-red-400'
+                            ? 'text-success'
+                            : 'text-error'
                         }`}
                       >
                         {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
@@ -489,14 +507,14 @@ export default function IntentSystemPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="bg-gray-700/50 p-3 rounded-lg">
+                  <div className="bg-white/5 border border-white/10 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Can Solve Intents:</span>
+                      <span className="text-sm text-on-surface-variant">Can Solve Intents:</span>
                       <span
                         className={`font-semibold ${
                           solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
-                            ? 'text-green-400'
-                            : 'text-red-400'
+                            ? 'text-success'
+                            : 'text-error'
                         }`}
                       >
                         {solverInfo && solverInfo.address === userAddress && solverInfo.isVouched
@@ -505,7 +523,7 @@ export default function IntentSystemPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400 space-y-1">
+                  <div className="text-xs text-on-surface-variant space-y-1">
                     <div>• Bond must be at least 1,000 SUMMER</div>
                     <div>• Vouched solvers can solve intents</div>
                     <div>• Bond is locked while solving</div>
@@ -519,55 +537,41 @@ export default function IntentSystemPage() {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+          <SectionHeader title="Quick Actions" />
           <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => setShowCreateIntent(true)}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              📝 Create Intent
-            </button>
-            <button
-              onClick={() => setShowSolveIntent(true)}
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              🔍 Solve Intent
-            </button>
-            <button
-              onClick={() => setShowCreateBond(true)}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              🏦 Create Bond
-            </button>
-            <button
-              onClick={() => setShowSetPrice(true)}
-              className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              💰 Set Price
-            </button>
+            <Button onClick={() => setShowCreateIntent(true)} variant="primary" size="lg">
+              Create Intent
+            </Button>
+            <Button onClick={() => setShowSolveIntent(true)} variant="secondary" size="lg">
+              Solve Intent
+            </Button>
+            <Button onClick={() => setShowCreateBond(true)} variant="secondary" size="lg">
+              Create Bond
+            </Button>
+            <Button onClick={() => setShowSetPrice(true)} variant="secondary" size="lg">
+              Set Price
+            </Button>
           </div>
         </div>
 
         {/* Not Deployed Message */}
         {!isDeployed && (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-4xl">🚫</span>
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Intent System Not Deployed</h3>
-            <p className="text-gray-400 mb-6">
-              The Intent System contracts have not been deployed on {getChainName()} yet.
-            </p>
-            <div className="bg-gray-800/70 p-6 rounded-xl border border-white/10 max-w-md mx-auto">
-              <h4 className="font-semibold text-white mb-3">To deploy:</h4>
-              <ol className="text-sm text-gray-300 space-y-2 text-left">
-                <li>1. Use the deployment scripts in core-contracts</li>
-                <li>2. Update the configuration files</li>
-                <li>3. Verify contracts on the blockchain</li>
-                <li>4. Configure initial parameters</li>
-              </ol>
-            </div>
-          </div>
+          <EmptyState
+            icon="🚫"
+            title="Intent System Not Deployed"
+            description={`The Intent System contracts have not been deployed on ${getChainName()} yet.`}
+            action={
+              <div className="w-full max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-6 text-left">
+                <h4 className="font-semibold text-on-surface mb-3">To deploy:</h4>
+                <ol className="text-sm text-on-surface-variant space-y-2">
+                  <li>1. Use the deployment scripts in core-contracts</li>
+                  <li>2. Update the configuration files</li>
+                  <li>3. Verify contracts on the blockchain</li>
+                  <li>4. Configure initial parameters</li>
+                </ol>
+              </div>
+            }
+          />
         )}
 
         {/* Modals */}

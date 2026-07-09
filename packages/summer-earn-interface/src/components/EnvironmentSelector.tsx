@@ -11,8 +11,8 @@ export function EnvironmentSelector() {
         onClick={() => setEnvironment('production')}
         className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
           environment === 'production'
-            ? 'bg-primary text-white shadow-sm'
-            : 'text-slate-400 hover:text-white transition-colors'
+            ? 'bg-primary text-on-primary shadow-sm'
+            : 'text-on-surface-variant hover:text-on-surface transition-colors'
         }`}
       >
         Production
@@ -21,8 +21,8 @@ export function EnvironmentSelector() {
         onClick={() => setEnvironment('staging')}
         className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
           environment === 'staging'
-            ? 'bg-primary text-white shadow-sm'
-            : 'text-slate-400 hover:text-white transition-colors'
+            ? 'bg-primary text-on-primary shadow-sm'
+            : 'text-on-surface-variant hover:text-on-surface transition-colors'
         }`}
       >
         Staging

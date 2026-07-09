@@ -6,6 +6,8 @@ import { fromHex } from 'viem'
 import { useInstitutions } from '@/hooks/useInstitutions'
 import type { ChainId } from '@/types'
 
+import { labelBase, selectBase } from './ui'
+
 interface InstitutionSelectorProps {
   chainId: ChainId
   value?: string
@@ -38,15 +40,15 @@ export function InstitutionSelector({ chainId, value, onChange }: InstitutionSel
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-300 mb-2">Institution</label>
+      <label className={labelBase}>Institution</label>
       <select
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className={`${selectBase} w-full`}
         disabled={isLoading || !!error}
       >
         <option value="" disabled>
-          {isLoading ? 'Loading institutions...' : 'Select an institution'}
+          {isLoading ? 'Loading institutions…' : 'Select an institution'}
         </option>
         {options.map((opt) => (
           <option key={opt.id} value={opt.id}>
@@ -54,7 +56,7 @@ export function InstitutionSelector({ chainId, value, onChange }: InstitutionSel
           </option>
         ))}
       </select>
-      {error && <p className="text-sm text-red-400 mt-2">Failed to load institutions.</p>}
+      {error && <p className="text-sm text-error mt-2">Failed to load institutions.</p>}
     </div>
   )
 }

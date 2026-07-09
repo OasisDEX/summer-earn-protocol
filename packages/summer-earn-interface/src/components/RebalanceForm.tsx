@@ -3,8 +3,10 @@
 import { useState } from 'react'
 
 import type { ArkInfo, RebalanceData } from '../types'
+import { formatAddress } from '../utils/address'
 import { formatDecimalOutput } from '../utils/decimals'
 import { AmountInput } from './AmountInput'
+import { inputBase, labelBase, selectBase } from './ui'
 
 interface RebalanceRow {
   id: string
@@ -90,7 +92,7 @@ export function RebalanceForm({
   return (
     <div className="glass rounded-2xl p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="font-bold text-lg text-white">Fleet Optimization</h3>
+        <h3 className="font-bold text-lg text-on-surface">Fleet Optimization</h3>
         <button
           type="button"
           onClick={addRow}
@@ -119,11 +121,11 @@ export function RebalanceForm({
           disabled={!canSubmit}
           className={`w-full py-3 rounded-xl font-bold transition-all ${
             canSubmit
-              ? 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
-              : 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
+              ? 'bg-primary hover:shadow-neon-glow border border-primary/50 text-on-primary'
+              : 'bg-surface-container-high text-on-surface-variant/80 cursor-not-allowed'
           }`}
         >
-          {isLoading ? 'Rebalancing...' : 'Execute Rebalance'}
+          {isLoading ? 'Rebalancing…' : 'Execute Rebalance'}
         </button>
       </div>
     </div>
@@ -154,12 +156,14 @@ function RebalanceRowForm({
   return (
     <div className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4">
       <div className="flex justify-between items-center">
-        <span className="text-xs font-bold text-slate-500 uppercase">Rebalance #{index + 1}</span>
+        <span className="text-xs font-bold text-on-surface-variant/80 uppercase">
+          Rebalance #{index + 1}
+        </span>
         {onRemove && (
           <button
             type="button"
             onClick={onRemove}
-            className="text-red-400 hover:text-red-300 text-sm font-medium"
+            className="text-error hover:text-error/80 text-sm font-medium"
           >
             Remove
           </button>
@@ -169,18 +173,17 @@ function RebalanceRowForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* From Ark */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">From Ark</label>
+          <label className={labelBase}>From Ark</label>
           <select
             value={row.fromArk}
             onChange={(e) => onUpdate({ fromArk: e.target.value as `0x${string}` })}
-            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full ${selectBase}`}
           >
-            <option value="0x">Select source ark...</option>
+            <option value="0x">Select source ark…</option>
             {arks.map((ark) => (
               <option key={`from-${ark.address}`} value={ark.address}>
                 {ark.name}
-                {ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...
-                {ark.address.slice(-4)}
+                {ark.isBufferArk ? ' (Buffer)' : ''} - {formatAddress(ark.address)}
               </option>
             ))}
           </select>
@@ -188,20 +191,19 @@ function RebalanceRowForm({
 
         {/* To Ark */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">To Ark</label>
+          <label className={labelBase}>To Ark</label>
           <select
             value={row.toArk}
             onChange={(e) => onUpdate({ toArk: e.target.value as `0x${string}` })}
-            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full ${selectBase}`}
           >
-            <option value="0x">Select destination ark...</option>
+            <option value="0x">Select destination ark…</option>
             {arks
               .filter((ark) => ark.address !== row.fromArk)
               .map((ark) => (
                 <option key={`to-${ark.address}`} value={ark.address}>
                   {ark.name}
-                  {ark.isBufferArk ? ' (Buffer)' : ''} - {ark.address.slice(0, 6)}...
-                  {ark.address.slice(-4)}
+                  {ark.isBufferArk ? ' (Buffer)' : ''} - {formatAddress(ark.address)}
                 </option>
               ))}
           </select>
@@ -209,16 +211,16 @@ function RebalanceRowForm({
       </div>
 
       {selectedFromArk && (
-        <div className="p-3 bg-gray-700/50 rounded-lg text-sm text-gray-300">
+        <div className="p-3 bg-white/5 rounded-lg text-sm text-on-surface-variant">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-medium">{selectedFromArk.name}</span>
             {selectedFromArk.isBufferArk && (
-              <span className="px-2 py-0.5 bg-blue-600 text-blue-100 text-xs rounded-full">
+              <span className="px-2 py-0.5 bg-info/20 text-info text-xs rounded-full">
                 Buffer Ark
               </span>
             )}
           </div>
-          <div>
+          <div className="tabular-nums">
             Withdrawable:{' '}
             {formatDecimalOutput(selectedFromArk.withdrawableTotalAssets, assetDecimals)}{' '}
             {assetSymbol}
@@ -242,27 +244,23 @@ function RebalanceRowForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Board Data (Optional)
-          </label>
+          <label className={labelBase}>Board Data (Optional)</label>
           <input
             type="text"
             value={row.boardData}
             onChange={(e) => onUpdate({ boardData: e.target.value })}
             placeholder="0x"
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full ${inputBase} text-sm font-mono`}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Disembark Data (Optional)
-          </label>
+          <label className={labelBase}>Disembark Data (Optional)</label>
           <input
             type="text"
             value={row.disembarkData}
             onChange={(e) => onUpdate({ disembarkData: e.target.value })}
             placeholder="0x"
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full ${inputBase} text-sm font-mono`}
           />
         </div>
       </div>

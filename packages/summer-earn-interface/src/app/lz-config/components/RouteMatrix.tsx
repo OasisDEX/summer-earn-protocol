@@ -3,6 +3,7 @@
 import type { Address, Hex } from 'viem'
 
 import { GlassCard } from '../../../components/GlassCard'
+import { Table, TableContainer, TBody, Td, Th, THead, Tr } from '../../../components/ui'
 import type { DvnMetadata } from '../hooks/useDvnMetadata'
 import { useDvnMetadata } from '../hooks/useDvnMetadata'
 import { useOAppAdmin } from '../hooks/useOAppAdmin'
@@ -33,12 +34,12 @@ const STATUS_LABEL: Record<Status, string> = {
 }
 
 const STATUS_CLASS: Record<Status, string> = {
-  ok: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  drift: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  unset: 'bg-red-500/15 text-red-300 border-red-500/30',
-  na: 'bg-white/5 text-slate-500 border-white/10',
-  loading: 'bg-white/5 text-slate-500 border-white/10 animate-pulse',
-  error: 'bg-red-500/15 text-red-300 border-red-500/30',
+  ok: 'bg-success/15 text-success border-success/30',
+  drift: 'bg-warning/15 text-warning border-warning/30',
+  unset: 'bg-error/15 text-error border-error/30',
+  na: 'bg-white/5 text-on-surface-variant border-white/10',
+  loading: 'bg-white/5 text-on-surface-variant border-white/10 animate-pulse',
+  error: 'bg-error/15 text-error border-error/30',
 }
 
 function StatusPill({ status, title }: { status: Status; title?: string }) {
@@ -63,11 +64,11 @@ const ENFORCED_LABEL: Record<EnforcedStatus, string> = {
 }
 
 const ENFORCED_CLASS: Record<EnforcedStatus, string> = {
-  ok: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  empty: 'bg-red-500/15 text-red-300 border-red-500/30',
-  notread: 'bg-white/5 text-slate-500 border-white/10',
-  loading: 'bg-white/5 text-slate-500 border-white/10 animate-pulse',
-  error: 'bg-red-500/15 text-red-300 border-red-500/30',
+  ok: 'bg-success/15 text-success border-success/30',
+  empty: 'bg-error/15 text-error border-error/30',
+  notread: 'bg-white/5 text-on-surface-variant border-white/10',
+  loading: 'bg-white/5 text-on-surface-variant border-white/10 animate-pulse',
+  error: 'bg-error/15 text-error border-error/30',
 }
 
 function EnforcedPill({ status, title }: { status: EnforcedStatus; title?: string }) {
@@ -98,34 +99,34 @@ function RecsBadge({
 }) {
   if (isLoading) {
     return (
-      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-white/5 text-slate-500 border-white/10 animate-pulse">
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-white/5 text-on-surface-variant border-white/10 animate-pulse">
         …
       </span>
     )
   }
   if (count === 0 || worst === null) {
     return (
-      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-success/15 text-success border-success/30">
         ✓
       </span>
     )
   }
   if (worst === 'error') {
     return (
-      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-red-500/15 text-red-300 border-red-500/30">
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-error/15 text-error border-error/30">
         {count} ✕
       </span>
     )
   }
   if (worst === 'warn') {
     return (
-      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-amber-500/15 text-amber-300 border-amber-500/30">
+      <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-warning/15 text-warning border-warning/30">
         {count} ⚠
       </span>
     )
   }
   return (
-    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-white/5 text-slate-300 border-white/10">
+    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded border bg-info/15 text-info border-info/30">
       {count} ℹ
     </span>
   )
@@ -199,30 +200,30 @@ export function RouteMatrix({
 
   return (
     <GlassCard>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-slate-500 text-xs uppercase tracking-wider">
-              <th className="text-left py-2 px-3">Remote</th>
-              <th className="text-left py-2 px-3">Peer</th>
-              <th className="text-left py-2 px-3">Send ULN</th>
-              <th className="text-left py-2 px-3">Receive ULN</th>
-              <th className="text-left py-2 px-3">Send Lib</th>
-              <th className="text-left py-2 px-3">Receive Lib</th>
-              <th className="text-left py-2 px-3">Executor</th>
-              <th className="text-left py-2 px-3">Enf SEND</th>
-              <th className="text-left py-2 px-3">Enf S+C</th>
-              <th className="text-left py-2 px-3">Recs</th>
-              <th className="py-2 px-3" />
-            </tr>
-          </thead>
-          <tbody>
+      <TableContainer>
+        <Table>
+          <THead>
+            <Tr>
+              <Th>Remote</Th>
+              <Th>Peer</Th>
+              <Th>Send ULN</Th>
+              <Th>Receive ULN</Th>
+              <Th>Send Lib</Th>
+              <Th>Receive Lib</Th>
+              <Th>Executor</Th>
+              <Th>Enf SEND</Th>
+              <Th>Enf S+C</Th>
+              <Th>Recs</Th>
+              <Th />
+            </Tr>
+          </THead>
+          <TBody>
             {remotes.length === 0 && (
-              <tr>
-                <td colSpan={11} className="py-6 text-center text-slate-500">
+              <Tr>
+                <Td colSpan={11} align="center" className="py-6 text-on-surface-variant">
                   No remote routes configured for this source chain.
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             )}
             {remotes.map((remote) => (
               <RouteMatrixRow
@@ -236,9 +237,9 @@ export function RouteMatrix({
                 admin={admin ?? null}
               />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+        </Table>
+      </TableContainer>
     </GlassCard>
   )
 }
@@ -327,43 +328,41 @@ function RouteMatrixRow({
   const recsCount = error ? 1 : recs.length
 
   return (
-    <tr
+    <Tr
       onClick={onClick}
-      className={`cursor-pointer transition-colors border-t border-white/5 ${
-        isSelected ? 'bg-primary/5' : 'hover:bg-white/5'
-      }`}
+      className={`cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-white/5'}`}
     >
-      <td className="py-3 px-3 capitalize text-white font-medium" title={errorMessage}>
+      <Td className="capitalize text-on-surface font-medium" title={errorMessage}>
         {remoteChain}
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <StatusPill status={peer} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <StatusPill status={sendUln} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <StatusPill status={recvUln} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <StatusPill status={sendLib} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <StatusPill status={recvLib} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <StatusPill status={exec} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <EnforcedPill status={enfSend} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <EnforcedPill status={enfSC} title={errorMessage} />
-      </td>
-      <td className="py-3 px-3">
+      </Td>
+      <Td>
         <RecsBadge count={recsCount} worst={worst} isLoading={isLoading} />
-      </td>
-      <td className="py-3 px-3 text-slate-500">{isSelected ? '▾' : '▸'}</td>
-    </tr>
+      </Td>
+      <Td className="text-on-surface-variant">{isSelected ? '▾' : '▸'}</Td>
+    </Tr>
   )
 }

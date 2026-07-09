@@ -14,6 +14,8 @@ import {
   YAxis,
 } from 'recharts'
 
+import { checkboxBase } from './ui'
+
 interface RateDataPoint {
   timestamp: number
   date: string
@@ -114,7 +116,7 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
 
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[400px] text-gray-500">
+      <div className="flex items-center justify-center h-[400px] text-on-surface-variant">
         No rate data available
       </div>
     )
@@ -126,25 +128,25 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
       {(averages.avg1Day !== null || averages.avg7Day !== null || averages.avg30Day !== null) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {averages.avg1Day !== null && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-3">
-              <div className="text-xs text-gray-400 mb-1">1 Day Average</div>
-              <div className="text-lg font-semibold text-green-400">
+            <div className="bg-white/5 rounded-lg border border-white/10 p-3">
+              <div className="text-xs text-on-surface-variant mb-1">1 Day Average</div>
+              <div className="text-lg font-semibold text-success tabular-nums">
                 {averages.avg1Day.toFixed(4)}%
               </div>
             </div>
           )}
           {averages.avg7Day !== null && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-3">
-              <div className="text-xs text-gray-400 mb-1">7 Day Average</div>
-              <div className="text-lg font-semibold text-blue-400">
+            <div className="bg-white/5 rounded-lg border border-white/10 p-3">
+              <div className="text-xs text-on-surface-variant mb-1">7 Day Average</div>
+              <div className="text-lg font-semibold text-primary tabular-nums">
                 {averages.avg7Day.toFixed(4)}%
               </div>
             </div>
           )}
           {averages.avg30Day !== null && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-3">
-              <div className="text-xs text-gray-400 mb-1">30 Day Average</div>
-              <div className="text-lg font-semibold text-purple-400">
+            <div className="bg-white/5 rounded-lg border border-white/10 p-3">
+              <div className="text-xs text-on-surface-variant mb-1">30 Day Average</div>
+              <div className="text-lg font-semibold text-accent tabular-nums">
                 {averages.avg30Day.toFixed(4)}%
               </div>
             </div>
@@ -159,30 +161,30 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             type="checkbox"
             checked={showWeekly}
             onChange={(e) => setShowWeekly(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+            className={checkboxBase}
           />
-          <span className="text-white">Weekly</span>
-          <div className="w-3 h-3 rounded-full bg-purple-500" />
+          <span className="text-on-surface">Weekly</span>
+          <div className="w-3 h-3 rounded-full bg-accent" />
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={showDaily}
             onChange={(e) => setShowDaily(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+            className={checkboxBase}
           />
-          <span className="text-white">Daily</span>
-          <div className="w-3 h-3 rounded-full bg-blue-500" />
+          <span className="text-on-surface">Daily</span>
+          <div className="w-3 h-3 rounded-full bg-primary" />
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={showHourly}
             onChange={(e) => setShowHourly(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+            className={checkboxBase}
           />
-          <span className="text-white">Hourly</span>
-          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <span className="text-on-surface">Hourly</span>
+          <div className="w-3 h-3 rounded-full bg-success" />
         </label>
       </div>
 
@@ -190,30 +192,30 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
       <div className="w-full h-[500px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis
               dataKey="date"
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
+              stroke="#47484a"
+              tick={{ fill: '#ababad', fontSize: 12 }}
               angle={-45}
               textAnchor="end"
               height={80}
               interval="preserveStartEnd"
             />
             <YAxis
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
+              stroke="#47484a"
+              tick={{ fill: '#ababad', fontSize: 12 }}
               tickFormatter={(value) => `${value.toFixed(2)}%`}
               domain={['auto', 'auto']}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#1f2937',
-                border: '1px solid #374151',
+                backgroundColor: '#1e2022',
+                border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '0.5rem',
-                color: '#f3f4f6',
+                color: '#fdfbfe',
               }}
-              labelStyle={{ color: '#9ca3af', marginBottom: '0.5rem' }}
+              labelStyle={{ color: '#ababad', marginBottom: '0.5rem' }}
               formatter={(value: number, name: string) => [
                 `${value.toFixed(4)}%`,
                 name.charAt(0).toUpperCase() + name.slice(1),
@@ -223,13 +225,13 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             <Legend
               wrapperStyle={{ paddingTop: '1rem' }}
               iconType="line"
-              formatter={(value) => <span style={{ color: '#9ca3af' }}>{value}</span>}
+              formatter={(value) => <span style={{ color: '#ababad' }}>{value}</span>}
             />
             {showWeekly && (
               <Line
                 type="monotone"
                 dataKey="weekly"
-                stroke="#a855f7"
+                stroke="#a7c1ff"
                 strokeWidth={2}
                 dot={false}
                 name="Weekly"
@@ -240,7 +242,7 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
               <Line
                 type="monotone"
                 dataKey="daily"
-                stroke="#3b82f6"
+                stroke="#89acff"
                 strokeWidth={2}
                 dot={false}
                 name="Daily"
@@ -251,7 +253,7 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
               <Line
                 type="monotone"
                 dataKey="hourly"
-                stroke="#10b981"
+                stroke="#86e6b4"
                 strokeWidth={2}
                 dot={false}
                 name="Hourly"
@@ -262,13 +264,13 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             {averages.avg1Day !== null && (
               <ReferenceLine
                 y={averages.avg1Day}
-                stroke="#10b981"
+                stroke="#86e6b4"
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 label={{
                   value: '1d Avg',
                   position: 'right',
-                  fill: '#10b981',
+                  fill: '#86e6b4',
                   fontSize: 12,
                 }}
               />
@@ -276,13 +278,13 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             {averages.avg7Day !== null && (
               <ReferenceLine
                 y={averages.avg7Day}
-                stroke="#3b82f6"
+                stroke="#89acff"
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 label={{
                   value: '7d Avg',
                   position: 'right',
-                  fill: '#3b82f6',
+                  fill: '#89acff',
                   fontSize: 12,
                 }}
               />
@@ -290,13 +292,13 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             {averages.avg30Day !== null && (
               <ReferenceLine
                 y={averages.avg30Day}
-                stroke="#a855f7"
+                stroke="#a7c1ff"
                 strokeWidth={1.5}
                 strokeDasharray="5 5"
                 label={{
                   value: '30d Avg',
                   position: 'right',
-                  fill: '#a855f7',
+                  fill: '#a7c1ff',
                   fontSize: 12,
                 }}
               />
@@ -304,8 +306,8 @@ export const VaultAprChart = ({ weeklyRates, dailyRates, hourlyRates }: VaultApr
             <Brush
               dataKey="date"
               height={30}
-              stroke="#4b5563"
-              fill="#1f2937"
+              stroke="#47484a"
+              fill="#1e2022"
               tickFormatter={(value) => {
                 const date = chartData.find((d) => d.date === value)
                 return date ? new Date(date.timestamp).toLocaleDateString() : value

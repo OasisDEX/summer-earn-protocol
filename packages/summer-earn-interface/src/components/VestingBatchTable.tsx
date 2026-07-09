@@ -7,6 +7,7 @@ import type { WalletSnapshot } from '@/lib/vesting-logic'
 import { formatDecimalOutput } from '@/utils/decimals'
 
 import { ProgressBar } from './ProgressBar'
+import { AddressDisplay, inputBase } from './ui'
 
 function StatCard({
   label,
@@ -23,9 +24,11 @@ function StatCard({
     <div
       className={`glass rounded-xl p-4 text-left space-y-1 ${highlight ? 'border-primary/30' : ''}`}
     >
-      <div className="text-[10px] uppercase tracking-wide font-bold text-slate-500">{label}</div>
-      <div className="text-2xl font-bold text-white tracking-tight">
-        {value} <span className="text-slate-500 text-sm font-normal">{suffix}</span>
+      <div className="text-[11px] uppercase tracking-wide font-bold text-on-surface-variant">
+        {label}
+      </div>
+      <div className="text-2xl font-bold text-on-surface tracking-tight tabular-nums">
+        {value} <span className="text-on-surface-variant text-sm font-normal">{suffix}</span>
       </div>
     </div>
   )
@@ -44,12 +47,12 @@ function SortableHeader({
 }) {
   return (
     <th
-      className="px-3 py-3 text-right border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors group select-none"
+      className="px-3 py-3 text-right border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors group select-none text-[11px] font-semibold uppercase tracking-wider"
       onClick={() => onClick(sortKey)}
     >
-      <div className="flex items-center justify-end gap-1 text-slate-400">
+      <div className="flex items-center justify-end gap-1 text-on-surface-variant">
         {label}
-        <span className="text-slate-600 text-[10px]">
+        <span className="text-on-surface-variant/60 text-[11px]">
           {currentSort?.key === sortKey ? (currentSort.direction === 'asc' ? '▲' : '▼') : '↕'}
         </span>
       </div>
@@ -214,8 +217,8 @@ export default function VestingBatchTable({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search wallet or codename..."
-          className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 w-full max-w-xs"
+          placeholder="Search wallet or codename…"
+          className={`${inputBase} max-w-xs`}
         />
         <div className="flex gap-2">
           {(['all', 'active', 'completed'] as const).map((s) => (
@@ -224,8 +227,8 @@ export default function VestingBatchTable({
               onClick={() => setStatusFilter(s)}
               className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
                 statusFilter === s
-                  ? 'bg-primary text-white border border-primary/50'
-                  : 'bg-white/5 text-slate-400 border border-white/5 hover:text-slate-300'
+                  ? 'bg-primary text-on-primary border border-primary/50'
+                  : 'bg-white/5 text-on-surface-variant border border-white/5 hover:text-on-surface'
               }`}
             >
               {s === 'all' ? 'All' : s === 'active' ? 'Active' : 'Completed'}
@@ -236,13 +239,13 @@ export default function VestingBatchTable({
 
       {/* Table */}
       <div className="glass rounded-2xl overflow-x-auto w-full relative shadow-2xl">
-        <table className="w-full table-auto text-xs md:text-sm text-slate-200 whitespace-nowrap">
-          <thead className="bg-charcoal-800/90 sticky top-0 z-20 backdrop-blur-md">
+        <table className="w-full table-auto text-xs text-on-surface whitespace-nowrap">
+          <thead className="bg-surface-container-high sticky top-0 z-20">
             <tr>
-              <th className="px-3 py-3 text-left sticky left-0 bg-charcoal-800/95 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] border-b border-white/10">
+              <th className="px-3 py-3 text-left sticky left-0 bg-surface-container-high z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-on-surface">
                 Codename
               </th>
-              <th className="px-3 py-3 text-left border-b border-white/10 text-slate-400">
+              <th className="px-3 py-3 text-left border-b border-white/10 text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider">
                 Wallet / Owner
               </th>
               <SortableHeader
@@ -251,7 +254,7 @@ export default function VestingBatchTable({
                 onClick={handleSort}
                 currentSort={sortConfig}
               />
-              <th className="px-3 py-3 text-left border-b border-white/10 text-slate-400">
+              <th className="px-3 py-3 text-left border-b border-white/10 text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider">
                 Progress
               </th>
               <SortableHeader
@@ -284,7 +287,7 @@ export default function VestingBatchTable({
                 onClick={handleSort}
                 currentSort={sortConfig}
               />
-              <th className="px-3 py-3 text-right border-b border-white/10 text-slate-400">
+              <th className="px-3 py-3 text-right border-b border-white/10 text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider">
                 Staking V2
               </th>
               <SortableHeader
@@ -293,13 +296,13 @@ export default function VestingBatchTable({
                 onClick={handleSort}
                 currentSort={sortConfig}
               />
-              <th className="px-3 py-3 text-center border-b border-white/10 text-slate-400">
+              <th className="px-3 py-3 text-center border-b border-white/10 text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider">
                 Escrow
               </th>
-              <th className="px-3 py-3 text-right border-b border-white/10 text-slate-400">
+              <th className="px-3 py-3 text-right border-b border-white/10 text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider">
                 Retention
               </th>
-              <th className="px-3 py-3 text-center border-b border-white/10 text-slate-400">
+              <th className="px-3 py-3 text-center border-b border-white/10 text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -314,10 +317,10 @@ export default function VestingBatchTable({
               return (
                 <tr key={snap.codename} className="hover:bg-white/5 transition-colors group">
                   {/* Sticky Codename Column */}
-                  <td className="px-3 py-3 font-semibold sticky left-0 bg-charcoal-900 group-hover:bg-charcoal-800 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] border-r border-white/5">
-                    <div className="text-white">
+                  <td className="px-3 py-3 font-semibold sticky left-0 bg-surface-container group-hover:bg-surface-container-high z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] border-r border-white/5">
+                    <div className="text-on-surface">
                       {snap.codename}
-                      <div className="font-normal text-[9px] text-slate-500 mt-0.5 opacity-70 uppercase tracking-wider">
+                      <div className="font-normal text-xs text-on-surface-variant mt-0.5 opacity-70 uppercase tracking-wider">
                         {snap.version}
                       </div>
                     </div>
@@ -326,56 +329,58 @@ export default function VestingBatchTable({
                   {/* Wallet / Owner */}
                   <td className="px-3 py-3">
                     <div className="flex flex-col">
-                      <span className="text-primary font-mono text-[11px] font-medium">
-                        {snap.owner.slice(0, 6)}...{snap.owner.slice(-4)}
-                      </span>
+                      <AddressDisplay
+                        value={snap.owner}
+                        className="text-primary text-xs font-medium"
+                      />
                       {snap.vestingWallet ? (
-                        <span className="text-slate-400 font-mono text-[10px]">
-                          {snap.vestingWallet.slice(0, 6)}...{snap.vestingWallet.slice(-4)}
-                        </span>
+                        <AddressDisplay
+                          value={snap.vestingWallet}
+                          className="text-on-surface-variant text-xs"
+                        />
                       ) : (
-                        <span className="text-slate-600 text-[10px]">—</span>
+                        <span className="text-on-surface-variant/60 text-xs">—</span>
                       )}
                     </div>
                   </td>
 
-                  <td className="px-3 py-3 text-right font-medium text-white">
+                  <td className="px-3 py-3 text-right font-medium text-on-surface tabular-nums">
                     {formatDecimalOutput(snap.totalPlanned, snap.decimals)}
                   </td>
 
-                  <td className="px-3 py-3 min-w-[120px]">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="space-y-1">
                       <ProgressBar value={vestingProgressPct} className="h-2" />
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-xs text-on-surface-variant tabular-nums">
                         {vestingProgressPct.toFixed(1)}%
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-3 py-3 text-right text-emerald-400">
+                  <td className="px-3 py-3 text-right text-success tabular-nums">
                     {formatDecimalOutput(snap.vested, snap.decimals)}
                   </td>
 
-                  <td className="px-3 py-3 text-right text-yellow-400 font-medium">
+                  <td className="px-3 py-3 text-right text-warning font-medium tabular-nums">
                     {formatDecimalOutput(snap.releasable, snap.decimals)}
                   </td>
 
-                  <td className="px-3 py-3 text-right text-slate-400">
+                  <td className="px-3 py-3 text-right text-on-surface-variant tabular-nums">
                     {formatDecimalOutput(snap.unvested, snap.decimals)}
                   </td>
 
-                  <td className="px-3 py-3 text-right text-slate-300">
+                  <td className="px-3 py-3 text-right text-on-surface-variant tabular-nums">
                     {formatDecimalOutput(snap.summerBalance, snap.decimals)}
                   </td>
 
-                  <td className="px-3 py-3 text-right text-slate-300">
+                  <td className="px-3 py-3 text-right text-on-surface-variant tabular-nums">
                     {formatDecimalOutput(snap.xSummerBalance, snap.decimals)}
                   </td>
 
                   {/* Staking V2 Map */}
-                  <td className="px-3 py-3 text-right min-w-[180px]">
+                  <td className="px-3 py-3 text-right whitespace-nowrap">
                     <div className="flex flex-col items-end gap-0.5">
-                      <span className="mb-1 text-slate-200">
+                      <span className="mb-1 text-on-surface tabular-nums">
                         {formatDecimalOutput(snap.stakingBalance, 18)}
                       </span>
                       {snap.stakes.length > 0 && (
@@ -383,16 +388,18 @@ export default function VestingBatchTable({
                           {snap.stakes.map((stake, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-end gap-2 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[10px]"
+                              className="flex items-center justify-end gap-2 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-xs"
                             >
-                              <span className="text-slate-400 font-mono">
+                              <span className="text-on-surface-variant font-mono tabular-nums">
                                 {new Date(Number(stake.lockupEndTime) * 1000).toLocaleDateString()}
                               </span>
                               <div className="flex items-baseline gap-1">
-                                <span className="text-slate-200 font-medium tabular-nums">
+                                <span className="text-on-surface font-medium tabular-nums">
                                   {formatDecimalOutput(stake.amount, 18)}
                                 </span>
-                                <span className="text-slate-500 text-[9px] uppercase">SUMR</span>
+                                <span className="text-on-surface-variant text-xs uppercase">
+                                  SUMR
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -401,14 +408,14 @@ export default function VestingBatchTable({
                     </div>
                   </td>
 
-                  <td className="px-3 py-3 text-right text-slate-300">
+                  <td className="px-3 py-3 text-right text-on-surface-variant tabular-nums">
                     {formatDecimalOutput(snap.governanceRewardsBalance, 18)}
                   </td>
 
                   <td className="px-3 py-3 text-center">
                     {snap.inEscrow ? (
                       <span
-                        className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/30"
+                        className="inline-block w-2.5 h-2.5 rounded-full bg-success ring-2 ring-success/30"
                         title="In Escrow"
                       />
                     ) : (
@@ -430,12 +437,12 @@ export default function VestingBatchTable({
                     const isOk = delta >= 0n
                     return (
                       <td
-                        className={`px-3 py-3 text-right font-medium ${
+                        className={`px-3 py-3 text-right font-medium tabular-nums ${
                           snap.totalPlanned === 0n
-                            ? 'text-slate-600'
+                            ? 'text-on-surface-variant/80'
                             : isOk
-                              ? 'text-emerald-400'
-                              : 'text-red-400'
+                              ? 'text-success'
+                              : 'text-error'
                         }`}
                       >
                         {snap.totalPlanned === 0n ? (

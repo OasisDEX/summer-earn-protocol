@@ -1,9 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { Address, Hex } from 'viem'
+import type { Hex } from 'viem'
 
 import { GlassCard } from '../../../components/GlassCard'
+import { AddressDisplay } from '../../../components/ui'
 import type { DvnMetadata } from '../hooks/useDvnMetadata'
 import { lookupDvn, useDvnMetadata } from '../hooks/useDvnMetadata'
 import { useOAppAdmin } from '../hooks/useOAppAdmin'
@@ -51,31 +52,27 @@ function Row({
   return (
     <div className="grid grid-cols-2 gap-4 py-2 border-b border-white/5 last:border-b-0">
       <div>
-        <div className="text-xs uppercase tracking-wider text-slate-500 mb-1">
+        <div className="text-xs uppercase tracking-wider text-on-surface-variant mb-1">
           {label} (desired)
         </div>
         <div
-          className={`font-mono text-xs break-all ${differ ? 'text-amber-300' : 'text-slate-300'}`}
+          className={`font-mono text-xs tabular-nums break-all ${differ ? 'text-warning' : 'text-on-surface-variant'}`}
         >
           {desired ?? '—'}
         </div>
       </div>
       <div>
-        <div className="text-xs uppercase tracking-wider text-slate-500 mb-1">
+        <div className="text-xs uppercase tracking-wider text-on-surface-variant mb-1">
           {label} (on-chain)
         </div>
         <div
-          className={`font-mono text-xs break-all ${differ ? 'text-amber-300' : 'text-slate-300'}`}
+          className={`font-mono text-xs tabular-nums break-all ${differ ? 'text-warning' : 'text-on-surface-variant'}`}
         >
           {actual ?? '—'}
         </div>
       </div>
     </div>
   )
-}
-
-function fmtAddr(a: Address | null | undefined): string {
-  return a ?? '—'
 }
 
 function DvnAddrLine({
@@ -90,14 +87,14 @@ function DvnAddrLine({
   const info = lookupDvn(metadata, chain, address)
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
-      <span>{address}</span>
+      <AddressDisplay value={address} full />
       {info && (
-        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-white/5 text-slate-300 border-white/10">
+        <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-semibold border bg-white/5 text-on-surface-variant border-white/10">
           {info.canonicalName}
         </span>
       )}
       {info?.deprecated && (
-        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-red-500/15 text-red-300 border-red-500/30">
+        <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-semibold border bg-error/15 text-error border-error/30">
           deprecated
         </span>
       )}
@@ -137,7 +134,7 @@ function UlnSection({
 }) {
   return (
     <div className="pt-4">
-      <h4 className="text-sm font-semibold text-white mb-2">{title}</h4>
+      <h4 className="text-sm font-semibold text-on-surface mb-2">{title}</h4>
       <Row
         label="confirmations"
         desired={desired ? String(desired.confirmations) : '—'}
@@ -180,12 +177,12 @@ function UlnSection({
 
 function EnforcedValue({ value }: { value: Hex | null | undefined }) {
   if (value === null || value === undefined) {
-    return <span className="font-mono text-xs text-slate-500">—</span>
+    return <span className="font-mono text-xs text-on-surface-variant">—</span>
   }
   if (value === '0x') {
-    return <span className="text-xs font-semibold text-red-300">No options set</span>
+    return <span className="text-xs font-semibold text-error">No options set</span>
   }
-  return <span className="font-mono text-xs text-slate-300 break-all">{value}</span>
+  return <span className="font-mono text-xs text-on-surface-variant break-all">{value}</span>
 }
 
 function EnforcedSection({
@@ -197,16 +194,16 @@ function EnforcedSection({
 }) {
   return (
     <div className="pt-4">
-      <h4 className="text-sm font-semibold text-white mb-2">Enforced Options</h4>
+      <h4 className="text-sm font-semibold text-on-surface mb-2">Enforced Options</h4>
       <div className="space-y-2">
         <div className="grid grid-cols-[200px,1fr] items-start gap-3 py-1 border-b border-white/5">
-          <span className="text-xs uppercase tracking-wider text-slate-500">
+          <span className="text-xs uppercase tracking-wider text-on-surface-variant">
             Message Type 1 (SEND)
           </span>
           <EnforcedValue value={send} />
         </div>
         <div className="grid grid-cols-[200px,1fr] items-start gap-3 py-1">
-          <span className="text-xs uppercase tracking-wider text-slate-500">
+          <span className="text-xs uppercase tracking-wider text-on-surface-variant">
             Message Type 2 (SEND_AND_CALL)
           </span>
           <EnforcedValue value={sendAndCall} />
@@ -222,27 +219,27 @@ const SEVERITY_STYLES: Record<
 > = {
   error: {
     icon: '✕',
-    rowClass: 'border-red-500/30 bg-red-500/5',
-    iconClass: 'text-red-300',
+    rowClass: 'border-error/30 bg-error/5',
+    iconClass: 'text-error',
   },
   warn: {
     icon: '⚠',
-    rowClass: 'border-amber-500/30 bg-amber-500/5',
-    iconClass: 'text-amber-300',
+    rowClass: 'border-warning/30 bg-warning/5',
+    iconClass: 'text-warning',
   },
   info: {
     icon: 'ℹ',
     rowClass: 'border-white/10 bg-white/5',
-    iconClass: 'text-slate-400',
+    iconClass: 'text-on-surface-variant',
   },
 }
 
 function RecommendationsSection({ recs }: { recs: Recommendation[] }) {
   return (
     <div className="pt-4">
-      <h4 className="text-sm font-semibold text-white mb-2">Recommendations</h4>
+      <h4 className="text-sm font-semibold text-on-surface mb-2">Recommendations</h4>
       {recs.length === 0 ? (
-        <div className="text-xs text-emerald-300 px-3 py-2 rounded border border-emerald-500/30 bg-emerald-500/5">
+        <div className="text-xs text-success px-3 py-2 rounded border border-success/30 bg-success/5">
           ✓ No issues detected on this route.
         </div>
       ) : (
@@ -255,7 +252,7 @@ function RecommendationsSection({ recs }: { recs: Recommendation[] }) {
                 className={`flex items-start gap-2 px-3 py-2 rounded border ${s.rowClass}`}
               >
                 <span className={`font-bold leading-tight ${s.iconClass}`}>{s.icon}</span>
-                <span className="text-xs text-slate-300">{r.message}</span>
+                <span className="text-xs text-on-surface-variant">{r.message}</span>
               </li>
             )
           })}
@@ -274,14 +271,14 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
   if (isLoading) {
     return (
       <GlassCard>
-        <div className="text-slate-400 py-8 text-center">Loading on-chain config…</div>
+        <div className="text-on-surface-variant py-8 text-center">Loading on-chain config…</div>
       </GlassCard>
     )
   }
   if (error) {
     return (
       <GlassCard>
-        <div className="text-red-400 py-8 text-center">Error: {error.message}</div>
+        <div className="text-error py-8 text-center">Error: {error.message}</div>
       </GlassCard>
     )
   }
@@ -311,7 +308,7 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
   return (
     <GlassCard>
       <header className="mb-4 flex items-center justify-between gap-4">
-        <h3 className="text-lg font-semibold text-white">
+        <h3 className="text-lg font-semibold text-on-surface">
           {oApp}: {sourceChain} → <span className="capitalize">{remoteChain}</span>
         </h3>
         <button
@@ -321,7 +318,7 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
           className={`px-4 py-2 text-sm rounded-lg transition-colors ${
             onEdit
               ? 'bg-primary/20 text-primary hover:bg-primary/30'
-              : 'bg-white/5 text-slate-500 cursor-not-allowed'
+              : 'bg-white/5 text-on-surface-variant cursor-not-allowed'
           }`}
         >
           Edit route
@@ -336,26 +333,26 @@ export function RouteDetailPanel({ sourceChain, oApp, remoteChain, onEdit }: Pro
       />
       <Row
         label="Peer (address)"
-        desired={fmtAddr(desired?.peerAddress ?? null)}
-        actual={fmtAddr(actualPeerAddr)}
+        desired={<AddressDisplay value={desired?.peerAddress} full />}
+        actual={<AddressDisplay value={actualPeerAddr} full />}
         differ={peerDiffer}
       />
       <Row
         label="Send library"
-        desired={fmtAddr(desired?.sendLib ?? null)}
-        actual={fmtAddr(onChain?.sendLib ?? null)}
+        desired={<AddressDisplay value={desired?.sendLib} full />}
+        actual={<AddressDisplay value={onChain?.sendLib} full />}
         differ={sendLibDiffer}
       />
       <Row
         label="Receive library"
-        desired={fmtAddr(desired?.receiveLib ?? null)}
-        actual={fmtAddr(onChain?.receiveLib ?? null)}
+        desired={<AddressDisplay value={desired?.receiveLib} full />}
+        actual={<AddressDisplay value={onChain?.receiveLib} full />}
         differ={recvLibDiffer}
       />
       <Row
         label="Executor address"
-        desired={fmtAddr(desired?.executor.executorAddress ?? null)}
-        actual={fmtAddr(onChain?.executor?.executorAddress ?? null)}
+        desired={<AddressDisplay value={desired?.executor.executorAddress} full />}
+        actual={<AddressDisplay value={onChain?.executor?.executorAddress} full />}
         differ={executorAddrDiffer}
       />
       <Row

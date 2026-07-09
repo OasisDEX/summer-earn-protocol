@@ -130,12 +130,12 @@ export function Ark({
   }
 
   return (
-    <div className="bg-gray-400 shadow rounded-lg p-6 mb-4">
+    <div className="bg-white/[0.03] border border-white/5 rounded-lg p-4 mt-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">
+        <h2 className="text-base font-semibold text-on-surface">
           {name}
           {isWisdomTree && (
-            <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-800 text-xs font-medium rounded-lg align-middle">
+            <span className="ml-2 px-2 py-0.5 bg-info/15 text-info text-xs font-medium rounded-full align-middle">
               WisdomTree
             </span>
           )}
@@ -146,7 +146,7 @@ export function Ark({
       <div className="mb-4">
         <button
           onClick={() => setIsAuctionControlsOpen(!isAuctionControlsOpen)}
-          className="w-full flex items-center justify-between bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 mb-2"
+          className="w-full flex items-center justify-between bg-white/5 border border-white/10 text-on-surface py-2 px-4 rounded-md hover:bg-white/10 transition-colors mb-2"
         >
           <span className="font-semibold">Auction Controls</span>
           <span
@@ -157,23 +157,23 @@ export function Ark({
         </button>
 
         {isAuctionControlsOpen && (
-          <div className="bg-gray-300 p-4 rounded-md space-y-3">
+          <div className="bg-black/20 border border-white/5 p-4 rounded-md space-y-3">
             <div className="flex space-x-2">
               <button
                 onClick={handleHarvest}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                className="flex-1 bg-primary text-on-primary font-semibold py-2 px-4 rounded-md hover:bg-primary-dim transition-colors"
               >
                 Harvest
               </button>
               <button
                 onClick={handleHarvestAndStartAuction}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+                className="flex-1 bg-secondary/15 border border-secondary/30 text-secondary font-semibold py-2 px-4 rounded-md hover:bg-secondary/25 transition-colors"
               >
                 Harvest & Start Auction
               </button>
               <button
                 onClick={() => setIsConfigModalOpen(true)}
-                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700"
+                className="flex-1 bg-white/5 border border-white/10 text-on-surface font-semibold py-2 px-4 rounded-md hover:bg-white/10 transition-colors"
               >
                 Configure Auction
               </button>
@@ -182,19 +182,26 @@ export function Ark({
             <button
               onClick={handleFetchObtainedTokens}
               disabled={isLoadingTokens}
-              className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 disabled:opacity-50"
+              className="w-full bg-white/5 border border-white/10 text-on-surface py-2 px-4 rounded-md hover:bg-white/10 disabled:opacity-40 transition-colors"
             >
               {isLoadingTokens ? 'Loading...' : 'Fetch Obtained Tokens'}
             </button>
 
             {obtainedTokens.length > 0 && (
               <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2">Obtained Tokens:</h3>
+                <h3 className="text-sm font-semibold text-on-surface mb-2">Obtained Tokens</h3>
                 <div className="space-y-2">
                   {obtainedTokens.map((token) => (
-                    <div key={token.tokenAddress} className="bg-gray-500 p-3 rounded">
-                      <p className="text-sm">Token: {token.tokenAddress}</p>
-                      <p className="text-sm">Amount: {token.amount.toString()}</p>
+                    <div
+                      key={token.tokenAddress}
+                      className="bg-white/5 border border-white/10 p-3 rounded"
+                    >
+                      <p className="text-sm font-mono break-all text-on-surface-variant">
+                        Token: {token.tokenAddress}
+                      </p>
+                      <p className="text-sm tabular-nums text-on-surface">
+                        Amount: {token.amount.toString()}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -209,7 +216,7 @@ export function Ark({
         <div className="mb-4">
           <button
             onClick={() => setIsWithdrawalQueueOpen(!isWithdrawalQueueOpen)}
-            className="w-full flex items-center justify-between bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 mb-2"
+            className="w-full flex items-center justify-between bg-white/5 border border-white/10 text-on-surface py-2 px-4 rounded-md hover:bg-white/10 transition-colors mb-2"
           >
             <span className="font-semibold">Withdrawal Queue</span>
             <span
@@ -220,17 +227,19 @@ export function Ark({
           </button>
 
           {isWithdrawalQueueOpen && (
-            <div className="bg-gray-300 p-4 rounded-md space-y-4">
+            <div className="bg-black/20 border border-white/5 p-4 rounded-md space-y-4">
               {withdrawalRequestId != null && (
                 <div>
-                  <p className="text-sm text-gray-600">Withdrawal Request ID</p>
-                  <p className="font-mono text-sm">{withdrawalRequestId}</p>
+                  <p className="text-sm text-on-surface-variant">Withdrawal Request ID</p>
+                  <p className="font-mono text-sm text-on-surface break-all">
+                    {withdrawalRequestId}
+                  </p>
                 </div>
               )}
               {assetsInWithdrawalQueue != null && BigInt(assetsInWithdrawalQueue) > BigInt(0) && (
                 <div>
-                  <p className="text-sm text-gray-600">Assets in Queue</p>
-                  <p className="font-medium">
+                  <p className="text-sm text-on-surface-variant">Assets in Queue</p>
+                  <p className="font-medium text-on-surface tabular-nums">
                     {formatDecimalOutput(BigInt(assetsInWithdrawalQueue), assetDecimals)}{' '}
                     {assetSymbol}
                   </p>
@@ -238,25 +247,27 @@ export function Ark({
               )}
               {assetBalance != null && (
                 <div>
-                  <p className="text-sm text-gray-600">Ark Asset Balance (sweepable)</p>
-                  <p className="font-medium">
+                  <p className="text-sm text-on-surface-variant">Ark Asset Balance (sweepable)</p>
+                  <p className="font-medium text-on-surface tabular-nums">
                     {formatDecimalOutput(BigInt(assetBalance), assetDecimals)} {assetSymbol}
                   </p>
                   {needsSweep && !isBufferArk && (
-                    <p className="text-xs text-amber-600 font-medium mt-1">Needs sweep</p>
+                    <p className="text-xs text-warning font-medium mt-1">Needs sweep</p>
                   )}
                 </div>
               )}
 
               <div className="flex flex-wrap gap-2 items-end">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Request amount</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">
+                    Request amount
+                  </label>
                   <input
                     type="text"
                     placeholder="0"
                     value={requestWithdrawalAmount}
                     onChange={(e) => setRequestWithdrawalAmount(e.target.value)}
-                    className="w-32 px-2 py-1 border border-gray-500 rounded text-sm"
+                    className="w-32 px-2 py-1 bg-surface-container border border-white/10 rounded text-sm text-on-surface tabular-nums focus:outline-none focus:border-primary/60"
                   />
                 </div>
                 <button
@@ -271,7 +282,7 @@ export function Ark({
                     }
                   }}
                   disabled={isWithdrawalActionPending}
-                  className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                  className="bg-primary text-on-primary font-semibold py-2 px-4 rounded-md hover:bg-primary-dim disabled:opacity-40 text-sm transition-colors"
                 >
                   Request Withdrawal
                 </button>
@@ -279,7 +290,7 @@ export function Ark({
                   <button
                     onClick={() => claimWithdrawal()}
                     disabled={isWithdrawalActionPending}
-                    className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 text-sm"
+                    className="bg-secondary/15 border border-secondary/30 text-secondary font-semibold py-2 px-4 rounded-md hover:bg-secondary/25 disabled:opacity-40 text-sm transition-colors"
                   >
                     Claim Withdrawal
                   </button>
@@ -287,7 +298,7 @@ export function Ark({
                 <button
                   onClick={() => sweep()}
                   disabled={isWithdrawalActionPending}
-                  className="bg-amber-600 text-white py-2 px-4 rounded-md hover:bg-amber-700 disabled:opacity-50 text-sm"
+                  className="bg-warning/15 border border-warning/30 text-warning font-semibold py-2 px-4 rounded-md hover:bg-warning/25 disabled:opacity-40 text-sm transition-colors"
                 >
                   Sweep
                 </button>
@@ -302,7 +313,7 @@ export function Ark({
         <div className="mb-4">
           <button
             onClick={() => setIsWisdomTreeControlsOpen(!isWisdomTreeControlsOpen)}
-            className="w-full flex items-center justify-between bg-blue-800 text-white py-2 px-4 rounded-md hover:bg-blue-900 mb-2"
+            className="w-full flex items-center justify-between bg-info/10 border border-info/20 text-info py-2 px-4 rounded-md hover:bg-info/20 transition-colors mb-2"
           >
             <span className="font-semibold">WisdomTree Controls</span>
             <span
@@ -313,18 +324,18 @@ export function Ark({
           </button>
 
           {isWisdomTreeControlsOpen && (
-            <div className="bg-blue-100 p-4 rounded-md space-y-4">
+            <div className="bg-info/5 border border-info/15 p-4 rounded-md space-y-4">
               {pendingDepositAssets != null && (
                 <div>
-                  <p className="text-sm text-blue-800 font-semibold mb-1">Pending Deposit Assets</p>
-                  <p className="font-medium text-blue-900 border border-blue-300 rounded px-2 py-1 bg-white inline-block">
+                  <p className="text-sm text-info font-semibold mb-1">Pending Deposit Assets</p>
+                  <p className="font-medium text-on-surface tabular-nums border border-white/10 rounded px-2 py-1 bg-black/20 inline-block">
                     {formatDecimalOutput(BigInt(pendingDepositAssets), assetDecimals)} {assetSymbol}
                   </p>
                   {BigInt(pendingDepositAssets) > 0n && (
                     <button
                       onClick={() => clearPendingDeposit()}
                       disabled={isClearPending}
-                      className="ml-3 bg-red-600 text-white py-1 px-3 rounded text-sm hover:bg-red-700 disabled:opacity-50"
+                      className="ml-3 bg-error/15 border border-error/30 text-error py-1 px-3 rounded text-sm hover:bg-error/25 disabled:opacity-40 transition-colors"
                     >
                       {isClearPending ? 'Clearing...' : 'Clear Pending Deposit'}
                     </button>
@@ -333,18 +344,18 @@ export function Ark({
               )}
 
               {sharesToAssets1e18 != null && (
-                <div className="pt-2 border-t border-blue-200">
-                  <p className="text-sm text-blue-800 font-semibold mb-1">
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-sm text-info font-semibold mb-1">
                     Default Share Price (1 share)
                   </p>
-                  <p className="font-medium text-blue-900">
+                  <p className="font-medium text-on-surface tabular-nums">
                     {formatDecimalOutput(BigInt(sharesToAssets1e18), assetDecimals)} {assetSymbol}
                   </p>
                 </div>
               )}
 
-              <div className="pt-2 border-t border-blue-200">
-                <p className="text-sm text-blue-800 font-semibold mb-2">Convert Shares to Assets</p>
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-sm text-info font-semibold mb-2">Convert Shares to Assets</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -353,10 +364,10 @@ export function Ark({
                     placeholder="E.g. 1.5"
                     value={sharesQueryInput}
                     onChange={(e) => setSharesQueryInput(e.target.value)}
-                    className="w-32 px-2 py-1.5 border border-blue-300 rounded text-sm"
+                    className="w-32 px-2 py-1.5 bg-surface-container border border-white/10 rounded text-sm text-on-surface tabular-nums focus:outline-none focus:border-primary/60"
                   />
-                  <span className="text-sm text-blue-800">shares =</span>
-                  <div className="px-3 py-1.5 bg-white border border-blue-300 rounded text-sm font-medium min-w-[100px] text-blue-900 flex items-center justify-center">
+                  <span className="text-sm text-on-surface-variant">shares =</span>
+                  <div className="px-3 py-1.5 bg-black/20 border border-white/10 rounded text-sm font-medium min-w-[100px] text-on-surface tabular-nums flex items-center justify-center">
                     {isQueryingShares ? (
                       <span className="animate-pulse">Loading...</span>
                     ) : queriedAssets !== undefined ? (
@@ -376,7 +387,7 @@ export function Ark({
       <div className="mb-4">
         <button
           onClick={() => setIsArkManagementOpen(!isArkManagementOpen)}
-          className="w-full flex items-center justify-between bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 mb-2"
+          className="w-full flex items-center justify-between bg-white/5 border border-white/10 text-on-surface py-2 px-4 rounded-md hover:bg-white/10 transition-colors mb-2"
         >
           <span className="font-semibold">Ark Management</span>
           <span
@@ -387,7 +398,7 @@ export function Ark({
         </button>
 
         {isArkManagementOpen && (
-          <div className="bg-gray-300 p-4 rounded-md">
+          <div className="bg-black/20 border border-white/5 p-4 rounded-md">
             <ArkManagementForm
               arkAddress={arkAddress}
               fleetAddress={fleetAddress}

@@ -44,28 +44,28 @@ export function AdmiralsWhitelistToggle({ admiralsQuarters }: AdmiralsWhitelistT
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-300">Admirals Quarters Whitelist</p>
+        <p className="text-sm text-on-surface-variant">Admirals Quarters Whitelist</p>
         <button
           onClick={handleToggle}
           disabled={isPending || isConfirming}
-          className={`px-3 py-1 rounded-md text-sm font-semibold ${
+          className={`px-3 py-1 rounded-md text-sm font-semibold transition-colors ${
             isPending || isConfirming
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              ? 'bg-white/5 border border-white/10 text-on-surface-variant/50 cursor-not-allowed'
               : enabled
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
+                ? 'bg-error/15 border border-error/30 text-error hover:bg-error/25'
+                : 'bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25'
           }`}
         >
           {isPending ? 'Sending…' : isConfirming ? 'Confirming…' : enabled ? 'Disable' : 'Enable'}
         </button>
       </div>
       {error && (
-        <div className="p-3 bg-red-900 border border-red-600 rounded-lg text-red-200 text-sm">
+        <div className="p-3 bg-error/15 border border-error/30 rounded-lg text-error text-sm">
           {error.message}
         </div>
       )}
       {isSuccess && (
-        <div className="p-3 bg-green-900 border border-green-600 rounded-lg text-green-200 text-sm">
+        <div className="p-3 bg-success/15 border border-success/30 rounded-lg text-success text-sm">
           Success! Transaction confirmed.
         </div>
       )}

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
+import { checkboxBase, inputBase, labelBase } from './ui'
+
 // Minimal ABI shape for whitelist management on FleetCommanderWhitelist (setWhitelisted / setWhitelistedBatch)
 const fleetCommanderWhitelistAbi = [
   {
@@ -53,15 +55,15 @@ export function WhitelistManager({ fleetAddress }: WhitelistManagerProps) {
 
   return (
     <div className="space-y-4">
-      <h4 className="text-md font-semibold text-white">Whitelist Users</h4>
+      <h4 className="text-base font-headline font-semibold text-on-surface">Whitelist Users</h4>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">User Address</label>
+        <label className={labelBase}>User Address</label>
         <input
           type="text"
-          placeholder="0x..."
+          placeholder="0x…"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+          className={`${inputBase} font-mono`}
         />
       </div>
 
@@ -71,9 +73,9 @@ export function WhitelistManager({ fleetAddress }: WhitelistManagerProps) {
           type="checkbox"
           checked={allowed}
           onChange={(e) => setAllowed(e.target.checked)}
-          className="h-4 w-4"
+          className={checkboxBase}
         />
-        <label htmlFor="wl-allowed" className="text-sm text-gray-300">
+        <label htmlFor="wl-allowed" className="text-sm text-on-surface-variant">
           Allow (unchecked will revoke)
         </label>
       </div>
@@ -83,21 +85,21 @@ export function WhitelistManager({ fleetAddress }: WhitelistManagerProps) {
         disabled={!canSubmit || isPending || isConfirming}
         className={`w-full p-3 rounded-lg font-semibold transition-colors ${
           canSubmit && !isPending && !isConfirming
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            ? 'bg-primary text-on-primary hover:bg-primary-dim'
+            : 'bg-white/5 border border-white/10 text-on-surface-variant/50 cursor-not-allowed'
         }`}
       >
-        {isPending ? 'Sending...' : isConfirming ? 'Confirming...' : 'Update Whitelist'}
+        {isPending ? 'Sending…' : isConfirming ? 'Confirming…' : 'Update Whitelist'}
       </button>
 
       {error && (
-        <div className="p-3 bg-red-900 border border-red-600 rounded-lg text-red-200 text-sm">
+        <div className="p-3 bg-error/15 border border-error/30 rounded-lg text-error text-sm">
           {error.message}
         </div>
       )}
 
       {isSuccess && (
-        <div className="p-3 bg-green-900 border border-green-600 rounded-lg text-green-200 text-sm">
+        <div className="p-3 bg-success/15 border border-success/30 rounded-lg text-success text-sm">
           Success! Transaction confirmed.
         </div>
       )}
