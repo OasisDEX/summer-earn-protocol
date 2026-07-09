@@ -68,14 +68,16 @@ export function PendingChangesCart({
   )
 
   return (
-    <div className="fixed bottom-4 right-4 z-30 w-[420px] max-w-[90vw]">
+    <div className="fixed bottom-4 right-4 z-dropdown w-full max-w-[420px]">
       <GlassCard>
         <header className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-white">Pending changes ({pending.length})</h4>
+          <h4 className="text-sm font-semibold text-on-surface">
+            Pending changes ({pending.length})
+          </h4>
           <button
             type="button"
             onClick={onClear}
-            className="text-xs text-slate-400 hover:text-white transition-colors"
+            className="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
           >
             Clear all
           </button>
@@ -85,10 +87,10 @@ export function PendingChangesCart({
           {grouped.map(([chain, items]) => (
             <div key={chain}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs uppercase tracking-wider text-slate-500 capitalize">
+                <span className="text-xs uppercase tracking-wider text-on-surface-variant capitalize">
                   {chain}
                 </span>
-                <span className="text-[10px] bg-white/5 border border-white/10 rounded-full px-2 py-0.5 text-slate-400">
+                <span className="text-[11px] bg-white/5 border border-white/10 rounded-full px-2 py-0.5 text-on-surface-variant tabular-nums">
                   {items.length}
                 </span>
               </div>
@@ -98,17 +100,19 @@ export function PendingChangesCart({
                   return (
                     <li
                       key={edit._id ?? `idx-${originalIndex}`}
-                      className="flex items-center justify-between gap-2 text-xs text-slate-300 bg-white/[0.02] border border-white/5 rounded-lg px-2 py-1.5"
+                      className="flex items-center justify-between gap-2 text-xs text-on-surface-variant bg-white/[0.02] border border-white/5 rounded-lg px-2 py-1.5"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate">{describeEdit(edit)}</div>
                         {auth && !auth.canSubmit && auth.reason ? (
-                          <div className="text-[10px] text-slate-500 truncate">{auth.reason}</div>
+                          <div className="text-[11px] text-on-surface-variant/80 truncate">
+                            {auth.reason}
+                          </div>
                         ) : null}
                       </div>
                       {auth?.canSubmit ? (
                         <span
-                          className="text-[10px] text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded px-1.5 py-0.5"
+                          className="text-[11px] text-success bg-success/10 border border-success/20 rounded px-1.5 py-0.5"
                           title="Connected wallet is authorized to submit this edit"
                         >
                           auth
@@ -117,7 +121,7 @@ export function PendingChangesCart({
                       <button
                         type="button"
                         onClick={() => onRemove(originalIndex)}
-                        className="text-slate-500 hover:text-red-400 transition-colors text-base leading-none px-1"
+                        className="text-on-surface-variant hover:text-error transition-colors text-base leading-none px-1"
                         aria-label="Remove edit"
                       >
                         ×
@@ -137,13 +141,13 @@ export function PendingChangesCart({
             disabled={authorizedCount === 0}
             className={`w-full px-4 py-2 text-sm rounded-lg transition-colors ${
               authorizedCount === 0
-                ? 'bg-white/5 text-slate-500 cursor-not-allowed'
-                : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                ? 'bg-white/5 text-on-surface-variant cursor-not-allowed'
+                : 'bg-success/15 text-success hover:bg-success/25'
             }`}
           >
             Submit directly
           </button>
-          <div className="text-[11px] text-slate-500 -mt-1">
+          <div className="text-[11px] text-on-surface-variant -mt-1">
             Submits {authorizedCount} of {pending.length} edits authorized for your wallet.
           </div>
           <button

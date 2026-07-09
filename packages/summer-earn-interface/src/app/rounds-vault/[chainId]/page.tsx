@@ -3,6 +3,7 @@
 import { use } from 'react'
 
 import { RoundsVaultDashboard } from '@/components/rounds-vault/RoundsVaultDashboard'
+import { PageHeader } from '@/components/ui'
 import { useSyncWalletChain } from '@/hooks/useSyncWalletChain'
 import type { ChainId } from '@/types'
 
@@ -11,15 +12,17 @@ export default function RoundsVaultPage({ params }: { params: Promise<{ chainId:
   useSyncWalletChain(chainId as ChainId)
 
   return (
-    <main className="min-h-screen bg-charcoal-900 p-8">
+    <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Rounds Vault Dashboard</h1>
-          <p className="text-gray-300">
-            Interact with the WisdomTree Rounds Vaults on chain {chainId}. Deposit assets or shares
-            into the locked vaults and exchange your receipts.
-          </p>
-        </div>
+        <PageHeader
+          title="Rounds Vault Dashboard"
+          description={
+            <>
+              Interact with the WisdomTree Rounds Vaults on chain {chainId}. Deposit assets or
+              shares into the locked vaults and exchange your receipts.
+            </>
+          }
+        />
 
         <RoundsVaultDashboard chainId={chainId as ChainId} />
       </div>
