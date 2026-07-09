@@ -432,8 +432,50 @@ contract AsyncFleetGateway is
         uint256 assets,
         address receiver,
         address controller
-    ) external returns (uint256 shares) {
-        revert("NotImplemented");
+    ) public returns (uint256 shares) {
+        if (assets == 0) revert ZeroAmount();
+        _requireControllerOrOperator(controller);
+        _revertIfNotWhitelisted(
+            address(FLEET),
+            controller,
+            receiver,
+            _msgSender()
+        );
+
+        uint256 max = maxWithdraw(controller);
+        if (assets > max) revert ExceededMaxClaim(controller, assets, max);
+
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            true
+        );
+        uint256 remainingAssets = assets;
+        for (uint256 i = 0; i < count && remainingAssets > 0; i++) {
+            uint256 bal = balanceOf(controller, ids[i]);
+            Price memory rate = _redeemRate[ids[i] >> 1];
+            uint256 epochAssets = rate.quote(bal);
+            if (epochAssets <= remainingAssets) {
+                _burn(controller, ids[i], bal);
+                shares += bal;
+                remainingAssets -= epochAssets;
+            } else {
+                // shares needed for the remaining assets, rounded up against the claimer so the
+                // vault never over-pays assets relative to shares burned.
+                uint256 sharesPart = Math.mulDiv(
+                    remainingAssets,
+                    rate.quoteAmount,
+                    rate.baseAmount,
+                    Math.Rounding.Ceil
+                );
+                if (sharesPart > bal) sharesPart = bal;
+                _burn(controller, ids[i], sharesPart);
+                shares += sharesPart;
+                remainingAssets = 0;
+            }
+        }
+
+        ASSET.safeTransfer(receiver, assets);
+        emit Withdraw(_msgSender(), receiver, controller, assets, shares);
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -441,8 +483,33 @@ contract AsyncFleetGateway is
         uint256 shares,
         address receiver,
         address controller
-    ) external returns (uint256 assets) {
-        revert("NotImplemented");
+    ) public returns (uint256 assets) {
+        if (shares == 0) revert ZeroAmount();
+        _requireControllerOrOperator(controller);
+        _revertIfNotWhitelisted(
+            address(FLEET),
+            controller,
+            receiver,
+            _msgSender()
+        );
+
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            true
+        );
+        uint256 remaining = shares;
+        for (uint256 i = 0; i < count && remaining > 0; i++) {
+            uint256 bal = balanceOf(controller, ids[i]);
+            uint256 take = bal < remaining ? bal : remaining;
+            _burn(controller, ids[i], take);
+            assets += _redeemRate[ids[i] >> 1].quote(take);
+            remaining -= take;
+        }
+        if (remaining > 0)
+            revert ExceededMaxClaim(controller, shares, shares - remaining);
+
+        ASSET.safeTransfer(receiver, assets);
+        emit Withdraw(_msgSender(), receiver, controller, assets, shares);
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -482,13 +549,29 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function maxWithdraw(address controller) external view returns (uint256) {
-        revert("NotImplemented");
+    function maxWithdraw(
+        address controller
+    ) public view returns (uint256 total) {
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            true
+        );
+        for (uint256 i = 0; i < count; i++) {
+            total += _redeemRate[ids[i] >> 1].quote(
+                balanceOf(controller, ids[i])
+            );
+        }
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function maxRedeem(address controller) external view returns (uint256) {
-        revert("NotImplemented");
+    function maxRedeem(address controller) public view returns (uint256 total) {
+        (uint256[] memory ids, uint256 count) = _sortedSettledReceipts(
+            controller,
+            true
+        );
+        for (uint256 i = 0; i < count; i++) {
+            total += balanceOf(controller, ids[i]);
+        }
     }
 
     /// @inheritdoc IAsyncFleetGateway
