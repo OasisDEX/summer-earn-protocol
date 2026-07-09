@@ -16,6 +16,9 @@ module.exports = {
         tertiary: '#e0f4ff',
         'tertiary-dim': '#bfd8e5',
         error: '#ff716c',
+        success: '#86e6b4',
+        warning: '#ffcf87',
+        info: '#9ad8ff',
         surface: '#0d0e10',
         'surface-dim': '#0d0e10',
         'surface-bright': '#2b2c2f',
@@ -31,17 +34,19 @@ module.exports = {
         'on-secondary': '#005d4f',
         outline: '#757578',
         'outline-variant': '#47484a',
-        // Legacy colours kept for other pages
-        'background-light': '#f8f5f7',
-        'background-dark': '#0f070b',
-        charcoal: { 700: '#1b2130', 800: '#1a1116', 900: '#0f070b' },
-        magenta: { 500: '#ff2d8f', 600: '#e02682', 700: '#c01f71' },
-        violet: { 400: '#9b7bff', 500: '#7c5cff' },
+        // Legacy keys re-pointed to the semantic palette during the design-pass
+        // migration; deleted once the class sweep shows zero remaining uses.
+        'background-light': '#fdfbfe',
+        'background-dark': '#0d0e10',
+        charcoal: { 700: '#1e2022', 800: '#181a1c', 900: '#0d0e10' },
+        magenta: { 500: '#89acff', 600: '#739eff', 700: '#5a90ff' },
+        violet: { 400: '#a7c1ff', 500: '#89acff' },
       },
       boxShadow: {
-        glow: '0 0 0 2px rgba(255,45,143,0.35)',
-        card: '0 0 0 1px rgba(255,255,255,0.06)',
-        'neon-glow': '0 0 15px rgba(255, 46, 143, 0.3)',
+        // token-derived from `primary` #89acff — keep in sync if primary changes
+        glow: '0 0 0 2px rgba(137, 172, 255, 0.35)',
+        card: '0 0 0 1px rgba(255, 255, 255, 0.06)',
+        'neon-glow': '0 0 15px rgba(137, 172, 255, 0.25)',
       },
       borderRadius: {
         DEFAULT: '0.5rem',
@@ -51,9 +56,15 @@ module.exports = {
         full: '9999px',
       },
       fontFamily: {
-        headline: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        headline: ['var(--font-manrope)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      zIndex: {
+        dropdown: '30',
+        header: '40',
+        modal: '50',
+        toast: '60',
       },
     },
   },
