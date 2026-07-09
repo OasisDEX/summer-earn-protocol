@@ -179,16 +179,27 @@ contract AsyncFleetGateway is
     function setOperator(
         address operator,
         bool approved
-    ) external returns (bool success) {
-        revert("NotImplemented");
+    ) public returns (bool) {
+        _isOperator[_msgSender()][operator] = approved;
+        emit OperatorSet(_msgSender(), operator, approved);
+        return true;
     }
 
     /// @inheritdoc IERC7540Operator
     function isOperator(
         address controller,
         address operator
-    ) external view returns (bool status) {
-        revert("NotImplemented");
+    ) public view returns (bool) {
+        return _isOperator[controller][operator];
+    }
+
+    /// @dev ERC-7540 authorization: msg.sender must be the controller or an approved operator.
+    function _requireControllerOrOperator(address controller) internal view {
+        if (
+            controller != _msgSender() && !_isOperator[controller][_msgSender()]
+        ) {
+            revert InvalidOperator(controller, _msgSender());
+        }
     }
 
     /// @inheritdoc IERC7540Deposit
