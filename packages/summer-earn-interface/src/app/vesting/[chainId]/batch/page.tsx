@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import Link from 'next/link'
 
 import { RefreshButton } from '@/components/RefreshButton'
+import { PageHeader } from '@/components/ui'
 import VestingBatchTable from '@/components/VestingBatchTable'
 import type { Environment } from '@/config/environments'
 
@@ -34,24 +35,20 @@ export default async function VestingBatchPage({
   const { snapshots, timestamp } = await getData(chainId)
 
   return (
-    <main className="w-full min-h-screen bg-charcoal-900 p-8">
-      <header className="space-y-4">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/" className="hover:text-white transition-colors">
+    <main className="w-full min-h-screen p-8">
+      <header>
+        <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+          <Link href="/" className="hover:text-on-surface transition-colors">
             Admin
           </Link>
           <span>›</span>
-          <span className="text-slate-400">Batch Vesting</span>
+          <span className="text-on-surface-variant">Batch Vesting</span>
         </div>
-        <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Batch Vesting</h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Last updated: {new Date(timestamp).toLocaleTimeString()}
-            </p>
-          </div>
-          <RefreshButton lastUpdated={timestamp} />
-        </div>
+        <PageHeader
+          title="Batch Vesting"
+          description={`Last updated: ${new Date(timestamp).toLocaleTimeString()}`}
+          actions={<RefreshButton lastUpdated={timestamp} />}
+        />
       </header>
 
       <VestingBatchTable initialSnapshots={snapshots} chainId={chainId} />

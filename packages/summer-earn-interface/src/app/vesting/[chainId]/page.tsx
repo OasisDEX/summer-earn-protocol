@@ -26,6 +26,7 @@ import { ConnectButton } from '../../../components/ConnectButton'
 import { GlassCard } from '../../../components/GlassCard'
 import { ProgressBar } from '../../../components/ProgressBar'
 import { StatCard } from '../../../components/StatCard'
+import { AddressDisplay, Badge, Button, EmptyState, PageHeader } from '../../../components/ui'
 import {
   SUMMER_VESTING_WALLET_FACTORY_ADDRESSES,
   SUMMER_VESTING_WALLET_FACTORY_V2_ADDRESSES,
@@ -505,50 +506,47 @@ function VestingContent() {
   }, [totalAllocation, releasedTotal])
 
   return (
-    <main className="min-h-screen bg-charcoal-900 p-8">
+    <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
+        <PageHeader
+          title="Vesting"
+          description="Track and claim your SUMR vesting allocation."
+          actions={
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" onClick={() => router.back()}>
+                ← Back
+              </Button>
+              <Link
+                href={`/vesting/${chainId}/batch`}
+                className="text-on-surface-variant hover:text-on-surface text-sm"
+              >
+                Batch
+              </Link>
+            </div>
+          }
+        />
         {/* Design nav: glass bar, search, chain selector, connect */}
         <div className="glass rounded-xl p-4 mb-8 flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="text-slate-400 hover:text-white transition-colors text-sm"
-            >
-              ← Back
-            </button>
-            <Link
-              href={`/vesting/${chainId}/batch`}
-              className="text-slate-400 hover:text-white text-sm"
-            >
-              Batch
-            </Link>
-          </div>
           <div className="flex-1 relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">
               🔍
             </span>
             <input
               value={inputAddress}
               onChange={(e) => setInputAddress(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onFetchAddress()}
-              placeholder="Enter address to view..."
-              className="w-full py-2.5 pl-10 pr-4 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              placeholder="Enter address to view…"
+              className="w-full py-2.5 pl-10 pr-4 rounded-lg bg-white/5 border border-white/10 text-on-surface placeholder:text-on-surface-variant/60 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={onFetchAddress}
-              className="px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium text-sm"
-            >
+            <Button onClick={onFetchAddress} size="md">
               Fetch
-            </button>
+            </Button>
             {lookupAddress && (
-              <button
-                onClick={onClearOverride}
-                className="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm"
-              >
+              <Button onClick={onClearOverride} variant="secondary" size="md">
                 Clear
-              </button>
+              </Button>
             )}
             <ChainPills
               selectedChain={chainId}
@@ -559,43 +557,45 @@ function VestingContent() {
           </div>
         </div>
         <div className="mb-4 text-sm">
-          {addressError && <span className="text-red-400">{addressError}</span>}
+          {addressError && <span className="text-error">{addressError}</span>}
           {!addressError && (
-            <span className="text-slate-500">
-              Viewing: <span className="text-slate-300 font-mono">{queryAddress ?? '—'}</span>
+            <span className="text-on-surface-variant">
+              Viewing: <AddressDisplay value={queryAddress} full className="text-on-surface" />
             </span>
           )}
         </div>
         {!isLookupSameAsConnected && isConnected && (
-          <div className="mb-4 text-amber-400 text-sm">
+          <div className="mb-4 text-warning text-sm">
             To claim, connect the same address or clear the override.
           </div>
         )}
 
         {!isBase && (
-          <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
+          <div className="mb-6 p-4 rounded-xl border border-warning/30 bg-warning/10 text-warning text-sm">
             Please switch to Base network to manage vesting.
           </div>
         )}
 
         {!isConnected && (
-          <div className="mb-6 p-4 rounded-xl border border-primary/30 bg-primary/10 text-primary text-sm">
-            Connect your wallet to claim. You can still fetch any address to view details.
-          </div>
+          <EmptyState
+            className="mb-6"
+            title="Connect your wallet to claim"
+            description="You can still fetch any address above to view its vesting details."
+          />
         )}
 
         {isV2Wallet && isRecalled && (
-          <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-sm">
+          <div className="mb-6 p-4 rounded-xl border border-error/30 bg-error/10 text-error text-sm">
             ⚠️ This vesting wallet has been recalled. No more tokens can be claimed.
           </div>
         )}
 
         {isStaked && (
-          <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
+          <div className="mb-6 p-4 rounded-xl border border-warning/30 bg-warning/10 text-warning text-sm">
             ⚠️ Your vesting wallet is staked. You cannot claim while staked.{' '}
             <Link
               href={`/vesting-staking/${chainId}`}
-              className="underline font-bold hover:text-white"
+              className="underline font-bold hover:text-on-surface"
             >
               Go to Staking to unstake first.
             </Link>
@@ -625,22 +625,28 @@ function VestingContent() {
         {/* Vesting Details + Claim */}
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <GlassCard>
-            <h2 className="text-lg font-semibold text-white mb-6">Vesting Details</h2>
+            <h2 className="text-lg font-headline font-semibold text-on-surface mb-6">
+              Vesting Details
+            </h2>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-slate-500 mb-1">Contract</p>
-                <p className="font-mono text-slate-300 break-all text-sm">
-                  {vestingWalletAddress ? (vestingWalletAddress as string) : '—'}
-                </p>
+                <p className="text-sm text-on-surface-variant mb-1">Contract</p>
+                <AddressDisplay
+                  value={vestingWalletAddress as string | undefined}
+                  full
+                  className="text-on-surface-variant text-sm"
+                />
               </div>
               {totalAllocation > BigInt(0) && (
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-slate-500">Progress</span>
-                    <span className="text-white">{progressPercent.toFixed(1)}%</span>
+                    <span className="text-on-surface-variant">Progress</span>
+                    <span className="text-on-surface tabular-nums">
+                      {progressPercent.toFixed(1)}%
+                    </span>
                   </div>
                   <ProgressBar value={progressPercent} max={100} />
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-on-surface-variant mt-2">
                     Remaining: {formatDecimalOutput(remainingAmount, decimals)}{' '}
                     {(tokenSymbol as string) || ''}
                   </p>
@@ -650,11 +656,11 @@ function VestingContent() {
           </GlassCard>
 
           <GlassCard>
-            <h2 className="text-lg font-semibold text-white mb-4">Claim</h2>
+            <h2 className="text-lg font-headline font-semibold text-on-surface mb-4">Claim</h2>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-slate-500 mb-1">Released</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-sm text-on-surface-variant mb-1">Released</p>
+                <p className="text-2xl font-bold text-on-surface tabular-nums">
                   {formattedReleased} {(tokenSymbol as string) || ''}
                 </p>
               </div>
@@ -664,15 +670,15 @@ function VestingContent() {
                 disabled={!canClaim || isPending || isConfirming}
                 className={`w-full py-3 rounded-xl font-semibold transition-all ${
                   canClaim && !isPending && !isConfirming
-                    ? 'bg-primary hover:bg-primary/90 text-white neon-glow'
-                    : 'bg-white/10 text-slate-500 cursor-not-allowed'
+                    ? 'bg-primary hover:bg-primary-dim text-on-primary neon-glow'
+                    : 'bg-white/10 text-on-surface-variant cursor-not-allowed'
                 }`}
               >
                 {isPending ? 'Submitting…' : isConfirming ? 'Confirming…' : 'Claim now'}
               </button>
 
               {isSuccess && (
-                <div className="p-3 rounded-xl bg-green-500/20 border border-green-500/30 text-green-200 text-sm">
+                <div className="p-3 rounded-xl bg-success/15 border border-success/30 text-success text-sm">
                   Success! Your tokens are on the way.
                 </div>
               )}
@@ -682,38 +688,34 @@ function VestingContent() {
 
         {/* Release Milestones */}
         <GlassCard>
-          <h2 className="text-lg font-semibold text-white mb-6">Release Milestones</h2>
+          <h2 className="text-lg font-headline font-semibold text-on-surface mb-6">
+            Release Milestones
+          </h2>
           {!isV2Wallet && vestingType !== 0 && (
-            <div className="text-slate-500">No goals for this vesting type.</div>
+            <EmptyState title="No goals for this vesting type" />
           )}
           {(isV2Wallet || (!isV2Wallet && vestingType === 0)) && (
             <div className="space-y-3">
-              {goals.length === 0 && <div className="text-slate-500">No goals found.</div>}
+              {goals.length === 0 && <EmptyState title="No goals found" />}
               {goals.map((g, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between gap-3 p-4 rounded-xl bg-white/5 border border-white/5"
                 >
                   <div>
-                    <span className="text-white font-medium">Goal #{idx + 1}</span>
+                    <span className="text-on-surface font-medium">Goal #{idx + 1}</span>
                     {g.description && (
-                      <div className="text-sm text-slate-500 mt-1">{g.description}</div>
+                      <div className="text-sm text-on-surface-variant mt-1">{g.description}</div>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-slate-300">
+                    <span className="text-on-surface-variant tabular-nums">
                       {formatDecimalOutput(g.amount ?? BigInt(0), decimals)}{' '}
                       {(tokenSymbol as string) || ''}
                     </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
-                        g.reached
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-slate-500/20 text-slate-400'
-                      }`}
-                    >
+                    <Badge tone={g.reached ? 'success' : 'neutral'}>
                       {g.reached ? 'Reached' : 'Pending'}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               ))}
@@ -729,7 +731,7 @@ export default function VestingPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-charcoal-900 p-8 flex items-center justify-center">
+        <main className="min-h-screen p-8 flex items-center justify-center">
           <div className="glass rounded-xl p-8 animate-pulse">
             <div className="h-6 w-48 bg-white/10 rounded mb-4" />
             <div className="h-4 w-32 bg-white/10 rounded" />
