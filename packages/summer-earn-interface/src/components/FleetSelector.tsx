@@ -1,6 +1,8 @@
 'use client'
 
 import type { FleetCommanderInfo } from '../types'
+import { formatAddress } from '../utils/address'
+import { selectBase } from './ui'
 
 interface FleetSelectorProps {
   fleets: FleetCommanderInfo[]
@@ -17,8 +19,8 @@ export function FleetSelector({
 }: FleetSelectorProps) {
   if (loading) {
     return (
-      <div className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-gray-400">
-        Loading fleets...
+      <div className="w-full p-3 bg-surface-container border border-white/10 rounded-lg text-on-surface-variant">
+        Loading fleets…
       </div>
     )
   }
@@ -27,12 +29,12 @@ export function FleetSelector({
     <select
       value={selectedFleet}
       onChange={(e) => onFleetChange(e.target.value)}
-      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      className={`${selectBase} w-full`}
     >
-      <option value="">Select a fleet...</option>
+      <option value="">Select a fleet…</option>
       {fleets.map((fleet) => (
         <option key={fleet.address} value={fleet.address}>
-          {fleet.name} ({fleet.symbol}) - {fleet.address.slice(0, 6)}...{fleet.address.slice(-4)}
+          {fleet.name} ({fleet.symbol}) - {formatAddress(fleet.address)}
         </option>
       ))}
     </select>
