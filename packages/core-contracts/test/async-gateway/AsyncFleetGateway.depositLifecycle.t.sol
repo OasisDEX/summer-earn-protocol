@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {AsyncFleetGatewayTestBase} from "./AsyncFleetGatewayTestBase.sol";
 import {IAsyncFleetGatewayEnums} from "../../src/interfaces/async-gateway/IAsyncFleetGatewayEnums.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
 
 contract AsyncFleetGatewayDepositLifecycleTest is AsyncFleetGatewayTestBase {
@@ -99,7 +100,12 @@ contract AsyncFleetGatewayDepositLifecycleTest is AsyncFleetGatewayTestBase {
 
     function test_AFG0307_OnlyKeeperAndGovernorGates() public {
         vm.prank(alice);
-        vm.expectRevert(); // ProtocolAccessManagedV2 CallerIsNotKeeper-style revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotKeeper.selector,
+                alice
+            )
+        );
         gateway.closeDepositEpoch();
 
         _requestDeposit(alice, 10e6);
@@ -107,7 +113,41 @@ contract AsyncFleetGatewayDepositLifecycleTest is AsyncFleetGatewayTestBase {
         gateway.closeDepositEpoch();
 
         vm.prank(alice);
-        vm.expectRevert(); // governor gate
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                alice
+            )
+        );
         gateway.rollbackDepositEpoch(0);
+    }
+
+    function test_AFG0308_RollbackRequiresInSettlement() public {
+        // epoch 0 is Open (never closed) — rollback must reject it
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidEpochState.selector,
+                0,
+                IAsyncFleetGatewayEnums.EpochState.Open,
+                IAsyncFleetGatewayEnums.EpochState.InSettlement
+            )
+        );
+        gateway.rollbackDepositEpoch(0);
+    }
+
+    function test_AFG0309_RetryRequiresOpen() public {
+        _requestDeposit(alice, 10e6);
+        uint256 epoch = _closeAndSettleDeposit(); // epoch 0 now Settled, current is 1
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidEpochState.selector,
+                epoch,
+                IAsyncFleetGatewayEnums.EpochState.Settled,
+                IAsyncFleetGatewayEnums.EpochState.Open
+            )
+        );
+        gateway.retryDepositEpoch(epoch);
     }
 }
