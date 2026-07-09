@@ -22,20 +22,17 @@ import { ChainId } from '../types'
 
 type TimeInterval = '10min' | 'hourly' | 'daily'
 
-// Curated palette for chart lines — visually distinct on dark backgrounds
+// Design-system chart palette — cycles through the approved token hexes for
+// categorical series (up to 12 products); each is also a real design token
+// (primary/secondary/info/success/warning/error/violet-light).
 const LINE_COLORS = [
-  '#89acff', // primary blue
-  '#68fadd', // secondary teal
-  '#bfd8e5', // tertiary ice
-  '#ff716c', // error coral
-  '#c084fc', // violet
-  '#fbbf24', // amber
-  '#34d399', // emerald
-  '#f472b6', // pink
-  '#60a5fa', // sky
-  '#a78bfa', // purple
-  '#fb923c', // orange
-  '#2dd4bf', // teal
+  '#89acff', // primary
+  '#68fadd', // secondary
+  '#9ad8ff', // info
+  '#86e6b4', // success
+  '#ffcf87', // warning
+  '#ff716c', // error
+  '#a7c1ff', // violet-light
 ]
 
 // Predefined MA period options
@@ -260,10 +257,10 @@ export const MultiLineInterestRateChart = ({
 
   if (ids.length === 0) {
     return (
-      <div className="w-full h-[420px] flex items-center justify-center text-[#757578]">
+      <div className="w-full h-[50vh] min-h-[320px] max-h-[560px] flex items-center justify-center text-on-surface-variant">
         <div className="text-center space-y-2">
           <svg
-            className="w-12 h-12 mx-auto text-[#47484a]"
+            className="w-12 h-12 mx-auto text-outline-variant"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -276,7 +273,7 @@ export const MultiLineInterestRateChart = ({
             />
           </svg>
           <p className="text-sm font-medium">Select products to compare</p>
-          <p className="text-xs text-[#47484a]">Use the dropdown above to add protocols</p>
+          <p className="text-xs text-outline-variant">Use the dropdown above to add protocols</p>
         </div>
       </div>
     )
@@ -284,9 +281,9 @@ export const MultiLineInterestRateChart = ({
 
   if (mergedData.length === 0) {
     return (
-      <div className="w-full h-[420px] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-[#757578]">
-          <div className="w-5 h-5 border-2 border-[#89acff] border-t-transparent rounded-full animate-spin" />
+      <div className="w-full h-[50vh] min-h-[320px] max-h-[560px] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-on-surface-variant">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-medium">Loading rate data…</span>
         </div>
       </div>
@@ -294,15 +291,15 @@ export const MultiLineInterestRateChart = ({
   }
 
   return (
-    <div className="w-full h-[420px]">
+    <div className="w-full h-[50vh] min-h-[320px] max-h-[560px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={mergedData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
           <XAxis
             dataKey="ts"
             tickFormatter={formatDate}
             stroke="#47484a"
-            tick={{ fill: '#757578', fontSize: 11, fontWeight: 600 }}
+            tick={{ fill: '#ababad', fontSize: 11, fontWeight: 600 }}
             tickLine={false}
             axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
           />
@@ -310,14 +307,14 @@ export const MultiLineInterestRateChart = ({
             tickFormatter={(v) => `${Number(v).toFixed(1)}%`}
             domain={['auto', 'auto']}
             stroke="#47484a"
-            tick={{ fill: '#757578', fontSize: 11, fontWeight: 600 }}
+            tick={{ fill: '#ababad', fontSize: 11, fontWeight: 600 }}
             tickLine={false}
             axisLine={false}
             width={52}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(24, 26, 28, 0.95)',
+              backgroundColor: 'rgba(30, 32, 34, 0.95)',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: '12px',
               backdropFilter: 'blur(24px)',

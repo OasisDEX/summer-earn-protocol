@@ -54,11 +54,18 @@ export function ErrorState({ error, description, ...props }: ErrorStateProps) {
 }
 
 /** Standard degradation notice for pages whose subgraph data source is being sunset. */
-export function RetiredDataNotice({ what = 'This data source' }: { what?: string }) {
+export function RetiredDataNotice({
+  what = 'This data source',
+  action,
+}: {
+  what?: string
+  action?: ReactNode
+}) {
   return (
     <ErrorState
       title="Data unavailable"
       description={`${what} has been retired as part of the protocol sunset. On-chain functionality elsewhere in this app is unaffected.`}
+      action={action}
     />
   )
 }

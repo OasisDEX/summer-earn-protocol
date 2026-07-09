@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
 
 import { formatDecimalOutput, MAX_UINT256, parseDecimalInput } from '../utils/decimals'
+import { inputBase, labelBase } from './ui'
 
 interface AmountInputProps {
   value: string
@@ -75,10 +76,10 @@ export function AmountInput({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {label && <label className="block text-sm font-medium text-gray-300">{label}</label>}
+      {label && <label className={labelBase}>{label}</label>}
 
       <div
-        className={`relative transition-shadow ${isFocused ? 'shadow-[0_0_0_3px_rgba(37,99,235,0.35)] rounded-lg' : ''}`}
+        className={`relative transition-shadow rounded-lg ${isFocused ? 'shadow-[0_0_0_3px_rgba(137,172,255,0.35)]' : ''}`}
       >
         <input
           type="text"
@@ -88,10 +89,10 @@ export function AmountInput({
           disabled={disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-16 placeholder-gray-500"
+          className={`${inputBase} pr-20`}
         />
 
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-on-surface-variant text-sm">
           {symbol}
         </div>
       </div>
@@ -102,7 +103,7 @@ export function AmountInput({
           <button
             type="button"
             onClick={handleMaxClick}
-            className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors"
+            className="px-3 py-1 text-xs bg-white/5 hover:bg-white/10 text-on-surface-variant rounded-md transition-colors tabular-nums"
           >
             Max Balance ({formatDecimalOutput(balance, decimals, 4)} {symbol})
           </button>
@@ -112,7 +113,7 @@ export function AmountInput({
           <button
             type="button"
             onClick={handleMaxUintClick}
-            className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 text-red-200 rounded-md transition-colors"
+            className="px-3 py-1 text-xs bg-error/20 hover:bg-error/30 text-error rounded-md transition-colors"
           >
             Max Uint (Unlimited)
           </button>
@@ -121,7 +122,7 @@ export function AmountInput({
 
       {/* Balance display */}
       {balance && (
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-on-surface-variant tabular-nums">
           Available: {formatDecimalOutput(balance, decimals)} {symbol}
         </div>
       )}
