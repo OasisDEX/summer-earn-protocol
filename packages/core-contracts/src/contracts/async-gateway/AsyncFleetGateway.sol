@@ -741,22 +741,98 @@ contract AsyncFleetGateway is
         emit RedeemEpochRolledBack(epoch);
     }
 
+    /// @dev Resolves the implicit target epoch for `cancelDeposit/RedeemRequest`: the highest
+    ///      epoch, among the receipt ids of one flow that `owner` currently holds, or the live
+    ///      current epoch if `owner` holds none. Cancel takes no explicit requestId (matching
+    ///      ERC-7540's cancel-less convention), so the target must be derived from `owner`'s own
+    ///      receipts rather than trusted blindly from the global epoch counter: the counter for
+    ///      the live epoch is invariantly `Open` by construction, so checking it directly can
+    ///      never catch a request whose own epoch has since closed — it would instead fail later
+    ///      with an unrelated insufficient-balance burn. Picking the *highest* held epoch means a
+    ///      fresh request in the current epoch is always the one canceled, ignoring any older,
+    ///      already-closed request left unclaimed by the same owner (POC scope: current epoch
+    ///      only; see the note on rolled-back epochs below).
+    function _mostRecentHeldEpoch(
+        address owner,
+        bool redeemFlow
+    ) internal view returns (uint256 epoch) {
+        epoch = redeemFlow ? _currentRedeemEpoch : _currentDepositEpoch;
+        bool found;
+        uint256 len = _receiptIdsOf[owner].length();
+        for (uint256 i = 0; i < len; i++) {
+            uint256 id = _receiptIdsOf[owner].at(i);
+            if ((id & 1 == 1) != redeemFlow) continue;
+            uint256 e = id >> 1;
+            if (!found || e > epoch) {
+                epoch = e;
+                found = true;
+            }
+        }
+    }
+
     /// @inheritdoc IAsyncFleetGateway
+    /// @dev POC scope: only the CURRENT open epoch is cancelable. A past epoch that was
+    ///      rolled back to `Open` (epoch < currentDepositEpoch) is intentionally NOT
+    ///      cancelable — this diverges from a rounds-vault-style "any Opened round" policy,
+    ///      chosen here for simplicity.
     function cancelDepositRequest(
         uint256 assets,
         address receiver,
         address owner
-    ) external {
-        revert("NotImplemented");
+    ) public {
+        if (assets == 0) revert ZeroAmount();
+        if (
+            _msgSender() != owner &&
+            !isApprovedForAll(owner, _msgSender()) &&
+            !_isOperator[owner][_msgSender()]
+        ) {
+            revert CallerCannotCancel(_msgSender(), owner);
+        }
+        _revertIfNotWhitelisted(address(FLEET), owner, receiver, _msgSender());
+
+        uint256 epoch = _mostRecentHeldEpoch(owner, false);
+        if (_depositEpochState[epoch] != EpochState.Open) {
+            revert InvalidEpochState(
+                epoch,
+                _depositEpochState[epoch],
+                EpochState.Open
+            );
+        }
+
+        _burn(owner, depositReceiptId(epoch), assets); // reverts on insufficient balance
+        ASSET.safeTransfer(receiver, assets);
+        emit DepositRequestCanceled(owner, receiver, epoch, assets);
     }
 
     /// @inheritdoc IAsyncFleetGateway
+    /// @dev POC scope: only the CURRENT open epoch is cancelable (see cancelDepositRequest).
     function cancelRedeemRequest(
         uint256 shares,
         address receiver,
         address owner
-    ) external {
-        revert("NotImplemented");
+    ) public {
+        if (shares == 0) revert ZeroAmount();
+        if (
+            _msgSender() != owner &&
+            !isApprovedForAll(owner, _msgSender()) &&
+            !_isOperator[owner][_msgSender()]
+        ) {
+            revert CallerCannotCancel(_msgSender(), owner);
+        }
+        _revertIfNotWhitelisted(address(FLEET), owner, receiver, _msgSender());
+
+        uint256 epoch = _mostRecentHeldEpoch(owner, true);
+        if (_redeemEpochState[epoch] != EpochState.Open) {
+            revert InvalidEpochState(
+                epoch,
+                _redeemEpochState[epoch],
+                EpochState.Open
+            );
+        }
+
+        _burn(owner, redeemReceiptId(epoch), shares);
+        IERC20(address(FLEET)).safeTransfer(receiver, shares);
+        emit RedeemRequestCanceled(owner, receiver, epoch, shares);
     }
     // safeTransferFrom, safeBatchTransferFrom (whitelist overrides — Task 11) are left to the
     // inherited ERC1155 implementation until that task adds the whitelist gate.
