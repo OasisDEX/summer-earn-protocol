@@ -56,7 +56,7 @@ export function RefreshButton({ lastUpdated }: { lastUpdated: number }) {
       </button>
 
       {disabled && (
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2 bg-black border border-gray-700 rounded text-[10px] text-center text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2 bg-surface-container-lowest border border-white/10 rounded text-[11px] text-center text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Updates limited to once every 5 minutes.
         </div>
       )}
