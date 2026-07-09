@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Price} from "@summerfi/price-solidity/contracts/PriceUtils.sol";
+
 import {AsyncFleetGatewayTestBase} from "./AsyncFleetGatewayTestBase.sol";
 import {IAsyncFleetGatewayEnums} from "../../src/interfaces/async-gateway/IAsyncFleetGatewayEnums.sol";
 
@@ -48,19 +51,33 @@ contract AsyncFleetGatewayClaimRedeemTest is AsyncFleetGatewayTestBase {
     }
 
     function test_AFG0603_FifoAcrossRedeemEpochs() public {
-        _requestRedeem(alice, 40e18); // epoch 0 @ 1:1
+        _requestRedeem(alice, 40e18); // epoch 0 @ the default rate from setUp
         _closeAndSettleRedeem();
-        fleetMock.setAssetsPerShare(2e18);
+        // NOTE: rate fix — per the AFG0602 fixture note, MockFleet's assetsPerShare is
+        // expressed in the asset's own decimals (6), so 2e6 = "2 USDC per whole share" is the
+        // realistic non-1:1 rate for epoch 1; the original 2e18 would be 2e12 USDC/share, a
+        // 1e12 unit mismatch that happened to still pass because the assertion only compared
+        // rate objects to each other, not to a hardcoded value.
+        fleetMock.setAssetsPerShare(2e6);
         _mintFleetShares(alice, 60e18);
-        _requestRedeem(alice, 60e18); // epoch 1 @ 2:1
+        _requestRedeem(alice, 60e18); // epoch 1 @ 2e6
         _closeAndSettleRedeem();
 
-        // redeem 100e18 shares total → 40e6*(1) rate0 + 60 shares at rate1
+        // Partial redeem that fully drains epoch 0 (40e18) plus only part of epoch 1's 60e18
+        // (20e18 of it) — proving FIFO consumption order across differing rates, not just
+        // cross-epoch aggregation (a full-balance redeem can't distinguish the two).
+        uint256 redeemAmount = 40e18 + 20e18;
+        Price memory rate1 = gateway.redeemRate(1);
         uint256 expected = gateway.redeemRate(0).baseAmount +
-            gateway.redeemRate(1).baseAmount;
+            Math.mulDiv(20e18, rate1.baseAmount, rate1.quoteAmount);
         vm.prank(alice);
-        uint256 assets = gateway.redeem(100e18, alice, alice);
+        uint256 assets = gateway.redeem(redeemAmount, alice, alice);
         assertEq(assets, expected);
+
+        // Epoch 0 is fully consumed and epoch 1's leftover is exactly the un-consumed shares —
+        // this is only possible if epoch 0 was drained to zero before epoch 1 was touched.
+        assertEq(gateway.claimableRedeemRequest(0, alice), 0);
+        assertEq(gateway.claimableRedeemRequest(1, alice), 60e18 - 20e18);
     }
 
     function test_AFG0604_OverRedeemReverts() public {
