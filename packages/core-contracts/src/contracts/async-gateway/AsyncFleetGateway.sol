@@ -5,6 +5,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -513,13 +514,13 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function convertToShares(uint256 assets) external view returns (uint256) {
-        revert("NotImplemented");
+    function convertToShares(uint256 assets) public view returns (uint256) {
+        return FLEET.convertToShares(assets);
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function convertToAssets(uint256 shares) external view returns (uint256) {
-        revert("NotImplemented");
+    function convertToAssets(uint256 shares) public view returns (uint256) {
+        return FLEET.convertToAssets(shares);
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -575,23 +576,23 @@ contract AsyncFleetGateway is
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function previewDeposit(uint256 assets) external view returns (uint256) {
-        revert("NotImplemented");
+    function previewDeposit(uint256) public pure returns (uint256) {
+        revert AsyncFlowPreviewUnsupported();
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function previewMint(uint256 shares) external view returns (uint256) {
-        revert("NotImplemented");
+    function previewMint(uint256) public pure returns (uint256) {
+        revert AsyncFlowPreviewUnsupported();
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function previewWithdraw(uint256 assets) external view returns (uint256) {
-        revert("NotImplemented");
+    function previewWithdraw(uint256) public pure returns (uint256) {
+        revert AsyncFlowPreviewUnsupported();
     }
 
     /// @inheritdoc IAsyncFleetGateway
-    function previewRedeem(uint256 shares) external view returns (uint256) {
-        revert("NotImplemented");
+    function previewRedeem(uint256) public pure returns (uint256) {
+        revert AsyncFlowPreviewUnsupported();
     }
 
     /// @inheritdoc IAsyncFleetGateway
@@ -843,6 +844,30 @@ contract AsyncFleetGateway is
         IERC20(address(FLEET)).safeTransfer(receiver, shares);
         emit RedeemRequestCanceled(owner, receiver, epoch, shares);
     }
-    // safeTransferFrom, safeBatchTransferFrom (whitelist overrides — Task 11) are left to the
-    // inherited ERC1155 implementation until that task adds the whitelist gate.
+
+    /// @inheritdoc IERC1155
+    /// @dev Gates receipt transfers so only whitelisted parties on the fleet context can move them.
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 value,
+        bytes memory data
+    ) public virtual override(ERC1155, IERC1155) {
+        _revertIfNotWhitelisted(address(FLEET), from, to, _msgSender());
+        super.safeTransferFrom(from, to, id, value, data);
+    }
+
+    /// @inheritdoc IERC1155
+    /// @dev Gates batch receipt transfers so only whitelisted parties on the fleet context can move them.
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values,
+        bytes memory data
+    ) public virtual override(ERC1155, IERC1155) {
+        _revertIfNotWhitelisted(address(FLEET), from, to, _msgSender());
+        super.safeBatchTransferFrom(from, to, ids, values, data);
+    }
 }
