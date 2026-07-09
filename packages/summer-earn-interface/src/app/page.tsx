@@ -145,17 +145,16 @@ function HomeContent() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[
             { name: 'Access Manager', href: '/access-manager/1' },
-            { name: 'Account Abstraction', href: '/account-abstraction' },
             { name: 'Institutions', href: '/institutions' },
             { name: 'Intent System', href: '/intent-system' },
             { name: 'Interest Rates', href: '/interest-rates' },
             { name: 'Rewards', href: '/rewards' },
-            { name: 'Roles', href: '/roles' },
-            { name: 'Rounds Vault', href: '/rounds-vault' },
-            { name: 'Summer Staking', href: '/summer-staking' },
+            { name: 'Roles', href: '/roles/1' },
+            { name: 'Rounds Vault', href: '/rounds-vault/1' },
+            { name: 'Summer Staking', href: '/summer-staking/8453' },
             { name: 'Vault APR', href: '/vault-apr' },
-            { name: 'Vesting', href: '/vesting' },
-            { name: 'Vesting Staking', href: '/vesting-staking' },
+            { name: 'Vesting', href: '/vesting/8453' },
+            { name: 'Vesting Staking', href: '/vesting-staking/8453' },
           ].map((link) => (
             <a
               key={link.href}
