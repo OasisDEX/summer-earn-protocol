@@ -1,8 +1,40 @@
-# Institutional Fleet & Rounds Vault — Technical Reference [WIP]
+# Institutional Fleet & Rounds Vault — Technical Reference
 
 > Single authoritative reference for the institutional FleetCommander, its two
 > entry/exit paths (**AdmiralsQuartersWhitelist** and **RoundsVault**), the T+1
 > asynchronous Arks, access control, and the on-chain discovery registry.
+
+---
+
+## TL;DR
+
+- An **institutional, KYC-gated yield vault** that aggregates regulated real-world-asset
+  funds — tokenized treasuries, money-market funds, and private credit — behind a single
+  ERC-4626 share.
+- A **FleetCommander** (the vault) allocates deposits across a curated set of **Arks**
+  (per-fund connector contracts); a **curator** selects the funds and sets caps, a **keeper**
+  rebalances across them, and a liquidity **buffer** holds idle funds for instant withdrawals.
+- Each fleet is wired for **exactly one** entry path — never both at once: a **synchronous**
+  bundler (AdmiralsQuarters) when the fleet's funds settle on-chain, or an **asynchronous**
+  batch layer (RoundsVault) when they settle T+1 off-chain against a NAV strike. The choice is
+  fixed per fleet at deployment; both enforce the same per-fleet KYC whitelist. The async layer
+  prices each round from the *actual* settlement trade, so NAV drift between request and
+  settlement is borne pro-rata by that round's participants and never leaks onto other holders.
+- **RWA connectors implemented and mainnet-fork-tested:** WisdomTree (money-market + credit),
+  Securitize (VBILL/ACRED-class), Superstate (USTB/USCC), Franklin Templeton (BENJI), and
+  Maple institutional credit. §8 covers how each one settles (instant on-chain vs. T+1
+  off-chain, oracle model, custody).
+- Governance separates powers under on-chain timelocks: the curator chooses funds and caps but
+  cannot touch user funds or bypass the whitelist.
+
+**On the roadmap — ERC-7540.** A proof-of-concept replaces the bespoke RoundsVault ABI with an
+[ERC-7540](https://eips.ethereum.org/EIPS/eip-7540)/[7575](https://eips.ethereum.org/EIPS/eip-7575)-conformant
+asynchronous vault: standard `requestDeposit`/`requestRedeem` plus the normal ERC-4626 claim
+verbs, with the FleetCommander itself as the ERC-7575 external share token. For an integrator
+this means building against a *Final* Ethereum standard — the same async-vault interface already
+used by other RWA platforms — rather than a custom rounds interface, and ERC-7575's multi-asset
+entry points let one share accept several deposit assets (e.g. a USDS entry that converts through
+the PSM) with no bespoke plumbing.
 
 ---
 
@@ -40,8 +72,9 @@ naive `deposit()` / `withdraw()` story:
    off-chain NAV strike. On-chain deposits cannot move synchronously into these
    Arks without exposing the Fleet to NAV-strike sandwich attacks.
 
-The system resolves these with two complementary contracts that share a single
-whitelist authority (`ProtocolAccessManagerV2`):
+The system resolves these with two alternative entry contracts that share a
+single whitelist authority (`ProtocolAccessManagerV2`). A given Fleet is wired
+for **one** of them at deployment — never both at the same time (see §2):
 
 ```mermaid
 flowchart LR
@@ -64,6 +97,10 @@ flowchart LR
     FC -- rebalance --> Other
 ```
 
+> The diagram shows both entry contracts because the protocol supports both
+> patterns. Any individual Fleet exposes only **one** of them — AdmiralsQuarters
+> **or** RoundsVault — fixed at deployment.
+
 ### 1.2 Glossary
 
 | Term | Meaning |
@@ -81,8 +118,10 @@ flowchart LR
 
 ## 2. The Two Entry Paths
 
-A user holding USDC who wants Fleet exposure picks between two paths. The choice
-is driven by what underlying Arks the Fleet uses, not by user preference.
+Each Fleet is configured for **one** of two entry paths at deployment (via its
+`operatorType`), driven by what underlying Arks it uses — not by user preference,
+and never both at the same time. A user interacts through whichever single path
+that Fleet was wired for.
 
 | Property | Path 1 — AdmiralsQuartersWhitelist | Path 2 — RoundsVault |
 | --- | --- | --- |
@@ -97,10 +136,15 @@ is driven by what underlying Arks the Fleet uses, not by user preference.
 | Permit2 entry | `enterFleetWithPermit2` | No |
 | Used when | Fleet's Arks accept synchronous deposits (Buffer, sync Maple deposit) and the user wants share-perfect immediate execution | Fleet routes capital into T+1 Arks (WisdomTree, queued Maple withdrawal, future RWA) |
 
-**Important — both paths share the same whitelist context.** Granting a user
-whitelist on the Fleet address enables both paths simultaneously. There is no
+**Important — a Fleet exposes only one path, and the whitelist is Fleet-scoped
+either way.** A Fleet is wired for AdmiralsQuarters **or** RoundsVault, never
+both: the active path holds `OPERATOR_ROLE` on the Fleet, and the unused path is
+not granted it (on a RoundsVault fleet the deployment explicitly revokes AQ's
+operator role, and AQ-only fleets deploy no RoundsVault). Whichever path is
+active checks the same **Fleet-context** whitelist — there is no
 RoundsVault-scoped whitelist (`vault()` resolves to the Fleet via
-`ERC4626MultiTokenWrapper`).
+`ERC4626MultiTokenWrapper`), so a single `setWhitelisted(fleet, user)` authorizes
+the user on that Fleet's active path.
 
 ---
 
@@ -122,6 +166,14 @@ the manager actually implements the V2 interface.
 | `ADMIRALS_QUARTERS_ROLE` | `keccak256("ADMIRALS_QUARTERS_ROLE")` | Global | Governor |
 | `GUARDIAN_ROLE` | `keccak256("GUARDIAN_ROLE")` | Global | Governor |
 | `FOUNDATION_ROLE` | `keccak256("FOUNDATION_ROLE")` | Global | Governor |
+
+> **Trust note (role concentration under timelock).** The Governor grants
+> `WHITELIST_MANAGER_ROLE`, so in principle the Governor can grant that role to
+> itself and then open or edit a Fleet's whitelist (the same is true of
+> `OPERATOR_ROLE`, `KEEPER_ROLE`, etc.). In the institutional deployment the
+> Governor is an `RwaTimelock`, so any such grant — like every Governor action —
+> is subject to that timelock's configured delay: it is enqueued and publicly
+> visible on-chain, and executes only after the delay, never instantly.
 
 ### 3.2 Whitelisting mechanism
 
@@ -168,8 +220,8 @@ bypass and *not* checked by AQ or RoundsVault on their own entry points.
 #### Concrete consequence for users
 
 > **An end-user account cannot reach a Fleet by being granted `OPERATOR_ROLE`
-> on it. The user must always be whitelisted on the Fleet's context.** This is
-> true on both paths.
+> on it. The user must always be whitelisted on the Fleet's context.** This
+> holds whichever entry path the Fleet is wired for.
 
 | Caller | Direct `fleet.deposit(...)` | Through AQ `multicall(...)` | Through RoundsVault `deposit(...)` |
 | --- | --- | --- | --- |
@@ -1045,8 +1097,9 @@ Stuck round recovery:
 | Open a Fleet's whitelist globally | `setWhitelistOpen(fleet, true)` | PAMv2 |
 | Revoke a user | `setWhitelisted(fleet, user, false)` | PAMv2 |
 
-> The same Fleet address is the context for AQ entry checks and RoundsVault
-> entry checks. One whitelist update unblocks both paths.
+> The Fleet address is the whitelist context regardless of which entry path the
+> Fleet is wired for, so one `setWhitelisted(fleet, user)` authorizes the user on
+> that Fleet's active path.
 
 ### 9.7 AQ / RoundsVault as Operators
 
