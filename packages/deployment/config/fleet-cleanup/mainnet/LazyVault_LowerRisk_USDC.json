@@ -2,15 +2,15 @@
   "network": "mainnet",
   "chainId": 1,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:12:56.548Z",
+  "generatedAt": "2026-07-10T09:47:13.867Z",
   "fleetName": "LazyVault_LowerRisk_USDC",
   "fleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
   "bufferArk": "0x106CBB1F445F0bFFa7894F4199EE940BF7f6dD2B",
   "asset": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   "assetSymbol": "USDC",
   "assetDecimals": 6,
-  "fleetTotalAssets": "4041645733813",
-  "fleetTotalAssetsFormatted": "4041645.733813 USDC",
+  "fleetTotalAssets": "4042624006966",
+  "fleetTotalAssetsFormatted": "4042624.006966 USDC",
   "paused": true,
   "unpauseNotBefore": "2026-07-08T10:25:35.000Z",
   "repauseAfter": true,
@@ -37,7 +37,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "CompoundV3",
       "pool": "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Fluid-usdc-1",
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Gearbox-usdc-1",
@@ -61,7 +61,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Gearbox",
       "pool": "0xda00000035fef4082f78def6a8903bee419fbf8e",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Prime-usdc-1",
@@ -73,7 +73,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Yield-usdc-1",
@@ -85,7 +85,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0xe0a80d35bB6618CBA260120b279d357978c42BCE",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Stablecoin_Maxi-usdc-1",
@@ -97,7 +97,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Gauntlet_USDC_Core-1",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x8eB67A509616cd6A7c1B3c8C21D48FF57df3d458",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Flagship_USDC-1",
@@ -121,7 +121,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x186514400e52270cef3D80e1c6F8d10A75d47344",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Steakhouse-1",
@@ -157,7 +157,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Spark-usdc-1",
@@ -193,19 +193,19 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Syrup-usdc-1",
       "address": "0x3F9e195a8ee39Ed7B4a14A919F4a165c872976e5",
       "isBufferArk": false,
-      "totalAssets": "4041645433800",
-      "totalAssetsFormatted": "4041645.4338 USDC",
+      "totalAssets": "4042623778725",
+      "totalAssetsFormatted": "4042623.778725 USDC",
       "depositCap": "0",
       "depositCapFormatted": "0 USDC",
       "protocol": "Syrup",
       "pool": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
-      "action": "socializeLosses"
+      "action": "requestWithdrawal"
     },
     {
       "name": "MorphoVault-usdc-Hyperithm_USDC-1",
@@ -217,7 +217,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x777791C4d6DC2CE140D00D2828a7C93503c67777",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Vault_Bridge_USDC-1",
@@ -241,7 +241,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-usdc-1",
@@ -253,7 +253,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-kpk_USDC_Prime-1",
@@ -265,7 +265,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xe108fbc04852B5df72f9E44d7C29F47e7A993aDd",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_Gauntlet_USDC_Prime-usdc-1",
@@ -277,7 +277,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0x8c106EEDAd96553e64287A5A6839c3Cc78afA3D0",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_KPK_USDC_Prime_v2-usdc-1",
@@ -289,7 +289,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0x4Ef53d2cAa51C447fdFEEedee8F07FD1962C9ee6",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_API3_Core_USDC-usdc-1",
@@ -301,7 +301,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0xe2221Aa07ec3266DA87763E2b1e28d07A8a4e53b",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_Avantgarde_USDC_Conservative-usdc-1",
@@ -313,7 +313,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0xeBBaE8CfAbB0092d5B32f00EBeE0c8139d24dDcd",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-Gauntlet_USDC_Prime-1",

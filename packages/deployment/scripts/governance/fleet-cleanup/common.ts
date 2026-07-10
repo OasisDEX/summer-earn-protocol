@@ -7,20 +7,28 @@ import { SafeAbiFunctionFragment } from '../../helpers/safe-tx-builder'
 /**
  * Shared pieces of the config-driven fleet-cleanup tooling:
  *  - `gov:cleanup-fleets:init`  (init.ts)          — generates one editable JSON per fleet
- *  - `gov:cleanup-fleets`      (build-batches.ts)  — turns those JSONs into Safe batches
+ *  - `gov:cleanup-fleets`      (build-batches.ts)  — turns those JSONs into governance proposals
+ *                                                    (default) or Safe Transaction Builder batches
+ *                                                    (MODE=safe), one output per fleet
  *
  * Config files live in config/fleet-cleanup/<network>/<FleetName>.json and are the operator's
  * worksheet: every ark defaults to `action: "leave"`; flipping an action and re-running the
- * build script emits one Safe Transaction Builder batch per fleet.
+ * build script emits one output per fleet.
  */
 
-export type CleanupAction = 'leave' | 'socializeLosses' | 'socializeLossesAndRemove' | 'removeArk'
+export type CleanupAction =
+  | 'leave'
+  | 'socializeLosses'
+  | 'socializeLossesAndRemove'
+  | 'removeArk'
+  | 'requestWithdrawal'
 
 export const CLEANUP_ACTIONS: readonly CleanupAction[] = [
   'leave',
   'socializeLosses',
   'socializeLossesAndRemove',
   'removeArk',
+  'requestWithdrawal',
 ]
 
 export interface CleanupArkEntry {
@@ -97,7 +105,19 @@ export const erc20Abi = parseAbi([
   'function decimals() view returns (uint8)',
 ])
 
+// Async-withdrawal arks (OriginUSDArk, SyrupArk/V2, …) implement IArkWithWithdrawalRequest.
+// Used to validate a `requestWithdrawal` action target and detect an already-pending request.
+export const arkWithdrawalViewAbi = parseAbi([
+  'function withdrawalRequestId() view returns (uint256)',
+  'function assetsInWithdrawalQueue() view returns (uint256)',
+  'function isWithdrawalClaimRequired() view returns (bool)',
+])
+
 export const CURATOR_ROLE_ENUM = 0 // ContractSpecificRoles.CURATOR_ROLE
+export const KEEPER_ROLE_ENUM = 1 // ContractSpecificRoles.KEEPER_ROLE
+
+// requestWithdrawal(type(uint256).max) requests the ark's full position.
+export const WITHDRAWAL_REQUEST_MAX = maxUint256
 
 // Write ABIs as JSON fragments so the Safe Transaction Builder `contractMethod` metadata can be
 // derived from the same source used for calldata encoding.
@@ -120,6 +140,35 @@ export const writeAbis = {
       { name: 'fleetCommanderAddress', type: 'address' },
       { name: 'account', type: 'address' },
     ],
+    outputs: [],
+  },
+  // grantKeeperRole/revokeKeeperRole scope KEEPER_ROLE to the address passed as the first arg —
+  // pass an ARK address for an ark-scoped keeper (required for Ark.requestWithdrawal), not a fleet.
+  grantKeeperRole: {
+    name: 'grantKeeperRole',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'fleetCommanderAddress', type: 'address' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [],
+  },
+  revokeKeeperRole: {
+    name: 'revokeKeeperRole',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'fleetCommanderAddress', type: 'address' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [],
+  },
+  requestWithdrawal: {
+    name: 'requestWithdrawal',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'amount', type: 'uint256' }],
     outputs: [],
   },
   setSweepableToken: {
