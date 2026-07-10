@@ -60,7 +60,8 @@ import {
  *      Raft.socializeLosses(ark, [pool], receiver) → flags restored
  *   5. per removal ark: setArkDepositCap(ark, 0) (if cap > 0) then removeArk(ark)
  *   6. Ark.requestWithdrawal(max)             — per requestWithdrawal ark (async; ark stays)
- *   7. PAM.revokeCuratorRole(fleet, executor) — if granted in 3 (keeper is intentionally kept)
+ *   7. PAM.revokeCuratorRole / revokeKeeperRole — revoke the transient roles granted in 1 & 3
+ *      (the follow-up settlement proposal re-grants keeper)
  *   8. FleetCommander.pause()                 — if repauseAfter AND the fleet ends unpaused
  *
  * Every action is re-validated against LIVE chain state — the config's numbers are the operator's
@@ -167,16 +168,17 @@ function buildFleetActions(
   const fleetUnpausedAtEnd = willUnpause || !plan.livePaused
   const willRepause = fc.repauseAfter && fleetUnpausedAtEnd
 
-  // 1. Ark-scoped keeper grants for requestWithdrawal arks (kept afterwards for the follow-up).
-  for (const w of plan.withdrawals) {
-    if (!w.executorHasKeeper) {
-      actions.push({
-        target: pamAddress,
-        fragment: writeAbis.grantKeeperRole,
-        args: [w.entry.address, executor],
-        summary: `PAM.grantKeeperRole(${w.entry.name} ark, executor) — ark-scoped, for requestWithdrawal`,
-      })
-    }
+  // 1. Ark-scoped keeper grants for requestWithdrawal arks. Only granted where the executor
+  //    doesn't already hold it; revoked again at the end (step 8) — the follow-up settlement
+  //    proposal re-grants it.
+  const keeperGrantArks = plan.withdrawals.filter((w) => !w.executorHasKeeper)
+  for (const w of keeperGrantArks) {
+    actions.push({
+      target: pamAddress,
+      fragment: writeAbis.grantKeeperRole,
+      args: [w.entry.address, executor],
+      summary: `PAM.grantKeeperRole(${w.entry.name} ark, executor) — ark-scoped, for requestWithdrawal`,
+    })
   }
 
   // 2. unpause (only needed for whenNotPaused actions: removeArk / setArkDepositCap)
@@ -271,13 +273,22 @@ function buildFleetActions(
     })
   }
 
-  // 7. revoke curator (keeper is intentionally kept for the follow-up claim/sweep/remove proposal)
+  // 7. revoke the transient roles we granted (both curator and the ark-scoped keeper). The
+  //    follow-up settlement proposal (claimWithdrawal/sweep/removeArk) re-grants keeper.
   if (grantCurator) {
     actions.push({
       target: pamAddress,
       fragment: writeAbis.revokeCuratorRole,
       args: [fleet, executor],
       summary: `PAM.revokeCuratorRole(${fc.fleetName}, executor) — cleanup`,
+    })
+  }
+  for (const w of keeperGrantArks) {
+    actions.push({
+      target: pamAddress,
+      fragment: writeAbis.revokeKeeperRole,
+      args: [w.entry.address, executor],
+      summary: `PAM.revokeKeeperRole(${w.entry.name} ark, executor) — cleanup (re-granted in the follow-up)`,
     })
   }
 
