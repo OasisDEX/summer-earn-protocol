@@ -1,0 +1,30 @@
+{
+  "title": "Fleet cleanup — LazyVault_LowerRisk_EURC (base)",
+  "description": "# Fleet cleanup — LazyVault_LowerRisk_EURC\n\nExecuted on the base hub by the timelock 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796.\n\n## Actions\n1. FleetCommander(LazyVault_LowerRisk_EURC).unpause() — not before 2026-07-08T10:21:45.000Z\n2. FleetCommander(LazyVault_LowerRisk_EURC).removeArk(ERC4626-Fluid-eurc-8453)\n3. FleetCommander(LazyVault_LowerRisk_EURC).removeArk(MorphoVault-eurc-Steakhouse_EURC-8453)\n4. FleetCommander(LazyVault_LowerRisk_EURC).removeArk(MorphoVault-eurc-Gauntlet_EURC_Core-8453)\n5. FleetCommander(LazyVault_LowerRisk_EURC).removeArk(Moonwell-eurc-8453)\n6. FleetCommander(LazyVault_LowerRisk_EURC).removeArk(FluidFToken-eurc-8453)\n\nThe fleet is currently paused; unpause is only executable after 2026-07-08T10:21:45.000Z (minimum pause time).",
+  "governorId": "eip155:8453:0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
+  "targets": [
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+    "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0"
+  ],
+  "values": [
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0"
+  ],
+  "calldatas": [
+    "0x3f4ba83a",
+    "0x96c25a38000000000000000000000000dc736314330e545e7b5db1199e43d6d31bd6802c",
+    "0x96c25a38000000000000000000000000e949e2f45d300e934572bf261428f9261090bef6",
+    "0x96c25a380000000000000000000000000dd6f8a9dd2b6f1df8dee95eb32f9ad7ba8218c1",
+    "0x96c25a38000000000000000000000000e2ad084b9639ccc689217704577e538ca2c251e5",
+    "0x96c25a380000000000000000000000004e764d15909ab8b413f6a046dda66408ee5407f1"
+  ],
+  "timestamp": 1783687472120
+}

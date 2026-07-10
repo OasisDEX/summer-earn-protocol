@@ -1,0 +1,45 @@
+{
+  "title": "Fleet cleanup — LazyVault_LowerRisk_WETH (base)",
+  "description": "# Fleet cleanup — LazyVault_LowerRisk_WETH\n\nExecuted on the base hub by the timelock 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796.\n\n## Actions\n1. FleetCommander(LazyVault_LowerRisk_WETH).unpause() — not before 2026-07-08T10:21:45.000Z\n2. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(CompoundV3-weth-8453)\n3. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Fluid-weth-8453)\n4. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Euler_Base_WETH-weth-8453)\n5. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Gauntlet_WETH_Core-8453)\n6. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(Origin-weth-8453)\n7. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Seamless_WETH-8453)\n8. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Extrafi_XLend_WETH-8453)\n9. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Yearn_OG_WETH-8453)\n10. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Euler_Alterscope_LRT_WETH-weth-8453)\n11. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(FluidFToken-weth-8453)\n\nThe fleet is currently paused; unpause is only executable after 2026-07-08T10:21:45.000Z (minimum pause time).",
+  "governorId": "eip155:8453:0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
+  "targets": [
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af"
+  ],
+  "values": [
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0"
+  ],
+  "calldatas": [
+    "0x3f4ba83a",
+    "0x96c25a38000000000000000000000000cc725b576a9570f710e1934e7bf3395bf3250442",
+    "0x96c25a38000000000000000000000000d29235aed4366c03951cd7dfff1cc77f365ee60f",
+    "0x96c25a38000000000000000000000000adeb60e50e7bc5e012ddc985b83f8bb24857a002",
+    "0x96c25a38000000000000000000000000ec3cc472e176d65b7b17e2bb6178317ad8da7822",
+    "0x96c25a38000000000000000000000000d9755f1541103333132e2c90c67f7e513060dc0e",
+    "0x96c25a380000000000000000000000007d3607937fac84aa6d41beb67e252098e52ecd6b",
+    "0x96c25a38000000000000000000000000ece30ebeaa765472895e77deac35a09ddae9f8c7",
+    "0x96c25a3800000000000000000000000055bd40ffdbfe45869969a3c10b39c11152a735bc",
+    "0x96c25a380000000000000000000000002a6e16555d377b7fdefa18e1e418fd3634ec5a2c",
+    "0x96c25a3800000000000000000000000024e03538940d84842860c4955dd826ab908ec05e"
+  ],
+  "timestamp": 1783687472122
+}

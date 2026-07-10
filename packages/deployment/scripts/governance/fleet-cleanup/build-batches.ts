@@ -10,7 +10,7 @@ import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../../common/constants'
 import { ChainName, getChainConfigByChainName } from '../../helpers/chain-configs'
 import { ChainSetup } from '../../helpers/chain-prompt'
 import { buildCrossChainProposalAction } from '../../helpers/cross-chain-proposal'
-import { getChainId, getChainIdByNetwork } from '../../helpers/get-chainid'
+import { getChainId } from '../../helpers/get-chainid'
 import { promptForConfigType } from '../../helpers/prompt-helpers'
 import { createGovernanceProposal } from '../../helpers/proposal-helpers'
 import {
@@ -778,7 +778,7 @@ async function main() {
         crossChainExecution = [
           {
             name: fleetChainSetup.name,
-            chainId: Number(getChainIdByNetwork(network)),
+            chainId,
             targets: dstActions.map((a) => a.target as string),
             values: dstActions.map((a) => a.value.toString()),
             datas: dstActions.map((a) => a.calldata as string),
