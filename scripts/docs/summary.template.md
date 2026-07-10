@@ -14,6 +14,8 @@
 * [Rebalancing & Keepers](concepts/rebalancing.md)
 * [Fees, Tips & Buy-and-Burn](concepts/fees-and-tips.md)
 * [DCA Strategies](concepts/dca.md)
+* [Institutional & RWA Vaults](concepts/institutional-rwa-vaults.md)
+* [RWA Arks & Asynchronous Settlement](concepts/rwa-arks-and-settlement.md)
 
 ## Governance & Tokenomics
 
