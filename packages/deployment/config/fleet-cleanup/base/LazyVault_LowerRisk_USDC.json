@@ -2,15 +2,15 @@
   "network": "base",
   "chainId": 8453,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:33:50.324Z",
+  "generatedAt": "2026-07-10T12:36:59.679Z",
   "fleetName": "LazyVault_LowerRisk_USDC",
   "fleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
   "bufferArk": "0x106CBB1F445F0bFFa7894F4199EE940BF7f6dD2B",
   "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   "assetSymbol": "USDC",
   "assetDecimals": 6,
-  "fleetTotalAssets": "886442199250",
-  "fleetTotalAssetsFormatted": "886442.19925 USDC",
+  "fleetTotalAssets": "886650980439",
+  "fleetTotalAssetsFormatted": "886650.980439 USDC",
   "paused": true,
   "unpauseNotBefore": "2026-07-08T10:21:45.000Z",
   "repauseAfter": false,
@@ -43,8 +43,8 @@
       "name": "CompoundV3-usdc-8453",
       "address": "0xedC6a603B31391B7D13fBa6A721fd4DDa401f9eA",
       "isBufferArk": false,
-      "totalAssets": "63099970011",
-      "totalAssetsFormatted": "63099.970011 USDC",
+      "totalAssets": "63115986472",
+      "totalAssetsFormatted": "63115.986472 USDC",
       "depositCap": "1090000000000",
       "depositCapFormatted": "1090000 USDC",
       "protocol": "CompoundV3",
@@ -61,7 +61,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "SkyUsds-usdc-8453",
@@ -85,14 +85,14 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Gauntlet_USDC_Prime-8453",
       "address": "0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B",
       "isBufferArk": false,
-      "totalAssets": "519076524681",
-      "totalAssetsFormatted": "519076.524681 USDC",
+      "totalAssets": "519192871533",
+      "totalAssetsFormatted": "519192.871533 USDC",
       "depositCap": "54000000000000",
       "depositCapFormatted": "54000000 USDC",
       "protocol": "Morpho",
@@ -121,14 +121,14 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Moonwell_Flagship_USDC-8453",
       "address": "0x78DB8603b03337d3C1F53D20283294efa8E7337A",
       "isBufferArk": false,
-      "totalAssets": "304175504558",
-      "totalAssetsFormatted": "304175.504558 USDC",
+      "totalAssets": "304251922434",
+      "totalAssetsFormatted": "304251.922434 USDC",
       "depositCap": "1490000000000",
       "depositCapFormatted": "1490000 USDC",
       "protocol": "Morpho",
@@ -145,7 +145,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x616a4E1db48e22028f6bbf20444Cd3b8e3273738",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Moonwell-usdc-8453",
@@ -157,7 +157,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Moonwell",
       "pool": "0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Steakhouse_High_Yield_USDC-8453",
@@ -169,7 +169,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xBEEFA7B88064FeEF0cEe02AAeBBd95D30df3878F",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Extrafi_XLend_USDC-8453",
@@ -181,7 +181,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x23479229e52Ab6aaD312D0B03DF9F33B46753B5e",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Universal_USDC-8453",
@@ -193,7 +193,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xB7890CEE6CF4792cdCC13489D36D9d42726ab863",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Clearstar_High_Yield_USDC-8453",
@@ -205,7 +205,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xE74c499fA461AF1844fCa84204490877787cED56",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Clearstar_Reactor_OpenEden_Boosted_USDC-8453",
@@ -217,7 +217,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x1D3b1Cd0a0f242d598834b3F2d126dC6bd774657",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Gauntlet_USDC_Frontier-8453",
@@ -229,7 +229,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x236919F11ff9eA9550A4287696C2FC9e18E6e890",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Base_USDC-usdc-8453",
@@ -241,7 +241,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0x085178078796Da17B191f9081b5E2fCCc79A7eE7",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-usdc-8453",
@@ -253,7 +253,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Aera-Gauntlet_Alpha-usdc-8453",
@@ -265,7 +265,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Gauntlet",
       "pool": "0x000000000001CdB57E58Fa75Fe420a0f4D6640D5",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Extrafi_XLend_USDC-usdc-8453",
@@ -277,7 +277,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Extrafi",
       "pool": "0x589A7339C6d0c8777E7429F57f2f95c069c37288",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",

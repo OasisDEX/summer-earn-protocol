@@ -2,15 +2,15 @@
   "network": "base",
   "chainId": 8453,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:33:51.239Z",
+  "generatedAt": "2026-07-10T12:37:00.642Z",
   "fleetName": "LazyVault_LowerRisk_WETH",
   "fleetAddress": "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
   "bufferArk": "0x72d41714153a05D9e41C5346256e0dB2728BD302",
   "asset": "0x4200000000000000000000000000000000000006",
   "assetSymbol": "WETH",
   "assetDecimals": 18,
-  "fleetTotalAssets": "137656271289313836020",
-  "fleetTotalAssetsFormatted": "137.65627128931383602 WETH",
+  "fleetTotalAssets": "137666671820730384636",
+  "fleetTotalAssetsFormatted": "137.666671820730384636 WETH",
   "paused": true,
   "unpauseNotBefore": "2026-07-08T10:21:45.000Z",
   "repauseAfter": false,
@@ -19,8 +19,8 @@
       "name": "AaveV3-weth-8453",
       "address": "0x03b0a0168b51839614f6fB333480D572b754fD56",
       "isBufferArk": false,
-      "totalAssets": "56143010884322961422",
-      "totalAssetsFormatted": "56.143010884322961422 WETH",
+      "totalAssets": "56147610457342878649",
+      "totalAssetsFormatted": "56.147610457342878649 WETH",
       "depositCap": "11200000000000000000000",
       "depositCapFormatted": "11200 WETH",
       "protocol": "AaveV3",
@@ -37,7 +37,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "CompoundV3",
       "pool": "0x46e6b214b524310239732D51387075E0e70970bf",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Fluid-weth-8453",
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Fluid",
       "pool": "0x9272D6153133175175Bc276512B2336BE3931CE9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Base_WETH-weth-8453",
@@ -61,14 +61,14 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Euler",
       "pool": "0x859160DB5841E5cfB8D3f144C6b3381A85A4b410",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-weth-Moonwell_Flagship_WETH-8453",
       "address": "0xa510f65c0a1E12EC5B8067f6d614f92cD62e6744",
       "isBufferArk": false,
-      "totalAssets": "36184307283313907213",
-      "totalAssetsFormatted": "36.184307283313907213 WETH",
+      "totalAssets": "36186641913034851777",
+      "totalAssetsFormatted": "36.186641913034851777 WETH",
       "depositCap": "1230000000000000000000",
       "depositCapFormatted": "1230 WETH",
       "protocol": "Morpho",
@@ -79,8 +79,8 @@
       "name": "MorphoVault-weth-Steakhouse_WETH-8453",
       "address": "0xb9ac2f768F2ADAA65A45988a095988153565a228",
       "isBufferArk": false,
-      "totalAssets": "44958953121676967385",
-      "totalAssetsFormatted": "44.958953121676967385 WETH",
+      "totalAssets": "44962419450352654210",
+      "totalAssetsFormatted": "44.96241945035265421 WETH",
       "depositCap": "45000000000000000000",
       "depositCapFormatted": "45 WETH",
       "protocol": "Morpho",
@@ -97,7 +97,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x6b13c060F13Af1fdB319F52315BbbF3fb1D88844",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Origin-weth-8453",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Origin",
       "pool": "0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-weth-Seamless_WETH-8453",
@@ -121,7 +121,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x27d8c7273fd3fcc6956a0b370ce5fd4a7fc65c18",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-weth-Extrafi_XLend_WETH-8453",
@@ -133,7 +133,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x5A32099837D89E3a794a44fb131CBbAD41f87a8C",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-weth-Yearn_OG_WETH-8453",
@@ -145,7 +145,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x1D795E29044A62Da42D927c4b179269139A28A6B",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Alterscope_LRT_WETH-weth-8453",
@@ -157,7 +157,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Euler",
       "pool": "0xF3BB6b0a9bEAF9240D7F4a91341d5Df6bF37cAea",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-weth-8453",
@@ -169,7 +169,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Fluid",
       "pool": "0x9272D6153133175175Bc276512B2336BE3931CE9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",

@@ -2,7 +2,7 @@
   "network": "hyperliquid",
   "chainId": 999,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:38:13.334Z",
+  "generatedAt": "2026-07-10T12:37:11.340Z",
   "fleetName": "LazyVault_LowerRisk_USDC",
   "fleetAddress": "0x252E5Aa42c1804b85b2ce6712cd418A0561232Ba",
   "bufferArk": "0xd01CBC731ED26DDCC1e632Bc7371DF93ae05F2e2",
@@ -25,7 +25,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Hyperlend",
       "pool": "0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Felix_USDC-999",
@@ -37,7 +37,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x8a862fd6c12f9ad34c9c2ff45ab2b6712e8cea27",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Gauntlet_USDC-999",
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x08C00F8279dFF5B0CB5a04d349E7d79708Ceadf3",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Hypurr-usdc-999",
@@ -61,7 +61,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Hypurr",
       "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",

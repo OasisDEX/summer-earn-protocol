@@ -2,15 +2,15 @@
   "network": "base",
   "chainId": 8453,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:33:50.717Z",
+  "generatedAt": "2026-07-10T12:37:00.089Z",
   "fleetName": "LazyVault_LowerRisk_EURC",
   "fleetAddress": "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
   "bufferArk": "0xC65B7E8feC2b7b329AB1d08c78F9f01FE4E4B3Ec",
   "asset": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
   "assetSymbol": "EURC",
   "assetDecimals": 6,
-  "fleetTotalAssets": "395136127120",
-  "fleetTotalAssetsFormatted": "395136.12712 EURC",
+  "fleetTotalAssets": "395354729207",
+  "fleetTotalAssetsFormatted": "395354.729207 EURC",
   "paused": true,
   "unpauseNotBefore": "2026-07-08T10:21:45.000Z",
   "repauseAfter": false,
@@ -25,14 +25,14 @@
       "depositCapFormatted": "0 EURC",
       "protocol": "Fluid",
       "pool": "0x1943FA26360f038230442525Cf1B9125b5DCB401",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-eurc-Moonwell_Flagship_EURC-8453",
       "address": "0xa3cC259B68eae4d72572756A685FD877E420aa95",
       "isBufferArk": false,
-      "totalAssets": "150134617215",
-      "totalAssetsFormatted": "150134.617215 EURC",
+      "totalAssets": "150249208061",
+      "totalAssetsFormatted": "150249.208061 EURC",
       "depositCap": "250000000000",
       "depositCapFormatted": "250000 EURC",
       "protocol": "Morpho",
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 EURC",
       "protocol": "Morpho",
       "pool": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-eurc-Gauntlet_EURC_Core-8453",
@@ -61,7 +61,7 @@
       "depositCapFormatted": "0 EURC",
       "protocol": "Morpho",
       "pool": "0x1c155be6bC51F2c37d472d4C2Eba7a637806e122",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "AaveV3-eurc-8453",
@@ -85,7 +85,7 @@
       "depositCapFormatted": "0 EURC",
       "protocol": "Moonwell",
       "pool": "0xb682c840B5F4FC58B20769E691A6fa1305A501a2",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-eurc-8453",
@@ -97,14 +97,14 @@
       "depositCapFormatted": "0 EURC",
       "protocol": "Fluid",
       "pool": "0x1943FA26360f038230442525Cf1B9125b5DCB401",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-eurc-Gauntlet_EURC_Balanced-8453",
       "address": "0xaCB489beD8c98831D6b1d7A63ED46CdCf06C524D",
       "isBufferArk": false,
-      "totalAssets": "76108135375",
-      "totalAssetsFormatted": "76108.135375 EURC",
+      "totalAssets": "76143029246",
+      "totalAssetsFormatted": "76143.029246 EURC",
       "depositCap": "87000000000",
       "depositCapFormatted": "87000 EURC",
       "protocol": "Morpho_V2",
@@ -115,8 +115,8 @@
       "name": "MorphoV2Vault-eurc-Steakhouse_Prime_EURC-8453",
       "address": "0x7332FeC21f1179aeA6d4Df34206aFA3B9074987c",
       "isBufferArk": false,
-      "totalAssets": "161999038777",
-      "totalAssetsFormatted": "161999.038777 EURC",
+      "totalAssets": "162068156147",
+      "totalAssetsFormatted": "162068.156147 EURC",
       "depositCap": "5200000000000",
       "depositCapFormatted": "5200000 EURC",
       "protocol": "Morpho_V2",

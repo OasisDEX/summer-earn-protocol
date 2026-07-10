@@ -2,15 +2,15 @@
   "network": "arbitrum",
   "chainId": 42161,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:37:40.177Z",
+  "generatedAt": "2026-07-10T12:37:04.520Z",
   "fleetName": "LazyVault_LowerRisk_USDC",
   "fleetAddress": "0x4F63cfEa7458221CB3a0EEE2F31F7424Ad34bb58",
   "bufferArk": "0xbb79242B9518F450cDe8eb957E15c38ab09B1419",
   "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
   "assetSymbol": "USDC",
   "assetDecimals": 6,
-  "fleetTotalAssets": "943056579",
-  "fleetTotalAssetsFormatted": "943.056579 USDC",
+  "fleetTotalAssets": "951843648",
+  "fleetTotalAssetsFormatted": "951.843648 USDC",
   "paused": false,
   "unpauseNotBefore": null,
   "repauseAfter": false,
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Gearbox-usdc-42161",
@@ -61,14 +61,14 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Gearbox",
       "pool": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Sky_sUSDC-usdc-42161",
       "address": "0x4EF91E09ADb31CC7Ec9b663B6827155D6a103b74",
       "isBufferArk": false,
-      "totalAssets": "331555954",
-      "totalAssetsFormatted": "331.555954 USDC",
+      "totalAssets": "331616549",
+      "totalAssetsFormatted": "331.616549 USDC",
       "depositCap": "54000000000000",
       "depositCapFormatted": "54000000 USDC",
       "protocol": "Sky",
@@ -79,8 +79,8 @@
       "name": "SiloManagedVault-varlamore-usdc-42161",
       "address": "0x125dAE47930c1118cf2dB5A140877C64B408783C",
       "isBufferArk": false,
-      "totalAssets": "90880383",
-      "totalAssetsFormatted": "90.880383 USDC",
+      "totalAssets": "99606857",
+      "totalAssetsFormatted": "99.606857 USDC",
       "depositCap": "0",
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x7e97fa6893871A2751B5fE961978DCCb2c201E65",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Yearn_OG_USDC-42161",
@@ -121,7 +121,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x87DEAE530841A9671326C9D5B9f91bdB11F3162c",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Steakhouse_Prime_USDC-42161",
@@ -133,7 +133,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x250CF7c82bAc7cB6cf899b6052979d4B5BA1f9ca",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-MEV_Capital_USDC-42161",
@@ -145,7 +145,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xa60643c90A542A95026C0F1dbdB0615fF42019Cf",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Arbitrum_USDC-usdc-42161",
@@ -157,7 +157,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0x0a1eCC5Fe8C9be3C809844fcBe615B46A869b899",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "SiloManagedVault-greenhouse-usdc-42161",
@@ -169,7 +169,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": "0x83b90F83afdFE24DDc4e300c8EB1C5b2c7544C81",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Silo-Swaap_Lend_susdx_usdc_127-usdc-42161",
@@ -181,7 +181,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": "0x2433D6AC11193b4695D9ca73530de93c538aD18a",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-usdc-42161",
@@ -193,7 +193,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0x1A996cb54bb95462040408C06122D45D6Cdb6096",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",
