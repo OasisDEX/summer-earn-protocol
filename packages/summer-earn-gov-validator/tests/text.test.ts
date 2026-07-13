@@ -117,4 +117,18 @@ describe('extractProposalMetadata', () => {
     const result = extractProposalMetadata(desc)
     expect(result.cleanDescription.startsWith('***')).toBe(false)
   })
+
+  it('preserves empty lines/newlines in the cleanDescription', () => {
+    const desc = '# Title\n\nLine 1\n\nLine 2'
+    const result = extractProposalMetadata(desc)
+    expect(result.cleanDescription).toBe('Line 1\n\nLine 2')
+  })
+
+  it('keeps empty lines around tables and separators', () => {
+    const desc = '# Title\n\nParagraph before separator.\n\n---\n\n### Section 2\n\nParagraph text.'
+    const result = extractProposalMetadata(desc)
+    expect(result.cleanDescription).toBe(
+      'Paragraph before separator.\n\n---\n\n### Section 2\n\nParagraph text.',
+    )
+  })
 })
