@@ -119,12 +119,12 @@ export interface CrossChainData {
   dstCalldatas: string[]
   dstDescriptionHash: string
   options: Hex
-  decodedCalldatas?: DecodedFunction[]
+  decodedCalldatas?: (DecodedFunction | null)[]
   formattedProposals?: Array<{
     target: string
     targetName: string
     value: string
-    decodedCall?: DecodedFunction
+    decodedCall?: DecodedFunction | null
   }>
 }
 
@@ -419,9 +419,9 @@ export const decodeCrossChainCalldata = (calldata: string): CrossChainData | nul
     const network = dstEidToChainIdMap[dstIdAsString] as SupportedNetworks
 
     // Decode nested calldatas
-    const decodedCalldatas = dstCalldatas
-      .map((nestedCalldata, index) => decodeCalldata(nestedCalldata, dstTargets[index], network))
-      .filter((d): d is DecodedFunction => d !== null)
+    const decodedCalldatas = dstCalldatas.map((nestedCalldata, index) =>
+      decodeCalldata(nestedCalldata, dstTargets[index], network),
+    )
 
     // Get contract names for the targets
     const targetContractNames = dstTargets.map((target) => addresToContractName(target, network))
