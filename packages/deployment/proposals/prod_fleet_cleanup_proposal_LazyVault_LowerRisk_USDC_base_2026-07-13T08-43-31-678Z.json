@@ -1,8 +1,9 @@
 {
   "title": "Fleet cleanup — LazyVault_LowerRisk_USDC (base)",
-  "description": "# Fleet cleanup — LazyVault_LowerRisk_USDC\n\nExecuted on the base hub by the timelock 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796.\n\n## Actions\n1. FleetCommander(LazyVault_LowerRisk_USDC).unpause() — not before 2026-07-08T10:21:45.000Z\n2. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(ERC4626-Fluid-usdc-8453)\n3. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Gauntlet_USDC_Core-8453)\n4. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Re7_USDC-8453)\n5. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Seamless_USDC-8453)\n6. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(Moonwell-usdc-8453)\n7. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Steakhouse_High_Yield_USDC-8453)\n8. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Extrafi_XLend_USDC-8453)\n9. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Universal_USDC-8453)\n10. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Clearstar_High_Yield_USDC-8453)\n11. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Clearstar_Reactor_OpenEden_Boosted_USDC-8453)\n12. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Gauntlet_USDC_Frontier-8453)\n13. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(ERC4626-Euler_Base_USDC-usdc-8453)\n14. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(FluidFToken-usdc-8453)\n15. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(Aera-Gauntlet_Alpha-usdc-8453)\n16. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(ERC4626-Extrafi_XLend_USDC-usdc-8453)\n\nThe fleet is currently paused; unpause is only executable after 2026-07-08T10:21:45.000Z (minimum pause time).",
+  "description": "# Fleet cleanup — LazyVault_LowerRisk_USDC\n\nExecuted on the base hub by the timelock 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796.\n\n## Actions\n1. FleetCommander(LazyVault_LowerRisk_USDC).unpause() — not before 2026-07-08T10:21:45.000Z\n2. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(ERC4626-Fluid-usdc-8453)\n3. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Gauntlet_USDC_Core-8453)\n4. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Re7_USDC-8453)\n5. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Seamless_USDC-8453)\n6. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(Moonwell-usdc-8453)\n7. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Steakhouse_High_Yield_USDC-8453)\n8. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Extrafi_XLend_USDC-8453)\n9. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Universal_USDC-8453)\n10. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Clearstar_High_Yield_USDC-8453)\n11. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Clearstar_Reactor_OpenEden_Boosted_USDC-8453)\n12. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(MorphoVault-usdc-Gauntlet_USDC_Frontier-8453)\n13. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(ERC4626-Euler_Base_USDC-usdc-8453)\n14. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(FluidFToken-usdc-8453)\n15. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(Aera-Gauntlet_Alpha-usdc-8453)\n16. FleetCommander(LazyVault_LowerRisk_USDC).removeArk(ERC4626-Extrafi_XLend_USDC-usdc-8453)\n17. FleetCommander(LazyVault_LowerRisk_USDC).setTipRate(0) — cleanup default\n\nThe fleet is currently paused; unpause is only executable after 2026-07-08T10:21:45.000Z (minimum pause time).",
   "governorId": "eip155:8453:0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
   "targets": [
+    "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
     "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
     "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
     "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
@@ -36,6 +37,7 @@
     "0",
     "0",
     "0",
+    "0",
     "0"
   ],
   "calldatas": [
@@ -54,7 +56,8 @@
     "0x96c25a38000000000000000000000000a18ac9f1f0f5cee4bf214c6aedca3e60e6119175",
     "0x96c25a3800000000000000000000000060a5753d4a95600be5e2381d678752e2d4c3b386",
     "0x96c25a380000000000000000000000006b58aeeadd96dbfeacf90948e26d51c506213766",
-    "0x96c25a38000000000000000000000000903fb67e7c50a26f34c43efb86b49bed5e14e7d5"
+    "0x96c25a38000000000000000000000000903fb67e7c50a26f34c43efb86b49bed5e14e7d5",
+    "0x5822198f0000000000000000000000000000000000000000000000000000000000000000"
   ],
-  "timestamp": 1783687472121
+  "timestamp": 1783932211683
 }

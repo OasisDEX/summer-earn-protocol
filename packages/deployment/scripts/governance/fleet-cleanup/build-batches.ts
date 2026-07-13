@@ -54,7 +54,7 @@ import {
  * The per-fleet ordered action list (executed by the timelock in proposal mode, or the Safe in
  * safe mode — referred to below as the "executor"):
  *   1. PAM.grantKeeperRole(ark, executor)     — per requestWithdrawal ark, ark-scoped, if missing
- *   2. FleetCommander.unpause()               — only if paused AND there is a whenNotPaused action
+ *   2. FleetCommander.unpause()               — the fleet always ends up unpaused for step 8
  *   3. PAM.grantCuratorRole(fleet, executor)  — if a sweep needs whitelisting or a cap must be zeroed
  *   4. per sweep ark: setSweepableToken(true) → setNonSweepableToken(false) →
  *      Raft.socializeLosses(ark, [pool], receiver) → flags restored
@@ -62,7 +62,9 @@ import {
  *   6. Ark.requestWithdrawal(max)             — per requestWithdrawal ark (async; ark stays)
  *   7. PAM.revokeCuratorRole / revokeKeeperRole — revoke the transient roles granted in 1 & 3
  *      (the follow-up settlement proposal re-grants keeper)
- *   8. FleetCommander.pause()                 — if repauseAfter AND the fleet ends unpaused
+ *   8. FleetCommander.setTipRate(0)           — unconditional, not config-driven: every cleaned-up
+ *      fleet has its tip rate zeroed out. Requires whenNotPaused, so it runs before any re-pause.
+ *   9. FleetCommander.pause()                 — if repauseAfter AND the fleet ends unpaused
  *
  * Every action is re-validated against LIVE chain state — the config's numbers are the operator's
  * worksheet, not the source of truth.
@@ -163,8 +165,8 @@ function buildFleetActions(
   const actions: PlannedAction[] = []
 
   const capRemovals = plan.removals.filter((r) => r.liveDepositCap > 0n)
-  const hasWhenNotPausedAction = plan.removals.length > 0 || capRemovals.length > 0
-  const willUnpause = plan.livePaused && hasWhenNotPausedAction
+  // setTipRate(0) below is unconditional and whenNotPaused, so the fleet always needs unpausing.
+  const willUnpause = plan.livePaused
   const fleetUnpausedAtEnd = willUnpause || !plan.livePaused
   const willRepause = fc.repauseAfter && fleetUnpausedAtEnd
 
@@ -292,7 +294,15 @@ function buildFleetActions(
     })
   }
 
-  // 8. re-pause
+  // 8. zero out the tip rate — unconditional, not config-driven, applies to every cleaned-up fleet.
+  actions.push({
+    target: fleet,
+    fragment: writeAbis.setTipRate,
+    args: [0n],
+    summary: `FleetCommander(${fc.fleetName}).setTipRate(0) — cleanup default`,
+  })
+
+  // 9. re-pause
   if (willRepause) {
     actions.push({
       target: fleet,

@@ -235,6 +235,14 @@ export const writeAbis = {
     inputs: [],
     outputs: [],
   },
+  // Percentage is an 18-decimal-fixed-point uint256 (@summerfi/percentage-solidity).
+  setTipRate: {
+    name: 'setTipRate',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'newTipRate', type: 'uint256' }],
+    outputs: [],
+  },
 } as const satisfies Record<string, SafeAbiFunctionFragment>
 
 export function cleanupConfigDir(network: string): string {

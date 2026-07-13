@@ -1,8 +1,9 @@
 {
   "title": "Fleet cleanup — LazyVault_LowerRisk_WETH (base)",
-  "description": "# Fleet cleanup — LazyVault_LowerRisk_WETH\n\nExecuted on the base hub by the timelock 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796.\n\n## Actions\n1. FleetCommander(LazyVault_LowerRisk_WETH).unpause() — not before 2026-07-08T10:21:45.000Z\n2. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(CompoundV3-weth-8453)\n3. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Fluid-weth-8453)\n4. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Euler_Base_WETH-weth-8453)\n5. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Gauntlet_WETH_Core-8453)\n6. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(Origin-weth-8453)\n7. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Seamless_WETH-8453)\n8. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Extrafi_XLend_WETH-8453)\n9. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Yearn_OG_WETH-8453)\n10. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Euler_Alterscope_LRT_WETH-weth-8453)\n11. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(FluidFToken-weth-8453)\n\nThe fleet is currently paused; unpause is only executable after 2026-07-08T10:21:45.000Z (minimum pause time).",
+  "description": "# Fleet cleanup — LazyVault_LowerRisk_WETH\n\nExecuted on the base hub by the timelock 0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796.\n\n## Actions\n1. FleetCommander(LazyVault_LowerRisk_WETH).unpause() — not before 2026-07-08T10:21:45.000Z\n2. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(CompoundV3-weth-8453)\n3. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Fluid-weth-8453)\n4. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Euler_Base_WETH-weth-8453)\n5. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Gauntlet_WETH_Core-8453)\n6. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(Origin-weth-8453)\n7. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Seamless_WETH-8453)\n8. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Extrafi_XLend_WETH-8453)\n9. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(MorphoVault-weth-Yearn_OG_WETH-8453)\n10. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(ERC4626-Euler_Alterscope_LRT_WETH-weth-8453)\n11. FleetCommander(LazyVault_LowerRisk_WETH).removeArk(FluidFToken-weth-8453)\n12. FleetCommander(LazyVault_LowerRisk_WETH).setTipRate(0) — cleanup default\n\nThe fleet is currently paused; unpause is only executable after 2026-07-08T10:21:45.000Z (minimum pause time).",
   "governorId": "eip155:8453:0x4cEeE1b6289624d381383C1Bb42B118d5f2c3274",
   "targets": [
+    "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
     "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
     "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
     "0x2bb9ad69FEBA5547b7cD57aAfe8457D40bF834af",
@@ -26,6 +27,7 @@
     "0",
     "0",
     "0",
+    "0",
     "0"
   ],
   "calldatas": [
@@ -39,7 +41,8 @@
     "0x96c25a38000000000000000000000000ece30ebeaa765472895e77deac35a09ddae9f8c7",
     "0x96c25a3800000000000000000000000055bd40ffdbfe45869969a3c10b39c11152a735bc",
     "0x96c25a380000000000000000000000002a6e16555d377b7fdefa18e1e418fd3634ec5a2c",
-    "0x96c25a3800000000000000000000000024e03538940d84842860c4955dd826ab908ec05e"
+    "0x96c25a3800000000000000000000000024e03538940d84842860c4955dd826ab908ec05e",
+    "0x5822198f0000000000000000000000000000000000000000000000000000000000000000"
   ],
-  "timestamp": 1783687472122
+  "timestamp": 1783932211684
 }
