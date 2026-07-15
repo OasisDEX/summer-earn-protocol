@@ -288,6 +288,11 @@ export default function CreateProposalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionsSignature])
 
+  const hasHyperliquid = useMemo(
+    () => actions.some((a) => a.chainId === '999'),
+    [actions],
+  )
+
   // Tenderly cannot simulate every chain (e.g. HyperLiquid / chainId 999 has no
   // tenderlyId). Split the expected targets: `requiredSimChainIds` must reach a
   // successful simulation before submit, while `unsimulatableChainIds` are
@@ -1036,15 +1041,27 @@ export default function CreateProposalPage() {
             <div className="mb-8 p-4 glass-panel border-warning/20 bg-warning/5 rounded-2xl flex items-center gap-4 text-warning">
               <AlertCircle size={24} />
               <div>
-                <p className="font-bold">Destination Not Simulated</p>
+                <p className="font-bold">
+                  {hasHyperliquid ? 'Hyperliquid Simulation Not Possible' : 'Destination Not Simulated'}
+                </p>
                 <p className="text-sm opacity-80">
-                  Tenderly can&apos;t simulate{' '}
-                  {unsimulatableChainIds
-                    .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
-                    .join(', ')}
-                  , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
-                  submitted without an execution trace. The Hub leg is still simulated — review the
-                  cross-chain calldata carefully before proposing.
+                  {hasHyperliquid ? (
+                    <>
+                      There is no simulation possible on Tenderly for Hyperliquid. The simulation on other
+                      chains (such as Base or Arbitrum) must still pass, but the Hyperliquid leg will be
+                      skipped. Please review the cross-chain calldata carefully.
+                    </>
+                  ) : (
+                    <>
+                      Tenderly can&apos;t simulate{' '}
+                      {unsimulatableChainIds
+                        .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
+                        .join(', ')}
+                      , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
+                      submitted without an execution trace. The Hub leg is still simulated — review the
+                      cross-chain calldata carefully before proposing.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
