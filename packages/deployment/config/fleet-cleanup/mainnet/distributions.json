@@ -1,19 +1,14 @@
 {
-  "_comment": "Fleet-cleanup step 2 worksheet (gov:cleanup-fleets:distribute). campaignData MUST be generated via Merkl Studio / the Merkl API (type-4 JSON airdrop: bytes embedding the hosted AirdropJSON url) and pasted verbatim. amount 'live' pins to the buffer ark's balance at generation time — regenerate HR after the Origin claim lands in its buffer. startTimestamp must be comfortably after expected proposal execution (vote + timelock + LayerZero).",
+  "_comment": "Fleet-cleanup step 2 worksheet (gov:cleanup-fleets:distribute). ONE campaign sweeping BOTH USDC buffers into one basket at the timelock, distributed via a single Merkl type-4 JSON airdrop where the `reason` field distinguishes hr vs lr entitlements (off-chain calc: HR gets its Origin recovery + the ~195,342.60 USDC that HR's Term ark holds as LR shares; LR column reduced by the same). campaignData MUST be generated via Merkl Studio / the Merkl API and pasted verbatim. amount 'live' pins to the SUM of buffer balances at generation time. NOTE: Merkl's 0.5% type-4 fee is added ON TOP of JSON allocations — allocations must sum to amount/1.005. startTimestamp must be comfortably after expected proposal execution (vote + timelock + LayerZero).",
   "distributionCreator": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
   "campaigns": [
     {
-      "fleetAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
-      "_fleet": "LazyVault_LowerRisk_USDC — buffer held 4,048,374.307577 USDC on 2026-07-21",
-      "amount": "live",
-      "campaignType": 4,
-      "startTimestamp": 0,
-      "duration": 0,
-      "campaignData": "0xFILL_ME_FROM_MERKL_STUDIO"
-    },
-    {
-      "fleetAddress": "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
-      "_fleet": "LazyVault_HigherRisk_USDC — buffer ~0 until the Origin withdrawal (~83,751 USDC) is claimed+swept; regenerate after it lands. Term ark left as is.",
+      "name": "HR_LR_USDC_recovery",
+      "sweepFleets": [
+        "0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06",
+        "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17"
+      ],
+      "_note": "HR buffer 83,751.283461 + LR buffer 4,048,374.307577 = 4,132,125.591038 USDC as of 2026-07-21 (snapshot block for allocations: 25472880, exploiter excluded)",
       "amount": "live",
       "campaignType": 4,
       "startTimestamp": 0,

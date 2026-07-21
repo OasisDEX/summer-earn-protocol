@@ -25,31 +25,39 @@ import {
 } from './common'
 
 /**
- * Fleet-cleanup STEP 2: sweep the buffer ark's underlying (USDC) to the timelock and distribute
- * it to users via a Merkl campaign — one governance proposal per fleet.
+ * Fleet-cleanup STEP 2: sweep the buffer arks' underlying (USDC) of one or MORE fleets to the
+ * timelock and distribute the combined amount to users via a single Merkl campaign — one
+ * governance proposal per configured campaign.
  *
- * Reads config/fleet-cleanup/<network>/distributions.json (see DistributionsConfig below). The
- * Merkl `campaignData` bytes are engine-defined and MUST be generated via Merkl Studio / the
+ * Reads config/fleet-cleanup/<network>/distributions.json. A campaign lists `sweepFleets` (all
+ * must share the same underlying asset); the swept balances land in one basket at the timelock
+ * and fund ONE createCampaign. Per-fleet/per-user allocation happens OFF-CHAIN in the airdrop
+ * JSON (Merkl type-4), where the `reason` field distinguishes e.g. hr vs lr entitlements.
+ *
+ * The Merkl `campaignData` bytes are engine-defined and MUST be generated via Merkl Studio / the
  * Merkl API (the documented DAO flow) and pasted into the config verbatim — this script embeds
  * them, it does not construct them.
  *
- * Per-fleet ordered action list (executed by the fleet-chain timelock; the fleet can stay PAUSED
- * throughout — none of these are whenNotPaused):
- *   1. PAM.grantCuratorRole(fleet, timelock)            — only if needed for setSweepableToken
- *   2. Raft.setSweepableToken(bufferArk, asset, true)   — if not already sweepable
- *   3. Raft.setNonSweepableToken(bufferArk, asset, false) — if governance-blacklisted
- *   4. Raft.socializeLosses(bufferArk, [asset], timelock) — sweeps the FULL buffer balance.
- *      (Ark.sweep's board-asset-back-to-buffer branch is skipped when the ark IS the buffer,
- *      so the underlying transfers out — this is the loss-socialization mechanism.)
- *   5/6. restore the sweepable/blacklist flags to their prior state
- *   7. PAM.revokeCuratorRole(fleet, timelock)           — if granted in 1
- *   8. ERC20(asset).approve(DistributionCreator, amount)
- *   9. DistributionCreator.acceptConditions()           — Merkl T&C gate for contracts; idempotent
- *  10. DistributionCreator.createCampaign({0x0, 0x0, asset, amount, campaignType, start, duration,
- *      campaignData}) — pulls `amount` from the timelock via transferFrom.
+ * Ordered action list (executed by the fleet-chain timelock; fleets can stay PAUSED throughout —
+ * none of these are whenNotPaused):
+ *   per fleet:
+ *     1. PAM.grantCuratorRole(fleet, timelock)              — only if needed for setSweepableToken
+ *     2. Raft.setSweepableToken(bufferArk, asset, true)     — if not already sweepable
+ *     3. Raft.setNonSweepableToken(bufferArk, asset, false) — if governance-blacklisted
+ *     4. Raft.socializeLosses(bufferArk, [asset], timelock) — sweeps the FULL buffer balance.
+ *        (Ark.sweep's board-asset-back-to-buffer branch is skipped when the ark IS the buffer,
+ *        so the underlying transfers out — this is the loss-socialization mechanism.)
+ *     5/6. restore the sweepable/blacklist flags to their prior state
+ *     7. PAM.revokeCuratorRole(fleet, timelock)             — if granted in 1
+ *   then once:
+ *     8. ERC20(asset).approve(DistributionCreator, amount)
+ *     9. DistributionCreator.acceptConditions()             — Merkl T&C gate for contracts; idempotent
+ *    10. DistributionCreator.createCampaign({0x0, 0x0, asset, amount, campaignType, start,
+ *        duration, campaignData}) — pulls `amount` from the timelock via transferFrom.
  *
- * `amount: "live"` pins the campaign amount to the buffer's CURRENT balance (a paused fleet's
- * buffer is static). Regenerate after any expected inflow (e.g. a claimed async withdrawal).
+ * `amount: "live"` pins the campaign amount to the SUM of the buffers' CURRENT balances (a
+ * paused fleet's buffer is static). NOTE Merkl's type-4 fee (0.5%) is added ON TOP of the JSON
+ * allocations — the airdrop JSON must sum to amount / 1.005, not to the full amount.
  *
  * Non-interactive usage:
  *   BUMMER=true|false FLEETS=0x..,0x.. YES=1 LZ_GAS_LIMIT=350000 \
@@ -57,8 +65,11 @@ import {
  */
 
 interface DistributionCampaignConfig {
-  fleetAddress: Address
-  /** "live" = pin to the buffer ark's balance at generation time; otherwise a raw base-unit string */
+  /** Display/file name for the campaign & proposal */
+  name: string
+  /** Buffer arks of ALL these fleets are swept into the timelock; must share the same asset */
+  sweepFleets: Address[]
+  /** "live" = pin to the SUM of the buffers' balances at generation time; otherwise raw base units */
   amount: 'live' | string
   campaignType: number
   startTimestamp: number
@@ -143,7 +154,7 @@ async function main() {
     ? new Set(process.env.FLEETS.split(',').map((a) => getAddress(a.trim())))
     : null
   const campaigns = distConfig.campaigns.filter(
-    (c) => !fleetFilter || fleetFilter.has(getAddress(c.fleetAddress)),
+    (c) => !fleetFilter || c.sweepFleets.some((f) => fleetFilter.has(getAddress(f))),
   )
   if (campaigns.length === 0) {
     console.log(kleur.yellow('No campaigns selected — nothing to do.'))
@@ -166,207 +177,241 @@ async function main() {
   console.log(kleur.green(`✓ timelock ${timelock} holds GOVERNOR_ROLE`))
 
   // ---- Validate each campaign against live chain state and build its plan ----
-  interface FleetPlan {
-    cfg: DistributionCampaignConfig
+  interface FleetSweep {
+    fleet: Address
     fleetName: string
     bufferArk: Address
-    asset: Address
-    assetSymbol: string
-    assetDecimals: number
     bufferBalance: bigint
-    amount: bigint
     isSweepable: boolean
     isNonSweepable: boolean
     timelockHasCurator: boolean
+  }
+  interface CampaignPlan {
+    cfg: DistributionCampaignConfig
+    sweeps: FleetSweep[]
+    asset: Address
+    assetSymbol: string
+    assetDecimals: number
+    totalBufferBalance: bigint
+    amount: bigint
     actions: PlannedAction[]
   }
-  const plans: FleetPlan[] = []
+  const plans: CampaignPlan[] = []
 
   const nowSec = Math.floor(Date.now() / 1000)
   for (const cfg of campaigns) {
-    const fleet = getAddress(cfg.fleetAddress)
-    const [fleetName, bufferArkRaw, assetRaw, paused] = await Promise.all([
-      publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'name' }),
-      publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'bufferArk' }),
-      publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'asset' }),
-      publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'paused' }),
-    ])
-    const bufferArk = getAddress(bufferArkRaw as string)
-    const asset = getAddress(assetRaw as string)
-    console.log(kleur.blue(`\nValidating ${fleetName} (${fleet})…`))
+    console.log(kleur.blue(`\nValidating campaign "${cfg.name}"…`))
+    if (cfg.sweepFleets.length === 0) fail(`${cfg.name}: sweepFleets is empty.`)
 
-    const [assetSymbol, assetDecimals, bufferBalance] = await Promise.all([
-      publicClient.readContract({ address: asset, abi: erc20Abi, functionName: 'symbol' }),
-      publicClient.readContract({ address: asset, abi: erc20Abi, functionName: 'decimals' }),
+    const sweeps: FleetSweep[] = []
+    let asset: Address | undefined
+    for (const fleetAddr of cfg.sweepFleets) {
+      const fleet = getAddress(fleetAddr)
+      const [fleetName, bufferArkRaw, assetRaw, paused] = await Promise.all([
+        publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'name' }),
+        publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'bufferArk' }),
+        publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'asset' }),
+        publicClient.readContract({ address: fleet, abi: fleetAbi, functionName: 'paused' }),
+      ])
+      const bufferArk = getAddress(bufferArkRaw as string)
+      const fleetAsset = getAddress(assetRaw as string)
+      if (asset === undefined) asset = fleetAsset
+      if (fleetAsset !== asset) {
+        fail(
+          `${cfg.name}: fleet ${fleetName} asset ${fleetAsset} differs from campaign asset ${asset} — ` +
+            `all sweepFleets must share the same underlying.`,
+        )
+      }
+      if (!paused) {
+        console.log(
+          kleur.yellow(
+            `  ⚠ ${fleetName} is NOT paused — its buffer balance can change before execution; ` +
+              `a pinned amount may end up exceeding the swept total (createCampaign would revert the batch).`,
+          ),
+        )
+      }
+      const [bufferBalance, isSweepable, isNonSweepable, timelockHasCurator] = await Promise.all([
+        publicClient.readContract({
+          address: asset,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [bufferArk],
+        }),
+        publicClient.readContract({
+          address: raftAddress,
+          abi: raftViewAbi,
+          functionName: 'sweepableTokens',
+          args: [bufferArk, asset],
+        }),
+        publicClient.readContract({
+          address: raftAddress,
+          abi: raftViewAbi,
+          functionName: 'nonSweepableTokens',
+          args: [bufferArk, asset],
+        }),
+        (async () => {
+          const curatorRole = await publicClient.readContract({
+            address: pamAddress,
+            abi: pamViewAbi,
+            functionName: 'generateRole',
+            args: [CURATOR_ROLE_ENUM, fleet],
+          })
+          return publicClient.readContract({
+            address: pamAddress,
+            abi: pamViewAbi,
+            functionName: 'hasRole',
+            args: [curatorRole, timelock],
+          })
+        })(),
+      ])
+      if (bufferBalance === 0n) {
+        console.log(
+          kleur.yellow(`  ⚠ ${fleetName}: buffer balance is 0 — nothing to sweep there.`),
+        )
+      }
+      sweeps.push({
+        fleet,
+        fleetName,
+        bufferArk,
+        bufferBalance,
+        isSweepable,
+        isNonSweepable,
+        timelockHasCurator,
+      })
+    }
+    const campaignAsset = asset!
+
+    const [assetSymbol, assetDecimals] = await Promise.all([
+      publicClient.readContract({ address: campaignAsset, abi: erc20Abi, functionName: 'symbol' }),
       publicClient.readContract({
-        address: asset,
+        address: campaignAsset,
         abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [bufferArk],
+        functionName: 'decimals',
       }),
     ])
 
-    if (!paused) {
-      console.log(
-        kleur.yellow(
-          `  ⚠ ${fleetName} is NOT paused — the buffer balance can change before execution; ` +
-            `a pinned amount may end up exceeding the swept balance (createCampaign would revert the batch).`,
-        ),
-      )
-    }
-
-    const amount = cfg.amount === 'live' ? bufferBalance : BigInt(cfg.amount)
-    if (amount === 0n) {
+    const totalBufferBalance = sweeps.reduce((s, x) => s + x.bufferBalance, 0n)
+    const amount = cfg.amount === 'live' ? totalBufferBalance : BigInt(cfg.amount)
+    if (amount === 0n) fail(`${cfg.name}: campaign amount is 0 — nothing to distribute.`)
+    if (amount > totalBufferBalance) {
       fail(
-        `${fleetName}: campaign amount is 0 (buffer balance ${bufferBalance}) — nothing to distribute.`,
-      )
-    }
-    if (amount > bufferBalance) {
-      fail(
-        `${fleetName}: pinned amount ${amount} exceeds live buffer balance ${bufferBalance} — ` +
-          `regenerate after the expected inflow lands (or lower the amount).`,
+        `${cfg.name}: pinned amount ${amount} exceeds the combined live buffer balance ` +
+          `${totalBufferBalance} — regenerate after expected inflows land (or lower the amount).`,
       )
     }
     if (!/^0x[0-9a-fA-F]+$/.test(cfg.campaignData) || cfg.campaignData.length < 10) {
       fail(
-        `${fleetName}: campaignData looks invalid (${cfg.campaignData.slice(0, 20)}…) — paste the ` +
+        `${cfg.name}: campaignData looks invalid (${cfg.campaignData.slice(0, 20)}…) — paste the ` +
           `bytes generated by Merkl Studio / the Merkl API.`,
       )
     }
     if (cfg.startTimestamp <= nowSec) {
       fail(
-        `${fleetName}: startTimestamp ${cfg.startTimestamp} is in the past — the campaign must start ` +
+        `${cfg.name}: startTimestamp ${cfg.startTimestamp} is in the past — the campaign must start ` +
           `after the proposal executes (vote + timelock + LayerZero ≈ days; pick a comfortable buffer).`,
       )
     }
-    if (cfg.duration <= 0) fail(`${fleetName}: duration must be > 0 seconds.`)
+    if (cfg.duration <= 0) fail(`${cfg.name}: duration must be > 0 seconds.`)
 
     // Merkl-side sanity: reward token must be whitelisted with a min hourly amount
     const minAmount = await publicClient.readContract({
       address: distributionCreator,
       abi: merklAbi,
       functionName: 'rewardTokenMinAmounts',
-      args: [asset],
+      args: [campaignAsset],
     })
     if (minAmount === 0n) {
-      fail(`${fleetName}: ${assetSymbol} is not whitelisted as a Merkl reward token on ${network}.`)
+      fail(`${cfg.name}: ${assetSymbol} is not whitelisted as a Merkl reward token on ${network}.`)
     }
     if (amount * 3600n < minAmount * BigInt(cfg.duration)) {
       fail(
-        `${fleetName}: amount ${amount} over ${cfg.duration}s is below Merkl's minimum ` +
+        `${cfg.name}: amount ${amount} over ${cfg.duration}s is below Merkl's minimum ` +
           `(${minAmount}/hour for ${assetSymbol}).`,
       )
     }
 
-    const [isSweepable, isNonSweepable, timelockHasCurator] = await Promise.all([
-      publicClient.readContract({
-        address: raftAddress,
-        abi: raftViewAbi,
-        functionName: 'sweepableTokens',
-        args: [bufferArk, asset],
-      }),
-      publicClient.readContract({
-        address: raftAddress,
-        abi: raftViewAbi,
-        functionName: 'nonSweepableTokens',
-        args: [bufferArk, asset],
-      }),
-      (async () => {
-        const curatorRole = await publicClient.readContract({
-          address: pamAddress,
-          abi: pamViewAbi,
-          functionName: 'generateRole',
-          args: [CURATOR_ROLE_ENUM, fleet],
-        })
-        return publicClient.readContract({
-          address: pamAddress,
-          abi: pamViewAbi,
-          functionName: 'hasRole',
-          args: [curatorRole, timelock],
-        })
-      })(),
-    ])
-
     // ---- Ordered actions ----
     const actions: PlannedAction[] = []
-    const grantCurator = !isSweepable && !timelockHasCurator
-    if (grantCurator) {
-      actions.push({
-        target: pamAddress,
-        calldata: encodeFunctionData({
-          abi: pamWriteAbi,
-          functionName: 'grantCuratorRole',
-          args: [fleet, timelock],
-        }),
-        summary: `PAM.grantCuratorRole(${fleetName}, timelock) — temporary, for setSweepableToken`,
-      })
-    }
-    if (!isSweepable) {
+    for (const s of sweeps.filter((x) => x.bufferBalance > 0n)) {
+      const grantCurator = !s.isSweepable && !s.timelockHasCurator
+      if (grantCurator) {
+        actions.push({
+          target: pamAddress,
+          calldata: encodeFunctionData({
+            abi: pamWriteAbi,
+            functionName: 'grantCuratorRole',
+            args: [s.fleet, timelock],
+          }),
+          summary: `PAM.grantCuratorRole(${s.fleetName}, timelock) — temporary, for setSweepableToken`,
+        })
+      }
+      if (!s.isSweepable) {
+        actions.push({
+          target: raftAddress,
+          calldata: encodeFunctionData({
+            abi: raftWriteAbi,
+            functionName: 'setSweepableToken',
+            args: [s.bufferArk, campaignAsset, true],
+          }),
+          summary: `Raft.setSweepableToken(${s.fleetName} bufferArk, ${assetSymbol}, true)`,
+        })
+      }
+      if (s.isNonSweepable) {
+        actions.push({
+          target: raftAddress,
+          calldata: encodeFunctionData({
+            abi: raftWriteAbi,
+            functionName: 'setNonSweepableToken',
+            args: [s.bufferArk, campaignAsset, false],
+          }),
+          summary: `Raft.setNonSweepableToken(${s.fleetName} bufferArk, ${assetSymbol}, false) — lift blacklist`,
+        })
+      }
       actions.push({
         target: raftAddress,
         calldata: encodeFunctionData({
           abi: raftWriteAbi,
-          functionName: 'setSweepableToken',
-          args: [bufferArk, asset, true],
+          functionName: 'socializeLosses',
+          args: [s.bufferArk, [campaignAsset], timelock],
         }),
-        summary: `Raft.setSweepableToken(bufferArk, ${assetSymbol}, true)`,
+        summary: `Raft.socializeLosses(${s.fleetName} bufferArk, [${assetSymbol}], timelock) — sweeps ${formatAssets(s.bufferBalance, assetDecimals, assetSymbol)}`,
       })
-    }
-    if (isNonSweepable) {
-      actions.push({
-        target: raftAddress,
-        calldata: encodeFunctionData({
-          abi: raftWriteAbi,
-          functionName: 'setNonSweepableToken',
-          args: [bufferArk, asset, false],
-        }),
-        summary: `Raft.setNonSweepableToken(bufferArk, ${assetSymbol}, false) — lift blacklist`,
-      })
+      if (s.isNonSweepable) {
+        actions.push({
+          target: raftAddress,
+          calldata: encodeFunctionData({
+            abi: raftWriteAbi,
+            functionName: 'setNonSweepableToken',
+            args: [s.bufferArk, campaignAsset, true],
+          }),
+          summary: `Raft.setNonSweepableToken(${s.fleetName} bufferArk, ${assetSymbol}, true) — restore blacklist`,
+        })
+      }
+      if (!s.isSweepable) {
+        actions.push({
+          target: raftAddress,
+          calldata: encodeFunctionData({
+            abi: raftWriteAbi,
+            functionName: 'setSweepableToken',
+            args: [s.bufferArk, campaignAsset, false],
+          }),
+          summary: `Raft.setSweepableToken(${s.fleetName} bufferArk, ${assetSymbol}, false) — restore whitelist`,
+        })
+      }
+      if (grantCurator) {
+        actions.push({
+          target: pamAddress,
+          calldata: encodeFunctionData({
+            abi: pamWriteAbi,
+            functionName: 'revokeCuratorRole',
+            args: [s.fleet, timelock],
+          }),
+          summary: `PAM.revokeCuratorRole(${s.fleetName}, timelock) — cleanup`,
+        })
+      }
     }
     actions.push({
-      target: raftAddress,
-      calldata: encodeFunctionData({
-        abi: raftWriteAbi,
-        functionName: 'socializeLosses',
-        args: [bufferArk, [asset], timelock],
-      }),
-      summary: `Raft.socializeLosses(bufferArk, [${assetSymbol}], timelock) — sweeps ${formatAssets(bufferBalance, assetDecimals, assetSymbol)}`,
-    })
-    if (isNonSweepable) {
-      actions.push({
-        target: raftAddress,
-        calldata: encodeFunctionData({
-          abi: raftWriteAbi,
-          functionName: 'setNonSweepableToken',
-          args: [bufferArk, asset, true],
-        }),
-        summary: `Raft.setNonSweepableToken(bufferArk, ${assetSymbol}, true) — restore blacklist`,
-      })
-    }
-    if (!isSweepable) {
-      actions.push({
-        target: raftAddress,
-        calldata: encodeFunctionData({
-          abi: raftWriteAbi,
-          functionName: 'setSweepableToken',
-          args: [bufferArk, asset, false],
-        }),
-        summary: `Raft.setSweepableToken(bufferArk, ${assetSymbol}, false) — restore whitelist`,
-      })
-    }
-    if (grantCurator) {
-      actions.push({
-        target: pamAddress,
-        calldata: encodeFunctionData({
-          abi: pamWriteAbi,
-          functionName: 'revokeCuratorRole',
-          args: [fleet, timelock],
-        }),
-        summary: `PAM.revokeCuratorRole(${fleetName}, timelock) — cleanup`,
-      })
-    }
-    actions.push({
-      target: asset,
+      target: campaignAsset,
       calldata: encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
@@ -388,7 +433,7 @@ async function main() {
           {
             campaignId: '0x0000000000000000000000000000000000000000000000000000000000000000',
             creator: '0x0000000000000000000000000000000000000000',
-            rewardToken: asset,
+            rewardToken: campaignAsset,
             amount,
             campaignType: cfg.campaignType,
             startTimestamp: cfg.startTimestamp,
@@ -405,16 +450,12 @@ async function main() {
 
     plans.push({
       cfg,
-      fleetName,
-      bufferArk: getAddress(bufferArk),
-      asset: getAddress(asset),
+      sweeps,
+      asset: campaignAsset,
       assetSymbol,
       assetDecimals,
-      bufferBalance,
+      totalBufferBalance,
       amount,
-      isSweepable,
-      isNonSweepable,
-      timelockHasCurator,
       actions,
     })
   }
@@ -422,24 +463,27 @@ async function main() {
   // ---- Summary ----
   console.log(kleur.cyan().bold('\n================ Distribution plan ================'))
   for (const p of plans) {
-    console.log(kleur.yellow(`\nFleet ${p.fleetName} (${p.cfg.fleetAddress})`))
-    console.log(
-      `  buffer balance : ${formatAssets(p.bufferBalance, p.assetDecimals, p.assetSymbol)}`,
-    )
+    console.log(kleur.yellow(`\nCampaign "${p.cfg.name}"`))
+    for (const s of p.sweeps) {
+      console.log(
+        `  sweep ${s.fleetName.padEnd(30)}: ${formatAssets(s.bufferBalance, p.assetDecimals, p.assetSymbol)} ` +
+          `(sweepable=${s.isSweepable} nonSweepable=${s.isNonSweepable})`,
+      )
+    }
     console.log(
       kleur.red(
-        `  distribute     : ${formatAssets(p.amount, p.assetDecimals, p.assetSymbol)} via Merkl campaign ` +
-          `(type ${p.cfg.campaignType}; Merkl fee comes out of this gross amount)`,
+        `  distribute     : ${formatAssets(p.amount, p.assetDecimals, p.assetSymbol)} via ONE Merkl campaign ` +
+          `(type ${p.cfg.campaignType}; the 0.5% type-4 fee is added ON TOP of JSON allocations — ` +
+          `allocations must sum to amount/1.005)`,
       ),
     )
-    console.log(`  raft flags     : sweepable=${p.isSweepable} nonSweepable=${p.isNonSweepable}`)
     p.actions.forEach((a, i) => console.log(kleur.yellow(`  ${i + 1}. ${a.summary}`)))
   }
   console.log(
     kleur
       .red()
       .bold(
-        `\n⚠️  Sweeping the buffer removes the assets backing the fleet's shares — share price drops ` +
+        `\n⚠️  Sweeping the buffers removes the assets backing the fleets' shares — share prices drop ` +
           `accordingly. The Merkl campaign is the compensation path for holders.`,
       ),
   )
@@ -457,20 +501,28 @@ async function main() {
     }
   }
 
-  // ---- Emit one proposal per fleet ----
+  // ---- Emit one proposal per campaign ----
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const prefix = useBummerConfig ? 'test' : 'prod'
   const writtenFiles: string[] = []
 
   for (const p of plans) {
+    const sweepLines = p.sweeps
+      .map(
+        (s) =>
+          `- ${s.fleetName} buffer ${s.bufferArk}: ${formatAssets(s.bufferBalance, p.assetDecimals, p.assetSymbol)}`,
+      )
+      .join('\n')
     const description =
-      `# Fleet distribution — ${p.fleetName}\n\n` +
+      `# Fleet distribution — ${p.cfg.name}\n\n` +
       (fleetIsHub
         ? `Executed on the ${HUB_CHAIN_NAME} hub by the timelock ${timelock}.`
         : `Created on the ${HUB_CHAIN_NAME} hub and relayed via LayerZero to the ${network} timelock ${timelock} for execution.`) +
-      `\n\nSweeps ${formatAssets(p.amount, p.assetDecimals, p.assetSymbol)} from the buffer ark ` +
-      `${p.bufferArk} to the timelock and creates a Merkl campaign (type ${p.cfg.campaignType}) ` +
-      `distributing it to fleet users. The fleet remains paused throughout.\n\n## Actions\n` +
+      `\n\nSweeps the buffer arks of ${p.sweeps.length} fleet(s) into the timelock:\n${sweepLines}\n\n` +
+      `and creates ONE Merkl campaign (type ${p.cfg.campaignType}) distributing ` +
+      `${formatAssets(p.amount, p.assetDecimals, p.assetSymbol)} to users per the off-chain allocation ` +
+      `JSON (per-fleet entitlements are encoded in the airdrop reasons). The fleets remain paused ` +
+      `throughout.\n\n## Actions\n` +
       p.actions.map((a, i) => `${i + 1}. ${a.summary}`).join('\n')
 
     const dstActions = p.actions.map((a) => ({ target: a.target, value: 0n, calldata: a.calldata }))
@@ -505,10 +557,10 @@ async function main() {
 
     const savePath = path.join(
       proposalsDir(),
-      `${prefix}_fleet_distribution_proposal_${sanitizeFleetName(p.fleetName)}_${network}_${timestamp}.json`,
+      `${prefix}_fleet_distribution_proposal_${sanitizeFleetName(p.cfg.name)}_${network}_${timestamp}.json`,
     )
     await createGovernanceProposal(
-      `Fleet distribution — ${p.fleetName} (${network})`,
+      `Fleet distribution — ${p.cfg.name} (${network})`,
       description,
       srcActions,
       hubGovernor,
@@ -539,8 +591,8 @@ async function main() {
   console.log(
     kleur.gray(
       '\nPrerequisites before execution: the airdrop JSON must be hosted at the URL baked into ' +
-        'campaignData, and the campaign startTimestamp must still be in the future when the ' +
-        'proposal executes on the satellite.',
+        'campaignData (allocations summing to amount/1.005), and the campaign startTimestamp must ' +
+        'still be in the future when the proposal executes on the satellite.',
     ),
   )
 }
