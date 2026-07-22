@@ -19,6 +19,14 @@ import { formatAddress } from '@/utils/address'
 import { summerVestingWalletAbi } from '../../../abis/SummerVestingWallet'
 import { summerVestingWalletEscrowAbi } from '../../../abis/SummerVestingWalletEscrow'
 import {
+  AddressDisplay,
+  Badge,
+  Button,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+} from '../../../components/ui'
+import {
   STAKED_SUMMER_TOKEN_ADDRESSES,
   SUMMER_TOKEN_ADDRESSES,
   SUMMER_VESTING_WALLETS_ESCROW_ADDRESSES,
@@ -433,24 +441,30 @@ export default function VestingStakingPage() {
   const step2Disabled = flowState === 'needsOwnership' || flowState === 'unavailable'
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-charcoal-900 to-black p-6 md:p-10 text-gray-100 font-sans">
+    <main className="min-h-screen p-6 md:p-10">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
         {/* Left Sidebar for Steps */}
-        <div className="md:w-1/4 sticky top-10 h-fit space-y-4 p-4 rounded-xl backdrop-blur-md bg-white/5 border border-white/10 shadow-lg">
-          <h2 className="text-xl font-bold text-white mb-4">Staking Progress</h2>
+        <div className="md:w-1/4 sticky top-10 h-fit space-y-4 p-4 rounded-xl glass shadow-lg">
+          <h2 className="text-lg font-headline font-semibold text-on-surface mb-4">
+            Staking Progress
+          </h2>
           <div className="space-y-3">
             {/* Step 1 Indicator */}
             <div className="flex items-center gap-3">
               <div
-                className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${isOwnedByEscrow ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300 border border-gray-600'}`}
+                className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${isOwnedByEscrow ? 'bg-success/15 text-success border border-success/30' : 'bg-white/5 text-on-surface-variant border border-white/10'}`}
               >
                 1
               </div>
               <div>
-                <p className={`font-medium ${isOwnedByEscrow ? 'text-white' : 'text-gray-400'}`}>
+                <p
+                  className={`font-medium ${isOwnedByEscrow ? 'text-on-surface' : 'text-on-surface-variant'}`}
+                >
                   Transfer Ownership
                 </p>
-                <p className={`text-xs ${isOwnedByEscrow ? 'text-emerald-300' : 'text-gray-500'}`}>
+                <p
+                  className={`text-xs ${isOwnedByEscrow ? 'text-success' : 'text-on-surface-variant/80'}`}
+                >
                   {isOwnedByEscrow ? 'Completed' : 'Required'}
                 </p>
               </div>
@@ -458,15 +472,19 @@ export default function VestingStakingPage() {
             {/* Step 2 Indicator */}
             <div className="flex items-center gap-3">
               <div
-                className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${isFactoryStaked ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300 border border-gray-600'}`}
+                className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${isFactoryStaked ? 'bg-success/15 text-success border border-success/30' : 'bg-white/5 text-on-surface-variant border border-white/10'}`}
               >
                 2
               </div>
               <div>
-                <p className={`font-medium ${isFactoryStaked ? 'text-white' : 'text-gray-400'}`}>
+                <p
+                  className={`font-medium ${isFactoryStaked ? 'text-on-surface' : 'text-on-surface-variant'}`}
+                >
                   Stake / Unstake
                 </p>
-                <p className={`text-xs ${isFactoryStaked ? 'text-emerald-300' : 'text-gray-500'}`}>
+                <p
+                  className={`text-xs ${isFactoryStaked ? 'text-success' : 'text-on-surface-variant/80'}`}
+                >
                   {isFactoryStaked ? 'Staked' : 'Not Staked'}
                 </p>
               </div>
@@ -477,120 +495,106 @@ export default function VestingStakingPage() {
 
         {/* Main Content Area */}
         <div className="md:w-3/4 space-y-8">
-          <div className="flex items-center justify-between gap-4 mb-2">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="px-5 py-2 bg-charcoal-800 hover:bg-gray-700 text-white rounded-xl border border-white/20 shadow-md transition-all duration-200 ease-in-out"
-              >
-                ← Back
-              </button>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
-                  Vesting Wallet Staking
-                </h1>
-                <p className="text-sm text-gray-400 mt-1">
-                  Securely stake your vesting wallet in two transparent steps: transfer ownership,
-                  then stake.
-                </p>
-              </div>
-            </div>
-            <span className="px-3 py-1 rounded-full border border-blue-500/30 bg-blue-900/20 text-xs uppercase tracking-wide text-blue-300 font-semibold">
-              {environment}
-            </span>
-          </div>
+          <PageHeader
+            title="Vesting Wallet Staking"
+            description="Securely stake your vesting wallet in two transparent steps: transfer ownership, then stake."
+            actions={
+              <>
+                <Button variant="secondary" onClick={() => router.back()}>
+                  ← Back
+                </Button>
+                <Badge tone="info" size="md" className="uppercase tracking-wide">
+                  {environment}
+                </Badge>
+              </>
+            }
+          />
 
           {!isConnected && (
-            <div className="rounded-2xl border border-blue-600 bg-blue-900/40 text-blue-100 p-4 text-sm backdrop-blur-sm">
-              Connect your wallet to discover your vesting wallet and manage staking.
-            </div>
+            <EmptyState
+              title="Connect your wallet"
+              description="Connect your wallet to discover your vesting wallet and manage staking."
+            />
           )}
 
           {!hasEscrow && (
-            <div className="rounded-2xl border border-yellow-600 bg-yellow-900/40 text-yellow-100 p-4 text-sm backdrop-blur-sm">
-              Vesting staking is not available on this chain and environment.
-            </div>
+            <EmptyState
+              title="Vesting staking unavailable"
+              description="Vesting staking is not available on this chain and environment."
+            />
           )}
 
-          {hasEscrow && noFactoriesConfigured && (
-            <div className="rounded-2xl border border-yellow-600 bg-yellow-900/40 text-yellow-100 p-4 text-sm backdrop-blur-sm">
-              no factories configured
-            </div>
-          )}
+          {hasEscrow && noFactoriesConfigured && <EmptyState title="No factories configured" />}
 
           {hasMultipleVestingWallets && (
-            <div className="rounded-2xl border border-red-600 bg-red-900/40 text-red-100 p-4 text-sm backdrop-blur-sm">
-              We detected multiple vesting wallets associated with this address. Please contact us
-              on Discord so we can investigate why you have multiple vesting wallets.
-            </div>
+            <ErrorState
+              title="Multiple vesting wallets detected"
+              description="We detected multiple vesting wallets associated with this address. Please contact us on Discord so we can investigate why you have multiple vesting wallets."
+            />
           )}
 
           {hasEscrow && !noFactoriesConfigured && isConnected && noVestingWalletFound && (
-            <div className="rounded-2xl border border-gray-700 bg-charcoal-900 text-gray-200 p-4 text-sm backdrop-blur-sm">
-              No vesting wallet associated with this address. Once a vesting wallet is created for
-              you, it will appear here automatically.
-            </div>
+            <EmptyState
+              title="No vesting wallet found"
+              description="No vesting wallet associated with this address. Once a vesting wallet is created for you, it will appear here automatically."
+            />
           )}
 
           {hasEscrow && factories.length > 0 && vestingWallet && (
             <div className="space-y-6">
               {/* Step 1: Transfer ownership */}
-              <section className="rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 space-y-5 backdrop-blur-md shadow-2xl">
+              <section className="glass rounded-3xl p-7 space-y-5 shadow-2xl">
                 <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
                   <div>
-                    <div className="text-sm uppercase tracking-wide text-blue-300 font-semibold">
+                    <div className="text-sm uppercase tracking-wide text-info font-semibold">
                       Step 1
                     </div>
-                    <h2 className="text-2xl font-bold text-white mt-1">
+                    <h2 className="text-lg font-headline font-semibold text-on-surface mt-1">
                       Transfer Ownership to Escrow
                     </h2>
                   </div>
-                  <div
-                    className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-                      isOwnedByEscrow
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-600/50'
-                        : 'bg-amber-500/20 text-amber-300 border border-amber-600/50'
-                    }`}
-                  >
+                  <Badge tone={isOwnedByEscrow ? 'success' : 'warning'} size="md">
                     {isOwnedByEscrow ? 'Completed' : 'Required'}
-                  </div>
+                  </Badge>
                 </div>
 
-                <div className="grid gap-5 text-base text-gray-300 md:grid-cols-2">
+                <div className="grid gap-5 text-base text-on-surface-variant md:grid-cols-2">
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-400 uppercase tracking-wide">
+                    <div className="text-xs text-on-surface-variant uppercase tracking-wide">
                       Vesting wallet
                     </div>
-                    <div className="font-mono text-blue-300 break-all bg-gray-800/50 p-2 rounded-lg text-sm">
-                      {vestingWallet}
+                    <div className="bg-surface-container border border-white/10 p-2 rounded-lg">
+                      <AddressDisplay value={vestingWallet} full className="text-info text-sm" />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-400 uppercase tracking-wide">Escrow</div>
-                    <div className="font-mono text-purple-300 break-all bg-gray-800/50 p-2 rounded-lg text-sm">
-                      {escrowAddress ? escrowAddress : '—'}
+                    <div className="text-xs text-on-surface-variant uppercase tracking-wide">
+                      Escrow
+                    </div>
+                    <div className="bg-surface-container border border-white/10 p-2 rounded-lg">
+                      <AddressDisplay value={escrowAddress} full className="text-info text-sm" />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-400 uppercase tracking-wide">
+                    <div className="text-xs text-on-surface-variant uppercase tracking-wide">
                       Current owner
                     </div>
                     <div
-                      className={`font-semibold ${isOwnedByEscrow ? 'text-emerald-400' : 'text-amber-300'}`}
+                      className={`font-semibold ${isOwnedByEscrow ? 'text-success' : 'text-warning'}`}
                     >
                       {isOwnedByEscrow ? 'Escrow' : `You (${formatAddress(address)})`}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-400 uppercase tracking-wide">
+                    <div className="text-xs text-on-surface-variant uppercase tracking-wide">
                       Vesting wallet SUMMER balance
                     </div>
-                    <div className="text-white text-lg font-bold">
+                    <div className="text-on-surface text-lg font-bold tabular-nums">
                       {hasSummer
                         ? `${formattedSummerVestingBalance} ${summerSymbol || 'SUMMER'}`
                         : '—'}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-on-surface-variant/80 mt-1">
                       This is the total SUMMER held by your vesting wallet - it represents the
                       amount of stSUMR you will get after staking.
                     </div>
@@ -603,8 +607,8 @@ export default function VestingStakingPage() {
                   className={`mt-4 w-full md:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl text-lg font-bold shadow-lg transition-all duration-300 ease-in-out
                   ${
                     canTransferOwnership
-                      ? 'bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 text-white transform hover:-translate-y-0.5'
-                      : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                      ? 'bg-primary hover:bg-primary-dim text-on-primary transform hover:-translate-y-0.5'
+                      : 'bg-white/10 text-on-surface-variant cursor-not-allowed'
                   }`}
                 >
                   {currentAction === 'transfer' && isBusy
@@ -612,20 +616,22 @@ export default function VestingStakingPage() {
                     : 'Transfer Ownership to Escrow'}
                 </button>
 
-                <p className="text-sm text-gray-400 pt-2 border-t border-white/5 mt-4">
+                <p className="text-sm text-on-surface-variant pt-2 border-t border-white/5 mt-4">
                   The escrow must own your vesting wallet before it can be staked. This does not
                   move your tokens; it only changes who controls the vesting contract.
                 </p>
               </section>
 
               {/* Step 2: Stake / Unstake */}
-              <section className="relative rounded-3xl p-7 bg-charcoal-900/70 border border-white/10 space-y-5 backdrop-blur-md shadow-2xl">
+              <section className="glass relative rounded-3xl p-7 space-y-5 shadow-2xl">
+                {/* Note: z-10 kept as-is (not remapped to a z-index token) so the disabled
+                   overlay's stacking relative to this section's siblings is unchanged. */}
                 {step2Disabled && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-black/70 text-center px-6 backdrop-blur-sm">
-                    <div className="text-lg font-bold text-gray-100">
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-surface/80 text-center px-6 backdrop-blur-sm">
+                    <div className="text-lg font-bold text-on-surface">
                       Complete Step 1 to Continue
                     </div>
-                    <div className="mt-2 text-sm text-gray-400 max-w-sm">
+                    <div className="mt-2 text-sm text-on-surface-variant max-w-sm">
                       Once the escrow owns your vesting wallet, you&apos;ll be able to stake and
                       unstake it here.
                     </div>
@@ -635,39 +641,41 @@ export default function VestingStakingPage() {
                 <div className={step2Disabled ? 'opacity-40 pointer-events-none select-none' : ''}>
                   <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/5">
                     <div>
-                      <div className="text-sm uppercase tracking-wide text-blue-300 font-semibold">
+                      <div className="text-sm uppercase tracking-wide text-info font-semibold">
                         Step 2
                       </div>
-                      <h2 className="text-2xl font-bold text-white mt-1">Stake / Unstake</h2>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <h2 className="text-lg font-headline font-semibold text-on-surface mt-1">
+                        Stake / Unstake
+                      </h2>
+                      <p className="text-sm text-on-surface-variant mt-1">
                         Stake your vesting wallet into escrow and manage your staked position.
                       </p>
                     </div>
-                    <div
-                      className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-                        isFactoryStaked
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-600/50'
-                          : 'bg-gray-700/60 text-gray-200 border border-gray-600/50'
-                      }`}
-                    >
+                    <Badge tone={isFactoryStaked ? 'success' : 'neutral'} size="md">
                       {isFactoryStaked ? 'Staked' : 'Not staked'}
-                    </div>
+                    </Badge>
                   </div>
 
                   <div className="mt-5 grid gap-5 md:grid-cols-2 text-base">
                     <div className="space-y-2">
-                      <div className="text-xs text-gray-400 uppercase tracking-wide">Factory</div>
-                      <div className="font-mono text-blue-300 break-all bg-gray-800/50 p-2 rounded-lg text-sm">
-                        {factoryForWallet ? factoryForWallet : '—'}
+                      <div className="text-xs text-on-surface-variant uppercase tracking-wide">
+                        Factory
                       </div>
-                      <div className="text-xs text-gray-400 mt-4 uppercase tracking-wide">
+                      <div className="bg-surface-container border border-white/10 p-2 rounded-lg">
+                        <AddressDisplay
+                          value={factoryForWallet}
+                          full
+                          className="text-info text-sm"
+                        />
+                      </div>
+                      <div className="text-xs text-on-surface-variant mt-4 uppercase tracking-wide">
                         Staked token
                       </div>
-                      <div className="text-gray-200">
+                      <div className="text-on-surface">
                         {hasXSummer ? (
                           <>
                             <span className="font-bold text-lg">{stakedTokenSymbol}</span>{' '}
-                            <span className="font-mono text-blue-300 text-sm">
+                            <span className="font-mono text-info text-sm">
                               ({formatAddress(xSummerAddress)})
                             </span>
                           </>
@@ -678,14 +686,14 @@ export default function VestingStakingPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-xs text-gray-400 uppercase tracking-wide">
+                      <div className="text-xs text-on-surface-variant uppercase tracking-wide">
                         Your staked token balance
                       </div>
-                      <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-500">
+                      <div className="text-4xl font-extrabold text-on-surface tabular-nums">
                         {hasXSummer && isConnected ? (
                           <>
                             {formattedStakedBalance}{' '}
-                            <span className="text-xl text-gray-400 font-semibold">
+                            <span className="text-xl text-on-surface-variant font-semibold">
                               {stakedTokenSymbol}
                             </span>
                           </>
@@ -693,7 +701,7 @@ export default function VestingStakingPage() {
                           '—'
                         )}
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">
+                      <div className="text-xs text-on-surface-variant mt-1">
                         This is the balance of all of your staked tokens. It includes both your
                         original staked tokens and ones received for vesting wallet staking.
                       </div>
@@ -708,8 +716,8 @@ export default function VestingStakingPage() {
                         className={`inline-flex items-center justify-center px-6 py-3 rounded-xl text-lg font-bold shadow-lg transition-all duration-300 ease-in-out
                         ${
                           canStake
-                            ? 'bg-gradient-to-r from-purple-600 to-magenta-600 hover:from-purple-700 hover:to-magenta-700 text-white transform hover:-translate-y-0.5'
-                            : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                            ? 'bg-primary hover:bg-primary-dim text-on-primary transform hover:-translate-y-0.5'
+                            : 'bg-white/10 text-on-surface-variant cursor-not-allowed'
                         }`}
                       >
                         {currentAction === 'stake' && isBusy
@@ -726,8 +734,8 @@ export default function VestingStakingPage() {
                           className={`inline-flex items-center justify-center px-6 py-3 rounded-xl text-lg font-bold shadow-lg transition-all duration-300 ease-in-out
                           ${
                             canApproveXSummer
-                              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white transform hover:-translate-y-0.5'
-                              : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                              ? 'bg-primary hover:bg-primary-dim text-on-primary transform hover:-translate-y-0.5'
+                              : 'bg-white/10 text-on-surface-variant cursor-not-allowed'
                           }`}
                         >
                           {currentAction === 'approve' && isBusy
@@ -740,8 +748,8 @@ export default function VestingStakingPage() {
                           className={`inline-flex items-center justify-center px-6 py-3 rounded-xl text-lg font-bold shadow-lg transition-all duration-300 ease-in-out
                           ${
                             canUnstake
-                              ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white transform hover:-translate-y-0.5'
-                              : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                              ? 'bg-error/15 border border-error/30 text-error hover:bg-error/25 transform hover:-translate-y-0.5'
+                              : 'bg-white/10 text-on-surface-variant cursor-not-allowed'
                           }`}
                         >
                           {currentAction === 'unstake' && isBusy
@@ -753,7 +761,7 @@ export default function VestingStakingPage() {
                   </div>
 
                   {isFactoryStaked && hasXSummer && needsXSummerApproval && (
-                    <p className="mt-3 text-sm text-yellow-300 bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-3">
+                    <p className="mt-3 text-sm text-warning bg-warning/10 border border-warning/30 rounded-lg p-3">
                       <span className="font-bold">Important:</span> To unstake, escrow needs
                       permission to burn your staked tokens. Please approve xSUMR first, then you
                       can unstake.

@@ -61,17 +61,17 @@ export const MultiSelectDropdown = ({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg
-          bg-[#1e2022] border border-white/[0.06] text-sm font-medium
-          hover:bg-[#2b2c2f] transition-colors cursor-pointer text-left min-h-[42px]"
+          bg-surface-container-high border border-white/[0.06] text-sm font-medium
+          hover:bg-surface-bright transition-colors cursor-pointer text-left min-h-[42px]"
       >
         {selectedLabels.length === 0 ? (
-          <span className="text-[#ababad] flex-1">{placeholder}</span>
+          <span className="text-on-surface-variant flex-1">{placeholder}</span>
         ) : (
           <span className="flex-1 flex flex-wrap gap-1.5 items-center">
             {selectedLabels.slice(0, 3).map((o) => (
               <span
                 key={o.id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#89acff]/15 text-[#89acff] text-xs font-semibold"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/15 text-primary text-xs font-semibold"
               >
                 {o.label.length > 20 ? o.label.slice(0, 20) + '…' : o.label}
                 <span
@@ -80,19 +80,21 @@ export const MultiSelectDropdown = ({
                     e.stopPropagation()
                     toggle(o.id)
                   }}
-                  className="ml-0.5 hover:text-white cursor-pointer"
+                  className="ml-0.5 hover:text-on-surface cursor-pointer"
                 >
                   ×
                 </span>
               </span>
             ))}
             {selectedLabels.length > 3 && (
-              <span className="text-xs text-[#ababad]">+{selectedLabels.length - 3} more</span>
+              <span className="text-xs text-on-surface-variant">
+                +{selectedLabels.length - 3} more
+              </span>
             )}
           </span>
         )}
         <svg
-          className={`w-4 h-4 text-[#ababad] transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-on-surface-variant transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -104,12 +106,12 @@ export const MultiSelectDropdown = ({
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute z-50 mt-2 w-full rounded-xl bg-[#181a1c] border border-white/[0.08] shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute z-dropdown mt-2 w-full rounded-xl bg-surface-container border border-white/[0.08] shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Search */}
           <div className="p-3 border-b border-white/[0.06]">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#121316] border border-white/[0.06]">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-low border border-white/[0.06]">
               <svg
-                className="w-4 h-4 text-[#757578] shrink-0"
+                className="w-4 h-4 text-on-surface-variant/80 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -127,12 +129,12 @@ export const MultiSelectDropdown = ({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search products…"
-                className="bg-transparent border-none outline-none text-sm text-white placeholder:text-[#757578] w-full"
+                className="bg-transparent border-none outline-none text-sm text-on-surface placeholder:text-on-surface-variant/60 w-full"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="text-[#757578] hover:text-white text-xs"
+                  className="text-on-surface-variant hover:text-on-surface text-xs"
                 >
                   ✕
                 </button>
@@ -143,12 +145,12 @@ export const MultiSelectDropdown = ({
           {/* Actions bar */}
           {selected.length > 0 && (
             <div className="px-3 py-2 border-b border-white/[0.06] flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#ababad]">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">
                 {selected.length} selected
               </span>
               <button
                 onClick={() => onChange([])}
-                className="text-[10px] font-semibold uppercase tracking-wider text-[#ff716c] hover:text-[#ff9a97] transition-colors"
+                className="text-[11px] font-semibold uppercase tracking-wider text-error hover:text-error/80 transition-colors"
               >
                 Clear all
               </button>
@@ -158,7 +160,7 @@ export const MultiSelectDropdown = ({
           {/* Options list */}
           <div className="max-h-64 overflow-y-auto py-1 scrollbar-thin">
             {filtered.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-[#757578]">
+              <div className="px-4 py-6 text-center text-sm text-on-surface-variant/80">
                 No products match &quot;{search}&quot;
               </div>
             ) : (
@@ -170,16 +172,16 @@ export const MultiSelectDropdown = ({
                     type="button"
                     onClick={() => toggle(option.id)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors
-                      ${isSelected ? 'bg-[#89acff]/[0.08] text-white' : 'text-[#ababad] hover:bg-white/[0.04] hover:text-white'}`}
+                      ${isSelected ? 'bg-primary/[0.08] text-on-surface' : 'text-on-surface-variant hover:bg-white/[0.04] hover:text-on-surface'}`}
                   >
                     {/* Checkbox */}
                     <span
                       className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all
-                        ${isSelected ? 'bg-[#89acff] border-[#89acff]' : 'border-[#47484a] bg-transparent'}`}
+                        ${isSelected ? 'bg-primary border-primary' : 'border-outline-variant bg-transparent'}`}
                     >
                       {isSelected && (
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-3 h-3 text-on-primary"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"

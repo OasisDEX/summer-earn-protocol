@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 
+import { inputBase, labelBase, selectBase } from './ui'
+
 // Minimal ProtocolAccessManager ABI (excluding commander)
 const pamAbi = [
   {
@@ -263,15 +265,15 @@ export function InstitutionRolesPanel({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-white">Institution Roles</h3>
+      <h3 className="text-lg font-headline font-semibold text-on-surface">Institution Roles</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
+          <label className={labelBase}>Role</label>
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value as GlobalRole | FleetRole)}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
+            className={`${selectBase} w-full`}
           >
             <option value="GOVERNOR_ROLE">GOVERNOR_ROLE</option>
             <option value="SUPER_KEEPER_ROLE">SUPER_KEEPER_ROLE</option>
@@ -285,11 +287,11 @@ export function InstitutionRolesPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Action</label>
+          <label className={labelBase}>Action</label>
           <select
             value={action}
             onChange={(e) => setAction(e.target.value as 'grant' | 'revoke')}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
+            className={`${selectBase} w-full`}
           >
             <option value="grant">Grant</option>
             <option value="revoke">Revoke</option>
@@ -297,24 +299,24 @@ export function InstitutionRolesPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">User Address</label>
+          <label className={labelBase}>User Address</label>
           <input
             type="text"
-            placeholder="0x..."
+            placeholder="0x…"
             value={userAddress}
             onChange={(e) => setUserAddress(e.target.value)}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono"
+            className={`${inputBase} font-mono`}
           />
         </div>
       </div>
 
       {requiresTarget && (
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Target Fleet</label>
+          <label className={labelBase}>Target Fleet</label>
           <select
             value={selectedFleetAddress}
             onChange={(e) => setSelectedFleetAddress(e.target.value)}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
+            className={`${selectBase} w-full`}
           >
             <option value="">Select a fleet</option>
             {fleets.map((f) => (
@@ -331,23 +333,23 @@ export function InstitutionRolesPanel({
         disabled={!canSubmit || isPending || isConfirming}
         className={`w-full p-3 rounded-lg font-semibold transition-colors ${
           !canSubmit || isPending || isConfirming
-            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            ? 'bg-white/5 border border-white/10 text-on-surface-variant/50 cursor-not-allowed'
             : action === 'grant'
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-red-600 hover:bg-red-700 text-white'
+              ? 'bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25'
+              : 'bg-error/15 border border-error/30 text-error hover:bg-error/25'
         }`}
       >
         {isPending ? 'Sending…' : isConfirming ? 'Confirming…' : `${action} ${selectedRole}`}
       </button>
 
       {error && (
-        <div className="p-3 bg-red-900 border border-red-600 rounded-lg text-red-200 text-sm">
+        <div className="p-3 bg-error/15 border border-error/30 rounded-lg text-error text-sm">
           {error.message}
         </div>
       )}
 
       {isSuccess && (
-        <div className="p-3 bg-green-900 border border-green-600 rounded-lg text-green-200 text-sm">
+        <div className="p-3 bg-success/15 border border-success/30 rounded-lg text-success text-sm">
           Success! Transaction confirmed.
         </div>
       )}

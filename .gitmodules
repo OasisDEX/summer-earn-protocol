@@ -16,3 +16,6 @@
 [submodule "packages/external-dependencies/lib/solmate"]
 	path = packages/external-dependencies/lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "investigations/summer-fi-exploit-2026-07/resources/gasdotzip-documentation"]
+	path = investigations/summer-fi-exploit-2026-07/resources/gasdotzip-documentation
+	url = https://github.com/gasdotzip/documentation.git

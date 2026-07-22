@@ -1,31 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0d0e10;
-    --foreground: #fdfbfe;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-}
 
 @layer utilities {
   .glass {
@@ -34,11 +9,11 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
   .glass-panel {
-    background: rgba(36, 38, 41, 0.3);
+    background: rgba(36, 38, 41, 0.3); /* surface-container-highest @ 30% */
     backdrop-filter: blur(24px);
   }
   .neon-glow:hover {
-    box-shadow: 0 0 15px rgba(255, 46, 143, 0.3);
+    box-shadow: 0 0 15px rgba(137, 172, 255, 0.25); /* primary-tinted */
   }
 }
 

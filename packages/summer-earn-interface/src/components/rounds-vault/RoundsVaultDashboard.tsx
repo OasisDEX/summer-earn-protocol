@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 
 import { RoundsVaultInputABI } from '@/abis/RoundsVaultInput'
 import { RoundsVaultOutputABI } from '@/abis/RoundsVaultOutput'
+import { AddressDisplay, EmptyState, selectBase } from '@/components/ui'
 import arbitrumConfig from '@/config/deployment/deployed/arbitrum.json'
 import baseConfig from '@/config/deployment/deployed/base.json'
 import hyperliquidConfig from '@/config/deployment/deployed/hyperliquid.json'
@@ -96,23 +97,22 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
 
   if (vaultPairs.length === 0) {
     return (
-      <div className="bg-charcoal-800/60 p-6 rounded-2xl border border-white/5 backdrop-blur-xl">
-        <p className="text-white text-center">
-          No Rounds Vault pairs found on this chain ({chainId}).
-        </p>
-      </div>
+      <EmptyState
+        title="No Rounds Vault pairs found"
+        description={`No Rounds Vault pairs found on this chain (${chainId}).`}
+      />
     )
   }
 
   return (
     <div className="space-y-8">
       {vaultPairs.length > 1 && (
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-900/40 p-4 rounded-xl border border-white/5">
-          <label className="text-gray-400 text-sm font-medium">Select Vault Pair:</label>
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-surface-container-high/40 p-4 rounded-xl border border-white/5">
+          <label className="text-on-surface-variant text-sm font-medium">Select Vault Pair:</label>
           <select
             value={selectedPairId || ''}
             onChange={(e) => setSelectedPairId(e.target.value)}
-            className="bg-gray-800 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-w-[200px]"
+            className={`${selectBase} w-full max-w-xs`}
           >
             {vaultPairs.map((pair) => (
               <option key={pair.id} value={pair.id}>
@@ -125,19 +125,19 @@ export function RoundsVaultDashboard({ chainId }: RoundsVaultDashboardProps) {
 
       {selectedPair && (
         <div className="flex flex-col lg:flex-row gap-4 text-sm">
-          <div className="flex-1 bg-gray-900/40 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex-1 bg-surface-container-high/40 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="font-medium text-gray-300 mb-1">Input Vault Address</div>
-              <code className="text-blue-400 bg-blue-500/10 px-2 py-1 rounded select-all font-mono">
-                {selectedPair.inputAddress}
+              <div className="font-medium text-on-surface-variant mb-1">Input Vault Address</div>
+              <code className="text-info bg-info/10 border border-info/20 px-2 py-1 rounded select-all">
+                <AddressDisplay value={selectedPair.inputAddress} full />
               </code>
             </div>
           </div>
-          <div className="flex-1 bg-gray-900/40 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex-1 bg-surface-container-high/40 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="font-medium text-gray-300 mb-1">Output Vault Address</div>
-              <code className="text-blue-400 bg-blue-500/10 px-2 py-1 rounded select-all font-mono">
-                {selectedPair.outputAddress}
+              <div className="font-medium text-on-surface-variant mb-1">Output Vault Address</div>
+              <code className="text-info bg-info/10 border border-info/20 px-2 py-1 rounded select-all">
+                <AddressDisplay value={selectedPair.outputAddress} full />
               </code>
             </div>
           </div>

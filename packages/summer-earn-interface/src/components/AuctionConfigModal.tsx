@@ -3,6 +3,8 @@ import { Address } from 'viem'
 import { useChainId } from 'wagmi'
 
 import { BaseAuctionParameters, useRaftContract } from '../contracts/Raft'
+import { Button, inputBase, labelBase } from './ui'
+import { Modal } from './ui/Modal'
 
 interface AuctionConfigModalProps {
   isOpen: boolean
@@ -45,57 +47,47 @@ export function AuctionConfigModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-gray-900 border border-gray-800 p-6 rounded-lg w-96 text-white">
-        <h2 className="text-xl font-bold mb-4">Configure Auction Parameters</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Duration (seconds)</label>
-            <input
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Start Price</label>
-            <input
-              type="number"
-              value={startPrice}
-              onChange={(e) => setStartPrice(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">End Price</label>
-            <input
-              type="number"
-              value={endPrice}
-              onChange={(e) => setEndPrice(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose} title="Configure Auction Parameters" size="sm">
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className={labelBase}>Duration (seconds)</label>
+          <input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className={inputBase}
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className={labelBase}>Start Price</label>
+          <input
+            type="number"
+            value={startPrice}
+            onChange={(e) => setStartPrice(e.target.value)}
+            className={inputBase}
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className={labelBase}>End Price</label>
+          <input
+            type="number"
+            value={endPrice}
+            onChange={(e) => setEndPrice(e.target.value)}
+            className={inputBase}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={onClose} variant="ghost">
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary">
+            Save
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }

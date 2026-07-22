@@ -4,6 +4,19 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
 
+import {
+  Badge,
+  Button,
+  ErrorState,
+  PageHeader,
+  Table,
+  TableContainer,
+  TBody,
+  Td,
+  Th,
+  THead,
+  Tr,
+} from '../../components/ui'
 import { CHAIN_BLOCK_EXPLORERS, CHAIN_NAMES } from '../../config/chains'
 import { useEnvironment } from '../../hooks/useEnvironment'
 import { ChainId } from '../../types'
@@ -71,10 +84,10 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'buffer', label: 'Buffer arks' },
 ]
 
-const STATUS_STYLES: Record<ArkStatus, string> = {
-  active: 'bg-white/10 text-slate-300',
-  'ready-to-remove': 'bg-emerald-500/20 text-emerald-400',
-  'stuck-needs-sweep': 'bg-amber-500/20 text-amber-400',
+const STATUS_TONE: Record<ArkStatus, 'neutral' | 'success' | 'warning'> = {
+  active: 'neutral',
+  'ready-to-remove': 'success',
+  'stuck-needs-sweep': 'warning',
 }
 
 // Validated categorical palette (dark-mode steps, dataviz skill's reference palette),
@@ -212,68 +225,69 @@ export default function ArksOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="text-white text-lg flex items-center justify-center h-96">
-        Loading arks overview across all chains...
+      <div className="text-on-surface text-lg flex items-center justify-center h-96">
+        Loading arks overview across all chains…
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-red-400">
-        Error loading arks overview: {error instanceof Error ? error.message : 'Unknown error'}
-        <button
-          onClick={() => refetch()}
-          className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorState
+        title="Error loading arks overview"
+        error={error instanceof Error ? error : { message: 'Unknown error' }}
+        action={
+          <Button variant="danger" onClick={() => refetch()}>
+            Retry
+          </Button>
+        }
+      />
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Arks Overview</h1>
-          <p className="text-gray-400">
+      <PageHeader
+        title="Arks Overview"
+        description={
+          <>
             Every Ark across every Fleet on every {environment} chain — deposit caps, assets, and
             removal readiness.
-          </p>
-          {data && (
-            <p className="text-sm text-gray-500 mt-2">
-              Last updated: {new Date(data.lastUpdated).toLocaleString()}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm"
-        >
-          Refresh
-        </button>
-      </div>
+            {data && (
+              <span className="block mt-1.5 text-xs text-on-surface-variant/80">
+                Last updated: {new Date(data.lastUpdated).toLocaleString()}
+              </span>
+            )}
+          </>
+        }
+        actions={
+          <Button variant="primary" onClick={() => refetch()}>
+            Refresh
+          </Button>
+        }
+      />
 
       {summary.chainErrors.length > 0 && (
-        <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-red-400 text-sm">
+        <div className="bg-error/10 border border-error/20 rounded-lg p-4 text-error text-sm">
           Failed to load:{' '}
           {summary.chainErrors.map((c) => CHAIN_NAMES[c.chainId] ?? c.chainId).join(', ')}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-          <div className="text-sm text-gray-400 mb-1">Ready to remove</div>
-          <div className="text-2xl font-bold text-emerald-400">{summary.readyToRemove}</div>
+        <div className="bg-surface-container-high border border-white/10 rounded-lg p-4">
+          <div className="text-sm text-on-surface-variant mb-1">Ready to remove</div>
+          <div className="text-2xl font-bold text-success tabular-nums">
+            {summary.readyToRemove}
+          </div>
         </div>
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-          <div className="text-sm text-gray-400 mb-1">Stuck — needs sweep</div>
-          <div className="text-2xl font-bold text-amber-400">{summary.stuck}</div>
+        <div className="bg-surface-container-high border border-white/10 rounded-lg p-4">
+          <div className="text-sm text-on-surface-variant mb-1">Stuck — needs sweep</div>
+          <div className="text-2xl font-bold text-warning tabular-nums">{summary.stuck}</div>
         </div>
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-          <div className="text-sm text-gray-400 mb-1">Total arks</div>
-          <div className="text-2xl font-bold text-white">{rows.length}</div>
+        <div className="bg-surface-container-high border border-white/10 rounded-lg p-4">
+          <div className="text-sm text-on-surface-variant mb-1">Total arks</div>
+          <div className="text-2xl font-bold text-on-surface tabular-nums">{rows.length}</div>
         </div>
       </div>
 
@@ -284,8 +298,8 @@ export default function ArksOverviewPage() {
             onClick={() => setFilter(f.key)}
             className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
               filter === f.key
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-white'
+                ? 'bg-primary text-on-primary'
+                : 'bg-white/5 text-on-surface-variant hover:text-on-surface'
             }`}
           >
             {f.label}
@@ -295,7 +309,7 @@ export default function ArksOverviewPage() {
         <select
           value={selectedFleet}
           onChange={(e) => setSelectedFleet(e.target.value)}
-          className="ml-2 px-3 py-1.5 rounded-full text-sm bg-gray-800 text-gray-300 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="ml-2 px-3 py-1.5 rounded-full text-sm bg-white/5 text-on-surface-variant border border-white/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
         >
           <option value="all">All fleets</option>
           {fleetOptions.map((f) => (
@@ -306,41 +320,41 @@ export default function ArksOverviewPage() {
         </select>
       </div>
 
-      <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800 text-left text-gray-400">
-              <th className="p-3">Chain</th>
-              <th className="p-3">Fleet</th>
-              <th className="p-3">Ark</th>
-              <th className="p-3">Protocol</th>
-              <th className="p-3 text-right">Deposit Cap</th>
-              <th className="p-3 text-right">Total Assets</th>
-              <th className="p-3 text-right">Withdrawable</th>
-              <th className="p-3 text-right">Pool Balance</th>
-              <th className="p-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
+      <TableContainer>
+        <Table>
+          <THead>
+            <Tr className="border-b border-white/10">
+              <Th>Chain</Th>
+              <Th>Fleet</Th>
+              <Th>Ark</Th>
+              <Th>Protocol</Th>
+              <Th numeric>Deposit Cap</Th>
+              <Th numeric>Total Assets</Th>
+              <Th numeric>Withdrawable</Th>
+              <Th numeric>Pool Balance</Th>
+              <Th>Status</Th>
+            </Tr>
+          </THead>
+          <TBody>
             {filteredRows.map((row) => {
               const fleetKey = fleetKeyFor(row.chainId, row.fleetAddress)
               const fleetColor = fleetColorByKey.get(fleetKey) ?? '#64748b'
               return (
-                <tr
+                <Tr
                   key={row.key}
-                  className="border-b border-gray-800/50 text-slate-300"
+                  className="text-on-surface-variant"
                   style={{ backgroundColor: `${fleetColor}1a` }}
                 >
-                  <td className="p-3">{row.chainName}</td>
-                  <td className="p-3">
+                  <Td>{row.chainName}</Td>
+                  <Td>
                     <span
                       className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
                       style={{ backgroundColor: fleetColor }}
                       aria-hidden="true"
                     />
                     {row.fleetName}
-                  </td>
-                  <td className="p-3">
+                  </Td>
+                  <Td>
                     {(() => {
                       const explorerUrl = explorerAddressUrl(row.chainId, row.ark.address)
                       return explorerUrl ? (
@@ -348,7 +362,7 @@ export default function ArksOverviewPage() {
                           href={explorerUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-slate-200 hover:text-blue-400 hover:underline"
+                          className="text-on-surface hover:text-primary hover:underline"
                           title={row.ark.address}
                         >
                           {row.ark.name}
@@ -358,53 +372,53 @@ export default function ArksOverviewPage() {
                       )
                     })()}
                     {row.ark.isBufferArk && (
-                      <span className="ml-2 text-xs text-blue-400">
+                      <span className="ml-2 text-xs text-info">
                         (buffer
                         {row.fleetBufferSharePct !== null &&
                           ` — ${row.fleetBufferSharePct}% of TVL`}
                         )
                       </span>
                     )}
-                  </td>
-                  <td className="p-3 text-gray-500">{row.ark.details?.protocol ?? '—'}</td>
-                  <td className="p-3 text-right">
+                  </Td>
+                  <Td className="text-on-surface-variant/80">{row.ark.details?.protocol ?? '—'}</Td>
+                  <Td numeric>
                     {formatCap(row.ark.depositCap, row.assetDecimals, row.assetSymbol)}
-                  </td>
-                  <td className="p-3 text-right">
+                  </Td>
+                  <Td numeric>
                     {formatAmount(row.ark.totalAssets, row.assetDecimals)} {row.assetSymbol}
-                  </td>
-                  <td className="p-3 text-right">
+                  </Td>
+                  <Td numeric>
                     {formatAmount(row.ark.withdrawableTotalAssets, row.assetDecimals)}
-                  </td>
-                  <td className="p-3 text-right text-gray-500">
+                  </Td>
+                  <Td numeric className="text-on-surface-variant/80">
                     {row.ark.poolBalance !== null
                       ? formatAmount(row.ark.poolBalance, row.assetDecimals)
                       : 'N/A'}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs ${STATUS_STYLES[row.ark.status]}`}
-                    >
+                  </Td>
+                  <Td>
+                    <Badge tone={STATUS_TONE[row.ark.status]} size="sm">
                       {row.ark.status}
-                    </span>
+                    </Badge>
                     {row.ark.needsSweep && (
-                      <span
-                        className="ml-1 px-2 py-0.5 rounded text-xs bg-orange-500/20 text-orange-400 cursor-help"
+                      <Badge
+                        tone="warning"
+                        size="sm"
+                        className="ml-1 cursor-help"
                         title={`Idle balance: ${formatExact(row.ark.assetBalance ?? '0', row.assetDecimals)} ${row.assetSymbol}`}
                       >
                         dust
-                      </span>
+                      </Badge>
                     )}
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               )
             })}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
         {filteredRows.length === 0 && (
-          <div className="p-8 text-center text-gray-500">No arks match this filter.</div>
+          <div className="p-8 text-center text-on-surface-variant">No arks match this filter.</div>
         )}
-      </div>
+      </TableContainer>
     </div>
   )
 }

@@ -11,6 +11,7 @@ import { useStakingRewards } from '../hooks/useStakingRewards'
 import { ChainId, FleetCommanderInfo, UserFleetInfo } from '../types'
 import { formatDecimalOutput, parseDecimalInput } from '../utils/decimals'
 import { ProgressBar } from './ProgressBar'
+import { Badge } from './ui'
 
 const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
@@ -101,36 +102,40 @@ export function FleetCard({
         hasUserPosition ? 'border-t-primary/40 bg-primary/5' : 'border-t-transparent'
       }`}
     >
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 bg-black/20 flex items-center justify-center">
+      <div className="flex justify-between items-start gap-3 mb-6">
+        <div className="flex items-center space-x-4 min-w-0">
+          <div className="w-12 h-12 shrink-0 rounded-full overflow-hidden border-2 border-white/10 bg-black/20 flex items-center justify-center">
             <span className="text-lg font-bold text-primary">
               {fleetInfo.name.charAt(0)}
               {fleetInfo.symbol.charAt(0)}
             </span>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h4 className="font-bold text-white text-lg">{fleetInfo.name}</h4>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h4 className="font-bold text-on-surface text-lg truncate" title={fleetInfo.name}>
+                {fleetInfo.name}
+              </h4>
               {hasUserPosition && (
-                <span className="bg-primary text-[9px] px-1.5 py-0.5 rounded text-white uppercase font-bold tracking-tighter">
+                <Badge tone="primary" size="sm" className="uppercase">
                   Active
-                </span>
+                </Badge>
               )}
             </div>
             <p className="text-xs text-primary font-medium">{fleetInfo.symbol}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-500 mb-1">APY</p>
-          <p className="text-xl font-bold text-green-400">—</p>
+        <div className="text-right shrink-0">
+          <p className="text-xs text-on-surface-variant mb-1">APY</p>
+          <p className="text-xl font-bold text-secondary tabular-nums">—</p>
         </div>
       </div>
 
       <div className="space-y-4 mb-8">
         <div className="flex justify-between text-sm">
-          <span className="text-slate-400">{hasUserPosition ? 'Your Deposit' : 'TVL'}</span>
-          <span className="text-white font-medium">
+          <span className="text-on-surface-variant">
+            {hasUserPosition ? 'Your Deposit' : 'TVL'}
+          </span>
+          <span className="text-on-surface font-medium tabular-nums truncate min-w-0 text-right">
             {hasUserPosition && userInfo
               ? `${formatDecimalOutput(userInfo.balance, fleetInfo.fleetDecimals ?? 18)} ${fleetInfo.symbol}`
               : `${parseFloat(formatUnits(fleetInfo.totalAssets, assetDecimals)).toLocaleString(
@@ -144,8 +149,10 @@ export function FleetCard({
         </div>
         <div>
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-400">Withdrawable</span>
-            <span className="text-white font-medium">{withdrawablePct.toFixed(0)}%</span>
+            <span className="text-on-surface-variant">Withdrawable</span>
+            <span className="text-on-surface font-medium tabular-nums">
+              {withdrawablePct.toFixed(0)}%
+            </span>
           </div>
           <ProgressBar value={withdrawablePct} showGlow={withdrawablePct > 80} />
         </div>
@@ -160,7 +167,7 @@ export function FleetCard({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 px-3 text-sm focus:border-primary/50 focus:ring-0 text-white"
+              className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-3 pr-14 text-sm focus:border-primary/50 focus:ring-0 text-on-surface placeholder:text-on-surface-variant/50 tabular-nums"
             />
             {userInfo && (
               <button
@@ -180,7 +187,7 @@ export function FleetCard({
             type="button"
             onClick={handleDeposit}
             disabled={isApproveLoading || isDepositLoading || !amount}
-            className="bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg text-sm transition-all shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary hover:bg-primary-dim text-on-primary font-bold py-3 rounded-lg text-sm transition-all shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isApproveLoading
               ? 'Approving…'
@@ -194,7 +201,7 @@ export function FleetCard({
             type="button"
             onClick={handleWithdraw}
             disabled={isWithdrawLoading || !amount}
-            className="bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-slate-300 hover:text-red-400 font-bold py-3 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white/5 hover:bg-error/10 border border-white/10 hover:border-error/30 text-on-surface-variant hover:text-error font-bold py-3 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isWithdrawLoading ? 'Withdrawing…' : 'Withdraw'}
           </button>

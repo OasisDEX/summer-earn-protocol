@@ -4,6 +4,23 @@ import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 import { ChainSelector } from '../../../components/ChainSelector'
+import {
+  AddressDisplay,
+  Badge,
+  Button,
+  checkboxBase,
+  inputBase,
+  labelBase,
+  PageHeader,
+  RetiredDataNotice,
+  Table,
+  TableContainer,
+  TBody,
+  Td,
+  Th,
+  THead,
+  Tr,
+} from '../../../components/ui'
 import { CHAIN_BLOCK_EXPLORERS } from '../../../config/chains'
 import { useRoles } from '../../../hooks/useRoles'
 import { useSyncWalletChain } from '../../../hooks/useSyncWalletChain'
@@ -94,55 +111,48 @@ export default function AccessManagementPage() {
     return addressLabels[address.toLowerCase()] || null
   }
 
-  const truncateAddress = (address: string): string => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-  }
-
-  const getRoleBadgeColor = (roleName: string): string => {
-    if (roleName.includes('GOVERNOR')) return 'bg-purple-900 text-purple-200'
-    if (roleName.includes('GUARDIAN')) return 'bg-red-900 text-red-200'
-    if (roleName.includes('KEEPER')) return 'bg-blue-900 text-blue-200'
-    if (roleName.includes('CURATOR')) return 'bg-green-900 text-green-200'
-    if (roleName.includes('COMMANDER')) return 'bg-yellow-900 text-yellow-200'
-    if (roleName.includes('PROPOSER')) return 'bg-indigo-900 text-indigo-200'
-    if (roleName.includes('EXECUTOR')) return 'bg-teal-900 text-teal-200'
-    if (roleName.includes('CANCELLER')) return 'bg-orange-900 text-orange-200'
-    return 'bg-gray-800 text-gray-200'
+  // Pure display mapping: role-name substring → shared Badge tone
+  const getRoleBadgeTone = (
+    roleName: string,
+  ): 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
+    if (roleName.includes('GOVERNOR')) return 'primary'
+    if (roleName.includes('GUARDIAN')) return 'danger'
+    if (roleName.includes('KEEPER')) return 'info'
+    if (roleName.includes('CURATOR')) return 'success'
+    if (roleName.includes('COMMANDER')) return 'warning'
+    if (roleName.includes('PROPOSER')) return 'info'
+    if (roleName.includes('EXECUTOR')) return 'success'
+    if (roleName.includes('CANCELLER')) return 'warning'
+    return 'neutral'
   }
 
   return (
-    <main className="min-h-screen bg-black p-8">
+    <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              onClick={() => router.back()}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-            >
+          <div className="mb-3">
+            <Button variant="secondary" size="sm" onClick={() => router.back()}>
               ← Back
-            </button>
-            <h1 className="text-3xl font-bold text-white">Access Management</h1>
+            </Button>
           </div>
-          <p className="text-gray-300 mb-6">
-            View all roles granted across ProtocolAccessManager and TimelockController contracts
-          </p>
-
-          <div className="flex flex-col gap-4 mb-6">
-            <ChainSelector selectedChain={chainId} onChange={() => {}} readOnly />
-          </div>
+          <PageHeader
+            title="Access Management"
+            description="View all roles granted across ProtocolAccessManager and TimelockController contracts"
+            actions={<ChainSelector selectedChain={chainId} onChange={() => {}} readOnly />}
+          />
 
           <div className="space-y-4 mb-6">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-gray-300">
+              <label className="flex items-center gap-2 text-on-surface-variant">
                 <input
                   type="checkbox"
                   checked={activeOnly}
                   onChange={(e) => setActiveOnly(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+                  className={checkboxBase}
                 />
                 <span>Show active roles only</span>
               </label>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-on-surface-variant tabular-nums">
                 Showing {roles.length} of {allRoles.length} roles
                 {activeOnly && ` (${allRoles.filter((r) => r.active).length} active total)`}
               </div>
@@ -150,27 +160,23 @@ export default function AccessManagementPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Filter by Role Name
-                </label>
+                <label className={labelBase}>Filter by Role Name</label>
                 <input
                   type="text"
-                  placeholder="Search roles..."
+                  placeholder="Search roles…"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={inputBase}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Filter by Owner Address
-                </label>
+                <label className={labelBase}>Filter by Owner Address</label>
                 <input
                   type="text"
-                  placeholder="Search owner address..."
+                  placeholder="Search owner address…"
                   value={ownerFilter}
                   onChange={(e) => setOwnerFilter(e.target.value)}
-                  className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className={`${inputBase} font-mono text-sm`}
                 />
               </div>
             </div>
@@ -179,191 +185,135 @@ export default function AccessManagementPage() {
 
         {isLoading && (
           <div className="text-center py-12">
-            <div className="text-gray-400">Loading roles...</div>
+            <div className="text-on-surface-variant">Loading roles…</div>
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-900 border border-red-600 rounded-lg p-4 mb-6">
-            <p className="text-red-200">
-              <strong>Error:</strong> Failed to load roles.{' '}
-              {error instanceof Error ? error.message : 'Unknown error'}
-            </p>
-          </div>
-        )}
+        {error && <RetiredDataNotice what="The roles subgraph" />}
 
         {!isLoading && !error && (
-          <div className="bg-gray-900 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-800 border-b border-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('role')}
-                        className="flex items-center gap-2 hover:text-white transition-colors"
-                      >
-                        Role
-                        {sortColumn === 'role' && (
-                          <span className="text-blue-400">
-                            {sortDirection === 'asc' ? '↑' : '↓'}
-                          </span>
-                        )}
-                      </button>
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort('owner')}
-                        className="flex items-center gap-2 hover:text-white transition-colors"
-                      >
-                        Owner
-                        {sortColumn === 'owner' && (
-                          <span className="text-blue-400">
-                            {sortDirection === 'asc' ? '↑' : '↓'}
-                          </span>
-                        )}
-                      </button>
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Target Contract
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Access Controller
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Last Event
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {roles.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
-                        No roles found
-                      </td>
-                    </tr>
-                  ) : (
-                    roles.map((role) => {
-                      const ownerLabel = getAddressLabel(role.owner)
-                      const targetLabel = getAddressLabel(role.targetContract)
-                      const controllerLabel = getAddressLabel(role.accessController)
-                      const lastEvent = role.events?.[0]
+          <TableContainer>
+            <Table>
+              <THead className="bg-white/[0.03]">
+                <Tr>
+                  <Th>
+                    <button
+                      onClick={() => handleSort('role')}
+                      className="flex items-center gap-2 uppercase tracking-wider hover:text-on-surface transition-colors"
+                    >
+                      Role
+                      {sortColumn === 'role' && (
+                        <span className="text-primary">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </Th>
+                  <Th>
+                    <button
+                      onClick={() => handleSort('owner')}
+                      className="flex items-center gap-2 uppercase tracking-wider hover:text-on-surface transition-colors"
+                    >
+                      Owner
+                      {sortColumn === 'owner' && (
+                        <span className="text-primary">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </Th>
+                  <Th>Target Contract</Th>
+                  <Th>Access Controller</Th>
+                  <Th>Status</Th>
+                  <Th>Created</Th>
+                  <Th>Last Event</Th>
+                </Tr>
+              </THead>
+              <TBody>
+                {roles.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={7} align="center" className="py-8 text-on-surface-variant">
+                      No roles found
+                    </Td>
+                  </Tr>
+                ) : (
+                  roles.map((role) => {
+                    const ownerLabel = getAddressLabel(role.owner)
+                    const targetLabel = getAddressLabel(role.targetContract)
+                    const controllerLabel = getAddressLabel(role.accessController)
+                    const lastEvent = role.events?.[0]
 
-                      return (
-                        <tr key={role.id} className="hover:bg-gray-800 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(role.name)}`}
-                            >
-                              {role.name}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                    return (
+                      <Tr key={role.id} hover>
+                        <Td className="whitespace-nowrap">
+                          <Badge tone={getRoleBadgeTone(role.name)} size="sm">
+                            {role.name}
+                          </Badge>
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <AddressDisplay
+                              value={role.owner}
+                              href={`${blockExplorer}/address/${role.owner}`}
+                              className="text-info"
+                            />
+                            {ownerLabel && <Badge size="sm">{ownerLabel}</Badge>}
+                          </div>
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                          {role.targetContract !== '0x0000000000000000000000000000000000000000' ? (
                             <div className="flex items-center gap-2">
-                              <a
-                                href={`${blockExplorer}/address/${role.owner}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-mono text-blue-400 hover:text-blue-300"
-                              >
-                                {truncateAddress(role.owner)}
-                              </a>
-                              {ownerLabel && (
-                                <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
-                                  {ownerLabel}
-                                </span>
-                              )}
+                              <AddressDisplay
+                                value={role.targetContract}
+                                href={`${blockExplorer}/address/${role.targetContract}`}
+                                className="text-info"
+                              />
+                              {targetLabel && <Badge size="sm">{targetLabel}</Badge>}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {role.targetContract !==
-                            '0x0000000000000000000000000000000000000000' ? (
-                              <div className="flex items-center gap-2">
-                                <a
-                                  href={`${blockExplorer}/address/${role.targetContract}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-blue-400 hover:text-blue-300"
-                                >
-                                  {truncateAddress(role.targetContract)}
-                                </a>
-                                {targetLabel && (
-                                  <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
-                                    {targetLabel}
-                                  </span>
-                                )}
+                          ) : (
+                            <span className="text-on-surface-variant/80">—</span>
+                          )}
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <AddressDisplay
+                              value={role.accessController}
+                              href={`${blockExplorer}/address/${role.accessController}`}
+                              className="text-info"
+                            />
+                            {controllerLabel && <Badge size="sm">{controllerLabel}</Badge>}
+                          </div>
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                          <Badge tone={role.active ? 'success' : 'danger'} size="sm">
+                            {role.active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </Td>
+                        <Td className="whitespace-nowrap text-on-surface-variant tabular-nums">
+                          {formatTimestamp(role.createdTimestamp)}
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                          {lastEvent ? (
+                            <div className="text-sm">
+                              <div className="text-on-surface-variant">
+                                {lastEvent.action === 'GRANT_ROLE' ? 'Granted' : 'Revoked'}
                               </div>
-                            ) : (
-                              <span className="text-gray-500">—</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={`${blockExplorer}/address/${role.accessController}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-mono text-blue-400 hover:text-blue-300"
-                              >
-                                {truncateAddress(role.accessController)}
-                              </a>
-                              {controllerLabel && (
-                                <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
-                                  {controllerLabel}
-                                </span>
-                              )}
+                              <AddressDisplay
+                                value={lastEvent.hash}
+                                href={`${blockExplorer}/tx/${lastEvent.hash}`}
+                                className="text-info text-xs"
+                              />
+                              <div className="text-on-surface-variant/80 text-xs tabular-nums">
+                                {formatTimestamp(lastEvent.timestamp)}
+                              </div>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                role.active
-                                  ? 'bg-green-900 text-green-200'
-                                  : 'bg-red-900 text-red-200'
-                              }`}
-                            >
-                              {role.active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {formatTimestamp(role.createdTimestamp)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {lastEvent ? (
-                              <div className="text-sm">
-                                <div className="text-gray-300">
-                                  {lastEvent.action === 'GRANT_ROLE' ? 'Granted' : 'Revoked'}
-                                </div>
-                                <a
-                                  href={`${blockExplorer}/tx/${lastEvent.hash}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:text-blue-300 font-mono text-xs"
-                                >
-                                  {truncateAddress(lastEvent.hash)}
-                                </a>
-                                <div className="text-gray-500 text-xs">
-                                  {formatTimestamp(lastEvent.timestamp)}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-gray-500">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          ) : (
+                            <span className="text-on-surface-variant/80">—</span>
+                          )}
+                        </Td>
+                      </Tr>
+                    )
+                  })
+                )}
+              </TBody>
+            </Table>
+          </TableContainer>
         )}
       </div>
     </main>

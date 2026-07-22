@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { type Address, type Hex, isAddress, isHex } from 'viem'
 
+import { AddressDisplay, Button, checkboxBase, inputBase } from '../../../components/ui'
 import { useOAppAdmin } from '../hooks/useOAppAdmin'
 import { useOnChainRouteState } from '../hooks/useOnChainRouteState'
 import { getEid } from '../lib/configReader'
@@ -136,8 +137,7 @@ function parseUlnFormState(form: UlnFormState): UlnParseResult {
   }
 }
 
-const inputCls =
-  'w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-white placeholder-slate-500'
+const inputCls = `${inputBase} text-sm`
 
 function Field({
   label,
@@ -150,9 +150,11 @@ function Field({
 }) {
   return (
     <div className="mb-3">
-      <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1">{label}</label>
+      <label className="block text-xs uppercase tracking-wider text-on-surface-variant mb-1">
+        {label}
+      </label>
       {children}
-      {error ? <div className="text-red-400 text-xs mt-1">{error}</div> : null}
+      {error ? <div className="text-error text-xs mt-1">{error}</div> : null}
     </div>
   )
 }
@@ -175,10 +177,10 @@ function SectionToggle({
           type="checkbox"
           checked={included}
           onChange={(e) => onToggle(e.target.checked)}
-          className="h-4 w-4 accent-primary"
+          className={checkboxBase}
         />
-        <span className="text-sm font-medium text-white">{title}</span>
-        <span className="ml-auto text-xs uppercase tracking-wider text-slate-500">
+        <span className="text-sm font-medium text-on-surface">{title}</span>
+        <span className="ml-auto text-xs uppercase tracking-wider text-on-surface-variant">
           {included ? 'included' : 'skip'}
         </span>
       </label>
@@ -583,35 +585,38 @@ export function EditConfigDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-40">
+    <div className="fixed inset-0 z-modal">
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Close drawer"
         role="button"
         tabIndex={-1}
       />
       <aside
-        className="absolute top-0 right-0 h-full w-full md:w-[640px] bg-charcoal-900 border-l border-white/10 overflow-y-auto"
-        style={{ backgroundColor: 'rgb(15 23 42)' }}
+        className="absolute top-0 right-0 h-full w-full md:w-[640px] bg-surface-container-high border-l border-white/10 overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-config-title"
         tabIndex={-1}
         ref={dialogRef}
       >
-        <header className="sticky top-0 bg-charcoal-900 border-b border-white/10 px-5 py-4 flex items-center justify-between gap-4 z-10">
+        <header className="sticky top-0 bg-surface-container-high border-b border-white/10 px-5 py-4 flex items-center justify-between gap-4 z-10">
           <div>
-            <div className="text-xs uppercase tracking-wider text-slate-500">Edit route</div>
-            <h3 id="edit-config-title" className="text-base font-semibold text-white">
+            <div className="text-xs uppercase tracking-wider text-on-surface-variant">
+              Edit route
+            </div>
+            <h3 id="edit-config-title" className="text-base font-semibold text-on-surface">
               {oApp} · {sourceChain} → <span className="capitalize">{remoteChain}</span>
-              {eid ? <span className="text-slate-500 ml-2 text-xs">eid {eid}</span> : null}
+              {eid ? (
+                <span className="text-on-surface-variant ml-2 text-xs tabular-nums">eid {eid}</span>
+              ) : null}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white text-2xl leading-none px-2"
+            className="text-on-surface-variant hover:text-on-surface text-2xl leading-none px-2"
             aria-label="Close"
           >
             ×
@@ -620,11 +625,11 @@ export function EditConfigDrawer({
 
         <div className="px-5 py-4">
           {isLoading ? (
-            <div className="text-xs text-slate-400 mb-3">Loading on-chain state…</div>
+            <div className="text-xs text-on-surface-variant mb-3">Loading on-chain state…</div>
           ) : null}
 
           {!desired ? (
-            <div className="text-amber-300 text-xs mb-3 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+            <div className="text-warning text-xs mb-3 bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
               No desired config in <code>config/index.json</code> for this route. Defaults are empty
               — please fill the fields manually.
             </div>
@@ -689,11 +694,10 @@ export function EditConfigDrawer({
             onToggle={setIncludeSendConfig}
           >
             {sendConfigLibMissing ? (
-              <div className="text-red-400 text-xs mb-3">{sendConfigLibMissing}</div>
+              <div className="text-error text-xs mb-3">{sendConfigLibMissing}</div>
             ) : (
-              <div className="text-xs text-slate-500 mb-3">
-                Send library:{' '}
-                <span className="font-mono text-slate-300">{resolvedSendLib ?? '—'}</span>
+              <div className="text-xs text-on-surface-variant mb-3">
+                Send library: <AddressDisplay value={resolvedSendLib} chars={6} />
               </div>
             )}
             <Field label="Executor address" error={executorAddrError}>
@@ -728,11 +732,10 @@ export function EditConfigDrawer({
             onToggle={setIncludeReceiveConfig}
           >
             {receiveConfigLibMissing ? (
-              <div className="text-red-400 text-xs mb-3">{receiveConfigLibMissing}</div>
+              <div className="text-error text-xs mb-3">{receiveConfigLibMissing}</div>
             ) : (
-              <div className="text-xs text-slate-500 mb-3">
-                Receive library:{' '}
-                <span className="font-mono text-slate-300">{resolvedReceiveLib ?? '—'}</span>
+              <div className="text-xs text-on-surface-variant mb-3">
+                Receive library: <AddressDisplay value={resolvedReceiveLib} chars={6} />
               </div>
             )}
             <UlnFormFields
@@ -748,9 +751,9 @@ export function EditConfigDrawer({
             included={includeDelegate}
             onToggle={setIncludeDelegate}
           >
-            <div className="text-xs text-slate-500 mb-3">
+            <div className="text-xs text-on-surface-variant mb-3">
               Delegate is OApp-scoped (not remote-specific). Current on-chain delegate:{' '}
-              <span className="font-mono text-slate-300">{admin?.delegate ?? '—'}</span>
+              <AddressDisplay value={admin?.delegate} chars={6} />
             </div>
             <Field label="Delegate address" error={delegateError}>
               <input
@@ -775,10 +778,11 @@ export function EditConfigDrawer({
             }}
           >
             {enforcedEidMissing ? (
-              <div className="text-red-400 text-xs mb-3">{enforcedEidMissing}</div>
+              <div className="text-error text-xs mb-3">{enforcedEidMissing}</div>
             ) : (
-              <div className="text-xs text-slate-500 mb-3">
-                Remote eid: <span className="font-mono text-slate-300">{remoteEid ?? '—'}</span>
+              <div className="text-xs text-on-surface-variant mb-3">
+                Remote eid:{' '}
+                <span className="font-mono text-on-surface tabular-nums">{remoteEid ?? '—'}</span>
               </div>
             )}
 
@@ -788,10 +792,10 @@ export function EditConfigDrawer({
                   type="checkbox"
                   checked={includeEnforcedSend}
                   onChange={(e) => setIncludeEnforcedSend(e.target.checked)}
-                  className="h-4 w-4 accent-primary"
+                  className={checkboxBase}
                 />
-                <span className="text-sm font-medium text-white">Message Type 1 (SEND)</span>
-                <span className="ml-auto text-xs uppercase tracking-wider text-slate-500">
+                <span className="text-sm font-medium text-on-surface">Message Type 1 (SEND)</span>
+                <span className="ml-auto text-xs uppercase tracking-wider text-on-surface-variant">
                   {includeEnforcedSend ? 'included' : 'skip'}
                 </span>
               </label>
@@ -804,7 +808,7 @@ export function EditConfigDrawer({
                     className={`${inputCls} font-mono`}
                     placeholder="0x…"
                   />
-                  <div className="text-xs text-slate-500 mt-1">
+                  <div className="text-xs text-on-surface-variant mt-1">
                     ? These are the Type 3 options bytes — paste from the LZ options encoder. Use{' '}
                     <code>0x</code> to explicitly clear.
                   </div>
@@ -818,12 +822,12 @@ export function EditConfigDrawer({
                   type="checkbox"
                   checked={includeEnforcedSendAndCall}
                   onChange={(e) => setIncludeEnforcedSendAndCall(e.target.checked)}
-                  className="h-4 w-4 accent-primary"
+                  className={checkboxBase}
                 />
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-medium text-on-surface">
                   Message Type 2 (SEND_AND_CALL)
                 </span>
-                <span className="ml-auto text-xs uppercase tracking-wider text-slate-500">
+                <span className="ml-auto text-xs uppercase tracking-wider text-on-surface-variant">
                   {includeEnforcedSendAndCall ? 'included' : 'skip'}
                 </span>
               </label>
@@ -836,7 +840,7 @@ export function EditConfigDrawer({
                     className={`${inputCls} font-mono`}
                     placeholder="0x…"
                   />
-                  <div className="text-xs text-slate-500 mt-1">
+                  <div className="text-xs text-on-surface-variant mt-1">
                     ? These are the Type 3 options bytes — paste from the LZ options encoder. Use{' '}
                     <code>0x</code> to explicitly clear.
                   </div>
@@ -846,27 +850,23 @@ export function EditConfigDrawer({
           </SectionToggle>
 
           {submitError ? (
-            <div className="text-red-400 text-xs mb-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <div className="text-error text-xs mb-3 bg-error/15 border border-error/30 rounded-lg px-3 py-2">
               {submitError}
             </div>
           ) : null}
         </div>
 
-        <footer className="sticky bottom-0 bg-charcoal-900 border-t border-white/10 px-5 py-4 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-          >
+        <footer className="sticky bottom-0 bg-surface-container-high border-t border-white/10 px-5 py-4 flex items-center justify-end gap-3">
+          <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
-          </button>
+          </Button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={submitDisabled}
             className={`px-4 py-2 text-sm rounded-lg transition-colors ${
               submitDisabled
-                ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                ? 'bg-white/5 text-on-surface-variant cursor-not-allowed'
                 : 'bg-primary/20 text-primary hover:bg-primary/30'
             }`}
           >
@@ -894,7 +894,7 @@ function UlnFormFields({
   }
   return (
     <div>
-      <h5 className="text-xs uppercase tracking-wider text-slate-500 mb-2">ULN config</h5>
+      <h5 className="text-xs uppercase tracking-wider text-on-surface-variant mb-2">ULN config</h5>
       <div className="grid grid-cols-2 gap-3 mb-1">
         <Field label="confirmations">
           <input
@@ -957,7 +957,7 @@ function UlnFormFields({
           placeholder="0x…"
         />
       </Field>
-      {error ? <div className="text-red-400 text-xs mt-1">{error}</div> : null}
+      {error ? <div className="text-error text-xs mt-1">{error}</div> : null}
     </div>
   )
 }

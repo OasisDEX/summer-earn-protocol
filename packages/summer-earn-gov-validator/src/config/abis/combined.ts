@@ -54,6 +54,13 @@ const KNOWN_STRING_ABIS = [
   'function removeRoot(uint256 index) external',
   'function mint(address to, uint256 amount) external',
   'function burn(address from, uint256 amount) external',
+  'function removeArk(address ark) external',
+  'function pause() external',
+  'function unpause() external',
+  'function requestWithdrawal(uint256 amount) external',
+  'function claimWithdrawal() external',
+  'function grantKeeperRole(address fleetCommanderAddress, address account) external',
+  'function revokeKeeperRole(address fleetCommanderAddress, address account) external',
 ]
 
 const KNOWN_OBJECT_ABIS = [

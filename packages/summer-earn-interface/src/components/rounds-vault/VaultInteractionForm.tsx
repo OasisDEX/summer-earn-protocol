@@ -10,6 +10,16 @@ import {
   useWriteContract,
 } from 'wagmi'
 
+import {
+  AddressDisplay,
+  Badge,
+  Button,
+  inputBase,
+  SectionHeader,
+  selectBase,
+} from '@/components/ui'
+import { formatAddress } from '@/utils/address'
+
 const erc20MetadataAbi = [
   ...erc20Abi,
   {
@@ -433,11 +443,8 @@ export function VaultInteractionForm({
   // ── Render ──
 
   return (
-    <div className="bg-charcoal-800/60 p-6 rounded-2xl border border-white/5 backdrop-blur-xl shadow-2xl hover:border-white/10 transition-all duration-300">
-      <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-        {title}
-      </h2>
-      <p className="text-gray-400 text-sm mb-6">{description}</p>
+    <div className="glass border-white/5 hover:border-white/10 p-6 rounded-2xl shadow-2xl transition-all duration-300">
+      <SectionHeader title={title} description={description} className="mb-6" />
 
       {/* ── Protocol State ── */}
       <div className="space-y-3 mb-8">
@@ -447,8 +454,8 @@ export function VaultInteractionForm({
             roundStateValue !== undefined ? `(${roundStateMap[roundStateValue]})` : ''
           }`}
         />
-        <Row label="Deposit token" value={`${dSym} (${depositTokenAddr?.slice(0, 8)}…)`} />
-        <Row label="Exchange token" value={`${eSym} (${exchangeTokenAddr?.slice(0, 8)}…)`} />
+        <Row label="Deposit token" value={`${dSym} (${formatAddress(depositTokenAddr, 6)})`} />
+        <Row label="Exchange token" value={`${eSym} (${formatAddress(exchangeTokenAddr, 6)})`} />
         <Row
           label="Vault TVL"
           value={
@@ -460,7 +467,7 @@ export function VaultInteractionForm({
       {/* ── Your Receipts (all rounds with balance > 0) ── */}
       <Section title="Your Receipts">
         {receiptsWithBalance.length === 0 ? (
-          <p className="text-gray-500 text-sm">No receipts found across any round.</p>
+          <p className="text-on-surface-variant/80 text-sm">No receipts found across any round.</p>
         ) : (
           <div className="space-y-2">
             {receiptsWithBalance.map(({ round, balance }) => {
@@ -468,25 +475,27 @@ export function VaultInteractionForm({
               return (
                 <div
                   key={round}
-                  className="flex items-center justify-between bg-gray-900/50 p-3 rounded-xl border border-white/5"
+                  className="flex items-center justify-between bg-surface-container-high/50 p-3 rounded-xl border border-white/5"
                 >
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-mono px-2 py-0.5 rounded ${isCurrentRound ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-700/50 text-gray-400'}`}
+                    <Badge
+                      tone={isCurrentRound ? 'info' : 'neutral'}
+                      size="sm"
+                      className="font-mono"
                     >
                       R{round}
-                    </span>
-                    <span className="text-white text-sm font-medium">
+                    </Badge>
+                    <span className="text-on-surface text-sm font-medium tabular-nums">
                       {formatUnits(balance, dDec)} {dSym}
                     </span>
-                    {isCurrentRound && <span className="text-xs text-blue-400">(current)</span>}
+                    {isCurrentRound && <span className="text-xs text-info">(current)</span>}
                   </div>
                   <div className="flex gap-2">
                     {isCurrentRound ? (
                       <button
                         onClick={() => handleRedeemCurrentRound(round, balance)}
                         disabled={isPending}
-                        className="text-xs bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 border border-yellow-500/30 px-3 py-1 rounded-lg transition-all disabled:opacity-50"
+                        className="text-xs bg-warning/15 text-warning hover:bg-warning/25 border border-warning/30 px-3 py-1 rounded-lg transition-all disabled:opacity-50"
                       >
                         Redeem
                       </button>
@@ -496,7 +505,7 @@ export function VaultInteractionForm({
                           setReceiptId(String(round))
                           setExchangeAmount(formatUnits(balance, dDec))
                         }}
-                        className="text-xs bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 px-3 py-1 rounded-lg transition-all"
+                        className="text-xs bg-primary/15 text-primary hover:bg-primary/25 border border-primary/30 px-3 py-1 rounded-lg transition-all"
                       >
                         Exchange →
                       </button>
@@ -514,8 +523,8 @@ export function VaultInteractionForm({
       {/* ── Deposit ── */}
       <Section title={`Deposit ${dSym}`}>
         {isWhitelisted === false && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-4 text-sm flex items-start gap-2">
-            <span className="mt-0.5 text-red-500">⚠️</span>
+          <div className="bg-error/15 border border-error/30 text-error p-3 rounded-xl mb-4 text-sm flex items-start gap-2">
+            <span className="mt-0.5">⚠️</span>
             <span>
               Your wallet is not whitelisted to interact with this vault. Deposits and withdrawals
               will revert until you are granted access.
@@ -528,21 +537,23 @@ export function VaultInteractionForm({
             placeholder={`Amount in ${dSym}`}
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
-            className="flex-1 bg-gray-900 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className={`${inputBase} flex-1 rounded-xl px-4 py-3`}
           />
-          <button
+          <Button
+            variant="primary"
+            size="lg"
             onClick={handleDeposit}
             disabled={isPending || !depositAmount}
-            className="bg-blue-500 hover:bg-blue-400 text-white font-medium px-6 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            className="px-6"
           >
             Deposit
-          </button>
+          </Button>
         </div>
         <div className="flex justify-between items-center mt-1">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-on-surface-variant/80 tabular-nums">
             Balance: {depositBalance !== undefined ? formatUnits(depositBalance, dDec) : '0'} {dSym}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-on-surface-variant/80 tabular-nums">
             Approved: {allowance !== undefined ? formatUnits(allowance, dDec) : '0'} {dSym}
           </p>
         </div>
@@ -558,25 +569,27 @@ export function VaultInteractionForm({
             placeholder="Round ID"
             value={receiptId}
             onChange={(e) => setReceiptId(e.target.value)}
-            className="w-28 bg-gray-900 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className={`${inputBase} !w-28 rounded-xl px-4 py-3`}
           />
           <input
             type="text"
             placeholder="Receipt amount"
             value={exchangeAmount}
             onChange={(e) => setExchangeAmount(e.target.value)}
-            className="flex-1 bg-gray-900 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className={`${inputBase} flex-1 rounded-xl px-4 py-3`}
           />
-          <button
+          <Button
+            variant="primary"
+            size="lg"
             onClick={handleExchangePastReceipts}
             disabled={isPending || !receiptId || !exchangeAmount}
-            className="bg-indigo-500 hover:bg-indigo-400 text-white font-medium px-6 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            className="px-6"
           >
             Exchange
-          </button>
+          </Button>
         </div>
         {pastRoundReceipts !== undefined && receiptId !== '' && (
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-on-surface-variant/80 mt-1 tabular-nums">
             Your receipts for round {receiptId}: {formatUnits(pastRoundReceipts, dDec)}
           </p>
         )}
@@ -585,70 +598,72 @@ export function VaultInteractionForm({
       <Divider />
 
       {/* ── Administration Panel ── */}
-      <div className="space-y-4 bg-gray-900/40 p-5 rounded-xl border border-blue-500/20">
+      <div className="space-y-4 bg-surface-container-high/40 p-5 rounded-xl border border-info/20">
         <div className="flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-info uppercase tracking-wider flex items-center gap-2">
             Administration Actions
           </h3>
           <div className="flex gap-2">
             {isGovernor && (
-              <span className="text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">
+              <Badge tone="primary" size="sm">
                 GOVERNOR
-              </span>
+              </Badge>
             )}
             {isSuperKeeper && (
-              <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded">
+              <Badge tone="info" size="sm">
                 SUPER KEEPER
-              </span>
+              </Badge>
             )}
             {isKeeperLocal && (
-              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded">
+              <Badge tone="neutral" size="sm">
                 LOCAL KEEPER
-              </span>
+              </Badge>
             )}
           </div>
         </div>
 
         {accessManagerAddress && (
-          <div className="text-xs text-gray-400 break-all mb-2 flex flex-col gap-2">
+          <div className="text-xs text-on-surface-variant break-all mb-2 flex flex-col gap-2">
             <div>
-              <span className="text-gray-500 block mb-1">Access Manager contract:</span>
-              <code className="text-blue-300 font-mono bg-blue-900/20 px-2 py-1 rounded">
-                {accessManagerAddress}
+              <span className="text-on-surface-variant/80 block mb-1">
+                Access Manager contract:
+              </span>
+              <code className="text-info font-mono bg-info/10 border border-info/20 px-2 py-1 rounded">
+                <AddressDisplay value={accessManagerAddress} full />
               </code>
             </div>
           </div>
         )}
 
         <div className="space-y-3 pt-2 border-t border-white/5">
-          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+          <div className="flex justify-between items-center bg-surface-container-high/50 p-3 rounded-xl border border-white/5 gap-4">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                <Badge tone="neutral" size="sm">
                   KEEPER
-                </span>
-                <span className="text-sm text-gray-300">Advance Round</span>
+                </Badge>
+                <span className="text-sm text-on-surface-variant">Advance Round</span>
               </div>
-              <span className="text-xs text-gray-500 mt-1">
+              <span className="text-xs text-on-surface-variant/80 mt-1 tabular-nums">
                 Advances to Round {currentRound !== undefined ? Number(currentRound) + 1 : '…'}
               </span>
             </div>
             <button
               onClick={handleNextRound}
               disabled={isPending}
-              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 border border-blue-500/30 font-medium px-4 py-2 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+              className="bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30 font-medium px-4 py-2 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
             >
               nextRound()
             </button>
           </div>
 
-          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+          <div className="flex justify-between items-center bg-surface-container-high/50 p-3 rounded-xl border border-white/5 gap-4">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                <Badge tone="neutral" size="sm">
                   KEEPER
-                </span>
-                <span className="text-sm text-gray-300">Retry Round</span>
+                </Badge>
+                <span className="text-sm text-on-surface-variant">Retry Round</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -657,25 +672,25 @@ export function VaultInteractionForm({
                 placeholder="Round ID"
                 value={retryRoundId}
                 onChange={(e) => setRetryRoundId(e.target.value)}
-                className="w-24 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                className={`${inputBase} !w-24 text-sm`}
               />
               <button
                 onClick={handleRetryRound}
                 disabled={isPending || !retryRoundId}
-                className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 border border-blue-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+                className="bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
               >
                 retryRound()
               </button>
             </div>
           </div>
 
-          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+          <div className="flex justify-between items-center bg-surface-container-high/50 p-3 rounded-xl border border-white/5 gap-4">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                <Badge tone="neutral" size="sm">
                   KEEPER
-                </span>
-                <span className="text-sm text-gray-300">Settle Round</span>
+                </Badge>
+                <span className="text-sm text-on-surface-variant">Settle Round</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -684,25 +699,25 @@ export function VaultInteractionForm({
                 placeholder="Round ID"
                 value={settleRoundId}
                 onChange={(e) => setSettleRoundId(e.target.value)}
-                className="w-24 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                className={`${inputBase} !w-24 text-sm`}
               />
               <button
                 onClick={handleSetRoundSettled}
                 disabled={isPending || !settleRoundId}
-                className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 border border-blue-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+                className="bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
               >
                 setRoundSettled()
               </button>
             </div>
           </div>
 
-          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+          <div className="flex justify-between items-center bg-surface-container-high/50 p-3 rounded-xl border border-white/5 gap-4">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
+                <Badge tone="primary" size="sm">
                   GOVERNOR
-                </span>
-                <span className="text-sm text-gray-300">Emergency Rollback</span>
+                </Badge>
+                <span className="text-sm text-on-surface-variant">Emergency Rollback</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -711,28 +726,28 @@ export function VaultInteractionForm({
                 placeholder="Round ID"
                 value={rollbackRoundId}
                 onChange={(e) => setRollbackRoundId(e.target.value)}
-                className="w-24 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                className={`${inputBase} !w-24 text-sm`}
               />
               <button
                 onClick={handleEmergencyRollback}
                 disabled={isPending || !rollbackRoundId}
-                className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 hover:text-purple-300 border border-purple-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+                className="bg-error/15 text-error hover:bg-error/25 border border-error/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
               >
                 emergencyRollback()
               </button>
             </div>
           </div>
 
-          <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5 gap-4">
+          <div className="flex justify-between items-center bg-surface-container-high/50 p-3 rounded-xl border border-white/5 gap-4">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold bg-green-500/20 text-green-300 px-2 py-0.5 rounded">
+                <Badge tone="success" size="sm">
                   WHITELIST MANAGER
-                </span>
-                <span className="text-sm text-gray-300">Set Whitelist</span>
+                </Badge>
+                <span className="text-sm text-on-surface-variant">Set Whitelist</span>
               </div>
-              <span className="text-xs text-gray-500 mt-1">
-                Context: {targetVault ? `${targetVault.slice(0, 10)}…` : '…'}
+              <span className="text-xs text-on-surface-variant/80 mt-1">
+                Context: {targetVault ? <AddressDisplay value={targetVault} chars={8} /> : '…'}
               </span>
             </div>
             <div className="flex gap-2">
@@ -741,12 +756,12 @@ export function VaultInteractionForm({
                 placeholder="0x..."
                 value={whitelistAddress}
                 onChange={(e) => setWhitelistAddress(e.target.value)}
-                className="w-40 bg-gray-800 border border-white/10 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500/50"
+                className={`${inputBase} !w-40 text-sm`}
               />
               <select
                 value={whitelistStatus ? 'true' : 'false'}
                 onChange={(e) => setWhitelistStatus(e.target.value === 'true')}
-                className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500/50"
+                className={`${selectBase} text-sm`}
               >
                 <option value="true">Allow</option>
                 <option value="false">Deny</option>
@@ -754,7 +769,7 @@ export function VaultInteractionForm({
               <button
                 onClick={handleSetWhitelisted}
                 disabled={isPending || !whitelistAddress || !accessManagerAddress}
-                className="bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:text-green-300 border border-green-500/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
+                className="bg-secondary/15 text-secondary hover:bg-secondary/25 border border-secondary/30 font-medium px-3 py-1 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 whitespace-nowrap"
               >
                 setWhitelisted()
               </button>
@@ -770,9 +785,9 @@ export function VaultInteractionForm({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-xl border border-white/5">
-      <span className="text-gray-400 text-sm">{label}</span>
-      <span className="font-mono text-white text-sm font-medium">{value}</span>
+    <div className="flex justify-between items-center bg-surface-container-high/50 p-3 rounded-xl border border-white/5">
+      <span className="text-on-surface-variant text-sm">{label}</span>
+      <span className="font-mono text-on-surface text-sm font-medium tabular-nums">{value}</span>
     </div>
   )
 }
@@ -780,7 +795,9 @@ function Row({ label, value }: { label: string; value: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</h3>
+      <h3 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider">
+        {title}
+      </h3>
       {children}
     </div>
   )
