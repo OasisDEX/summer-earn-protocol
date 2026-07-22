@@ -1,0 +1,878 @@
+{
+  "rewardToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "rewards": {
+    "0x8741E8Ff675acCb88be2886415292fC9f4984130": {
+      "usdc_lr": "3151049071376"
+    },
+    "0x1aF8aA70Cd2FdC8b0c97d632DE8dc8894E043b47": {
+      "usdc_lr": "340172830333"
+    },
+    "0xc3042971B9207F030867f815250d2798e7b0B131": {
+      "usdc_lr": "90488369186"
+    },
+    "0xd6aB3F77B2020576cfE5da47dc16660de214a72C": {
+      "usdc_lr": "51355413878"
+    },
+    "0x26C60b38Fe7E55d699c8102c18cc5D7152E0762e": {
+      "usdc_lr": "49124422571"
+    },
+    "0x48B8Eaaf95B14186aE1B6505e91e436b1ce70d20": {
+      "usdc_lr": "44698590971"
+    },
+    "0x709283020b1CcaC42413903C6DBBe3e523A4B41d": {
+      "usdc_lr": "37915032081"
+    },
+    "0x00f2654805b4D6Df5d5065C5773f15A5a7eD1A7C": {
+      "usdc_lr": "27689740224"
+    },
+    "0xaAB339713c606be88F505c27bB69cf0BCD148225": {
+      "usdc_lr": "19672191505"
+    },
+    "0x7B19EdCb615b3064EFBcb189E38e0390B67Cb1E3": {
+      "usdc_lr": "12519094337"
+    },
+    "0xA1b905648A8c42A80e7eceaC642d342d4cc94Ee3": {
+      "usdc_lr": "6051246232",
+      "usdc_hr": "14889400940"
+    },
+    "0x997a09Bfd2da43ED2D6ffd70E5b907CCf2FE7334": {
+      "usdc_lr": "4962846364"
+    },
+    "0xdC7dB9996f43932221aaAF71dd127f6adF6970a7": {
+      "usdc_lr": "4179961751"
+    },
+    "0x0043F8113Eb1257BC6314fE0434eEC0D9bAc3837": {
+      "usdc_lr": "2037455023"
+    },
+    "0x89e8bFA440537F8e6661C293f9010dBC2617bCcc": {
+      "usdc_lr": "1757008361"
+    },
+    "0x558645916b7128bf7f6A33BD499012028B69aecF": {
+      "usdc_lr": "1639487194"
+    },
+    "0xAEdF72D38FFFa206BA798a0510DD6baBd82D28A4": {
+      "usdc_lr": "1373407214",
+      "usdc_hr": "1832790480"
+    },
+    "0x8f668c104e0B1472BD2556508443f57D1dE0E9F4": {
+      "usdc_lr": "853587576"
+    },
+    "0x7e475A846aF78e49Aa56f05706530bc5EBe58Ea8": {
+      "usdc_lr": "807758231"
+    },
+    "0xfF3145d93985985c7a7e8af6a6892830F9cDD636": {
+      "usdc_lr": "455602538"
+    },
+    "0x8B7775340AFf7E79A232839992662f0e4843ad42": {
+      "usdc_lr": "403812770"
+    },
+    "0xE301EAe99F589f6cB008f2cd18aFD2070d639CA0": {
+      "usdc_lr": "310969488"
+    },
+    "0x2d0eE6d8306dcADf05DFb577Fba531c79fe28D1D": {
+      "usdc_lr": "305442279"
+    },
+    "0x66102188f2dB5Ad0e80aAfa62D28e3ACa18d695f": {
+      "usdc_lr": "301523045"
+    },
+    "0xFDC068BF592C1711c14AE868C4D1668d70EF325E": {
+      "usdc_lr": "224826001"
+    },
+    "0x062DB96BD5f09B667543400De00Bd3fAC9463a1b": {
+      "usdc_lr": "202453354"
+    },
+    "0xa945352F1fe605BeB9C3c2a09557d3ef9A056FB1": {
+      "usdc_lr": "202366431"
+    },
+    "0xcBf866232e25C4d35E8E0e4c9Bf4953801C0F512": {
+      "usdc_lr": "200037735"
+    },
+    "0x94d6bB18Ad375fd9254CDDD8c6Cf5b22A344f46b": {
+      "usdc_lr": "197595126"
+    },
+    "0xa8728e547CA1C5C8BC830fFA17795756736867eA": {
+      "usdc_lr": "189632862"
+    },
+    "0x674642ca7fb0580280fCdA70F50BD72338FB1f95": {
+      "usdc_lr": "161808778"
+    },
+    "0xc3031ECadf154Ce0Af99187C7655bA142AB06075": {
+      "usdc_lr": "141210690"
+    },
+    "0x60302cd27290CCfce71a4bFB017896365870783B": {
+      "usdc_lr": "133953362"
+    },
+    "0x6B7d5C7ADA52BE7F823BD2dc12A7578eBE74d3BC": {
+      "usdc_lr": "130848133"
+    },
+    "0x3c76392a81d15101e440a81c61dB02570F597703": {
+      "usdc_lr": "118744487"
+    },
+    "0xCF9459c2eB15FFb6BBc788d04e741187eEBc036a": {
+      "usdc_lr": "101104422"
+    },
+    "0x43A8B03Ad5A84AF08C0f8210D56E9c3E60bb96B2": {
+      "usdc_lr": "93299841"
+    },
+    "0x7D49f7273c5F95638232Af1370E4c7057CB24278": {
+      "usdc_lr": "84329837"
+    },
+    "0xa19e9273517aB52905ac9Da976003Dc46fAD0F21": {
+      "usdc_lr": "83726880"
+    },
+    "0x47fc2984fcA6d709120863e7E425Ee4abbC7c7F4": {
+      "usdc_lr": "72844663"
+    },
+    "0x28975746103747F81aC4d23a197ECc5AA6ff68A0": {
+      "usdc_lr": "72252449"
+    },
+    "0xE06D1654B96870677dDF51bDaDc515575f3E0dB8": {
+      "usdc_lr": "60703981"
+    },
+    "0x1565828Db7bB5f98AA87CF1C953872FD4E08Fc65": {
+      "usdc_lr": "52610079"
+    },
+    "0xF8fe5785869d4eb700CF853b4246c1724c3100BE": {
+      "usdc_lr": "42267761"
+    },
+    "0x7a9C327742C11f0F9c57F8309bf758acbA7e7656": {
+      "usdc_lr": "40469299"
+    },
+    "0x0970136BcB9e8D3EFd8Bc653Fe06E3637Ae845d2": {
+      "usdc_lr": "40235253"
+    },
+    "0x39d1288C952Fc925BAAE7Da86f49B5b91CCc8EA9": {
+      "usdc_lr": "36818489"
+    },
+    "0xF6c9981414Ecff9dAFC076898F5A16D34186ae32": {
+      "usdc_lr": "30684331"
+    },
+    "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA": {
+      "usdc_lr": "24282717",
+      "usdc_hr": "1264770"
+    },
+    "0x38430336153468dcf36Af5cea7D6bc472425633A": {
+      "usdc_lr": "20855635"
+    },
+    "0x00fB95F17e5b617Fc0f395185ed349aA76f96a95": {
+      "usdc_lr": "15229933"
+    },
+    "0xEA57Dc30959eb17c506E4dA095fa9181f3E0Ac6D": {
+      "usdc_lr": "12054332"
+    },
+    "0x24ad9d8C7A9bD6221184ab2b769ECDc9B3496e6c": {
+      "usdc_lr": "9420650"
+    },
+    "0xE2bd295b495127933b9EB352607eC385b8B212C9": {
+      "usdc_lr": "9313096"
+    },
+    "0x32E21c883926B9c5DD4BfcFC457733256B28Ad59": {
+      "usdc_lr": "8788769"
+    },
+    "0x0d6F7E4fe526f164E8E9C07C4b61e24546Eba211": {
+      "usdc_lr": "8743892"
+    },
+    "0x8479961d1A96150B2c92a3C22Ec8305CfEfcddDB": {
+      "usdc_lr": "8157724"
+    },
+    "0x9cDB27d4A7AEF85a83e6293158b347286155c957": {
+      "usdc_lr": "6385301"
+    },
+    "0xF8AEDDF7A6071619087ce71814123D909C4E28A8": {
+      "usdc_lr": "4975316"
+    },
+    "0x2344Ec2cB01b808EDC81904AE8E615D6C8C8aC7f": {
+      "usdc_lr": "4187371"
+    },
+    "0x000000000004444c5dc75cB358380D2e3dE08A90": {
+      "usdc_lr": "4047942",
+      "usdc_hr": "470"
+    },
+    "0xE9c245293DAC615c11A5bF26FCec91C3617645E4": {
+      "usdc_lr": "3981378"
+    },
+    "0x5BAC577ACB405a7f871c3E631223106a328c05a9": {
+      "usdc_lr": "3826996"
+    },
+    "0xDF2e88adbbede67e2be529D3980CF6a4F56CC315": {
+      "usdc_lr": "3368544"
+    },
+    "0x552A101C7aD65338ea35266184A389CaEf7Efbb8": {
+      "usdc_lr": "2115021"
+    },
+    "0x609b2909b4d359d49282D260734e802140240E05": {
+      "usdc_lr": "2094544"
+    },
+    "0xa720a695cfB6786EC796b78f034016B99E1A6046": {
+      "usdc_lr": "2087289"
+    },
+    "0x5d788b991277aA5b0CF03Dc1CD75715EAdB382e2": {
+      "usdc_lr": "2030169"
+    },
+    "0x1c0c6a8194244970470FED7DFd9969bE8bf95A71": {
+      "usdc_lr": "1978608"
+    },
+    "0x991aeaD6d80263270dE74279cB5BB707f0405b62": {
+      "usdc_lr": "1846645"
+    },
+    "0x50c1ca44F32636498b739fE346A350b85E408CBE": {
+      "usdc_lr": "1678945"
+    },
+    "0x82676CDf251Cf09F0bf68776bd9372E35EC92eca": {
+      "usdc_lr": "1669851"
+    },
+    "0x34AE56EAB5daaC28C0509f33e4509f4b7bAecC5c": {
+      "usdc_lr": "1529271"
+    },
+    "0x185007e743B88CdC3FcC9D2aFe4D7784D6BB55CC": {
+      "usdc_lr": "1524917"
+    },
+    "0xA8Bf6fc9F4BB105FCc264Db561c360fcBfD5fA94": {
+      "usdc_lr": "1355863"
+    },
+    "0x7727781D54739C12fAE9e85B365d5d7188A734C7": {
+      "usdc_lr": "1313947"
+    },
+    "0xc9A833897b7B07A0B4eEe66Ad542fD5D31b2677d": {
+      "usdc_lr": "1206502"
+    },
+    "0x28cD8363cBEaE51FAF8Ae752aEE7c37bC2a85120": {
+      "usdc_lr": "1197344"
+    },
+    "0xC3f5241050332c4B62dADaa5Cb50539d96506a8d": {
+      "usdc_lr": "1166806"
+    },
+    "0xb05DdFCDC2565C34d004be4b8029ABd1DC8Aa094": {
+      "usdc_lr": "982830"
+    },
+    "0x1802f3aF0B5898C1a7fD82DAA02f2C907f293822": {
+      "usdc_lr": "887042"
+    },
+    "0x55321405a87c9871df405106883C51f3df73aA7f": {
+      "usdc_lr": "787229"
+    },
+    "0x083D245244F8dC25b871703fEc621fE1d5BBBcB6": {
+      "usdc_lr": "780448"
+    },
+    "0xbf2Ba6734E770794daf33323009D2Ad802c12d5c": {
+      "usdc_lr": "627955"
+    },
+    "0xdd5EEA673c77a207B6b2B8Ca2B3DaeA8252699bC": {
+      "usdc_lr": "627066"
+    },
+    "0x64D00f5A54af181c64981380657b60AAD8E0f34e": {
+      "usdc_lr": "611667"
+    },
+    "0x18615f267cE36200c9d881DBCC154FC6BD2C99D8": {
+      "usdc_lr": "611055"
+    },
+    "0xf7f0dA4b7bea918fe720118D6454C053331c2E84": {
+      "usdc_lr": "595939"
+    },
+    "0x361aedF25d4BFB5A70831f1785b7bCBC0f9C14f6": {
+      "usdc_lr": "574142"
+    },
+    "0x017F6cDEa732fcb89c28877e581Fc1883446468C": {
+      "usdc_lr": "568102"
+    },
+    "0x894B493bc5e70d7B1030f131c5ABbA657772518c": {
+      "usdc_lr": "476477"
+    },
+    "0x3076fACa1AcAd841ECC374a4CBefbE08b52986dD": {
+      "usdc_lr": "448966"
+    },
+    "0x88a135D9aC7583Eb45C1c140fBF6cE474f1f7789": {
+      "usdc_lr": "424505"
+    },
+    "0xb30964E77a125CfB11B4AffC4dC1fa976619938B": {
+      "usdc_lr": "422621"
+    },
+    "0x28f4E9df9c628BA8c2fC9BA00B65B3F7BE9d7C4e": {
+      "usdc_lr": "407332"
+    },
+    "0x0d336d036851C5B2984EE5cb78dBF441B5B8E8F7": {
+      "usdc_lr": "400835"
+    },
+    "0xf8120971AFEd275Bb66AB6EB8885cB014FF76f58": {
+      "usdc_lr": "399596",
+      "usdc_hr": "291890"
+    },
+    "0x0CA734E7a0D01dd7fCFD6D42aeB5dEa7173ac5b1": {
+      "usdc_lr": "396639"
+    },
+    "0x44a52d3930c146B43141F687286449043528E551": {
+      "usdc_lr": "370141"
+    },
+    "0x0BeD17ba364ea8c37188a6b969E905e9b57Fe1Ad": {
+      "usdc_lr": "369514"
+    },
+    "0x12618D8c2548e458417Be7A5B7d3D59dD666231F": {
+      "usdc_lr": "338472"
+    },
+    "0xCFD9D328d2d0deD027141AeE397894F1f0d9d760": {
+      "usdc_lr": "312281"
+    },
+    "0x722b7388892865E16CA60e4c89aa53607Fce95E9": {
+      "usdc_lr": "305904"
+    },
+    "0x175151745b26fd28672d687E30B9621780E5E4E5": {
+      "usdc_lr": "304772"
+    },
+    "0xcD6F84b4B1176F7B26991B6b69BEB595EC3EBB57": {
+      "usdc_lr": "300551"
+    },
+    "0x69fAD72900B145E92afD271441dbb7b916b87820": {
+      "usdc_lr": "297346"
+    },
+    "0xF2be8DaBF6611A7F06f74823BC2f035426D6Ff8D": {
+      "usdc_lr": "291789"
+    },
+    "0x288B4085E9A9BcE28C557758A7B248c988Df2BDa": {
+      "usdc_lr": "259327"
+    },
+    "0x3007329529f16e20d22A16A37f5813567710e794": {
+      "usdc_lr": "255359"
+    },
+    "0x14798f3f609D5e4e17f1352b1C7727E5890DA14E": {
+      "usdc_lr": "228515"
+    },
+    "0xd8Da47001487e81db374fb092a83bd7b99C29324": {
+      "usdc_lr": "220486"
+    },
+    "0x10649c79428d718621821Cf6299e91920284743F": {
+      "usdc_lr": "211130",
+      "usdc_hr": "305960"
+    },
+    "0xc32Ca5bD16512515B6dD0225FB4EEA9A91f6C9b5": {
+      "usdc_lr": "202022"
+    },
+    "0x2fd16bD08DbD81f04ab8969AC878433b7FC915d2": {
+      "usdc_lr": "201263"
+    },
+    "0x5C43E98a8512430Bc794CEDE29863b31fD768c8a": {
+      "usdc_lr": "200884"
+    },
+    "0x5CE34A60c264c6129c3AcA2779C5f3778B1e6A84": {
+      "usdc_lr": "200352"
+    },
+    "0x32c67386f23b537DB8E9FD6E85eBE14F044B4D57": {
+      "usdc_lr": "192882"
+    },
+    "0x9262c51B011262353937b44aB7769E4dF9E8Bab9": {
+      "usdc_lr": "177894"
+    },
+    "0x277389DBeb83C7ff33233cF87b7f29F3A2Eaa118": {
+      "usdc_lr": "166336"
+    },
+    "0xfF85ab7A8094b8124988d7158769B9D9EDbd3B67": {
+      "usdc_lr": "143270"
+    },
+    "0x4D344f5Bcc205057EBDAA6A8246a636f41439CCf": {
+      "usdc_lr": "137824"
+    },
+    "0x3e407a312f06F5989aCF36580F56284A5F015095": {
+      "usdc_lr": "125269"
+    },
+    "0x116ec66Dbb814c06B465dE276E3B02d28590173B": {
+      "usdc_lr": "123323"
+    },
+    "0xD6A38C38594885693E8C36b3644D4A60f4F82814": {
+      "usdc_lr": "121003"
+    },
+    "0x889b796BC286f7E2a1e40fA7b0443C6310BAdffB": {
+      "usdc_lr": "116743"
+    },
+    "0x7Fe9dAE544150b541fB525371bf3E54121c4B90b": {
+      "usdc_lr": "108965"
+    },
+    "0xea4782a394c93f3A889ba31e565B233E59E7B38E": {
+      "usdc_lr": "107945"
+    },
+    "0xc650ba42c2fce0e030e4022b12D419Ca5780D008": {
+      "usdc_lr": "107202"
+    },
+    "0xC406E8090f5A5646044A4c590d3a8D904A47Cb56": {
+      "usdc_lr": "104752"
+    },
+    "0x1f5FEe88399CeADFa35d47026CB4A1A7678fcd8E": {
+      "usdc_lr": "101511"
+    },
+    "0xAFbe59F46cc6B062503478FbA3aD0a9e55e4Da47": {
+      "usdc_lr": "94469"
+    },
+    "0x1bcA3AB7Abc091F28fEb1891f847Aa566Ef383A4": {
+      "usdc_lr": "87446"
+    },
+    "0x979F195C099dB4E16b2689AcBA70b63f82063d64": {
+      "usdc_lr": "84547"
+    },
+    "0x5f43Df927057F414A1931f99D936A19E957eaf43": {
+      "usdc_lr": "82403"
+    },
+    "0x9C1Ef014C272bEE1E4F737E147bacc6b2E6A0e39": {
+      "usdc_lr": "74784"
+    },
+    "0x31bbAb9dA20a2d0eB65c187c45f440aF4D2Bb65F": {
+      "usdc_lr": "63885"
+    },
+    "0x0F94D7465DeEAb3F97E967F0212dEf88bB2c8B97": {
+      "usdc_lr": "62975"
+    },
+    "0x480abf5AD71706eDCdeDb02Ed93769199dD484e8": {
+      "usdc_lr": "60654"
+    },
+    "0x4F362FC1cA20F8Ed6dBfc7ED98d3542062E6c721": {
+      "usdc_lr": "59942"
+    },
+    "0xcc06Fec72a194ea08242Ce91aC9831076f9cc4EA": {
+      "usdc_lr": "59540"
+    },
+    "0x649b5a9b163b329D431711C331e78d7388bc3530": {
+      "usdc_lr": "54803"
+    },
+    "0xffad76e045E3E2F8Add00C29392AEa6e26120CbD": {
+      "usdc_lr": "51724"
+    },
+    "0x4e8F76C9D44A5Dd9b8dc22eC9ECbcDa403c43f2E": {
+      "usdc_lr": "48913"
+    },
+    "0xd5c6498C492A7938262A13631E1919d5decE456e": {
+      "usdc_lr": "46939"
+    },
+    "0x525066ba60F5449F3eFf104327738eeF55204ee4": {
+      "usdc_lr": "38225"
+    },
+    "0x84BA99c52cb57958C4a8b942312A5C35F5ABf8Fe": {
+      "usdc_lr": "37460"
+    },
+    "0x441c16c5F9AB34539fE5fdAFFD9Dd17F6ea652d7": {
+      "usdc_lr": "37387"
+    },
+    "0xaacEB6B7cc54d9FB75be9C066136Ff1dC5BDaacE": {
+      "usdc_lr": "37123"
+    },
+    "0xEe1Ad18E547c1ED1c55D30fC129a0f1068040259": {
+      "usdc_lr": "35989"
+    },
+    "0x2Fd1b8eE4a4193Fd2e3Cd6f40F94C475B0651D92": {
+      "usdc_lr": "34595"
+    },
+    "0xe048D8C1C5201C353F254F99A496bF341da83301": {
+      "usdc_lr": "33607"
+    },
+    "0xCA18E3B4dE16Dfb86d12be5720aEfC0302139Ff1": {
+      "usdc_lr": "32354"
+    },
+    "0x60c96efFEF9a890e6F21c85CcF7dBAebBE362449": {
+      "usdc_lr": "31915"
+    },
+    "0xaD11Fbe67B9aF6C36a88a95120e0abff8097E827": {
+      "usdc_lr": "31038"
+    },
+    "0xBDda74501979f859241A49dF27e327bB5CCC71DC": {
+      "usdc_lr": "28342"
+    },
+    "0x86cd623B388Da2a8a392bF08042FFD36e83fc854": {
+      "usdc_lr": "26449"
+    },
+    "0x9a0c3ECEae9c3abAfE02B1084C644b46FDd0dC00": {
+      "usdc_lr": "26333"
+    },
+    "0x73ecEb1199D4015A707Be190DD008FCa8B22307E": {
+      "usdc_lr": "24935"
+    },
+    "0xF16f7c8AbB9370D87d9017AF509f800b9cE643a4": {
+      "usdc_lr": "24907"
+    },
+    "0x1bEAd8224C1d226Af34dBB47A0E51f39D1A02e28": {
+      "usdc_lr": "23887"
+    },
+    "0x7B4343FF2B3b682D7C7b68BeDD12a15265314b8D": {
+      "usdc_lr": "23407"
+    },
+    "0xe3d118fD425ee406E59A62eabBF87dCAf912A8a1": {
+      "usdc_lr": "22382"
+    },
+    "0xdC4A42e35957A9eb77c3179B82aE621A4c2d6792": {
+      "usdc_lr": "22270"
+    },
+    "0x1E072741E504C8Da2380deF7f912Aa6C80839F23": {
+      "usdc_lr": "21944"
+    },
+    "0x8C8843be05612ED2FC60b1FA109D10E5FAB7ba32": {
+      "usdc_lr": "20588"
+    },
+    "0x9acE3EC3a55C93ff1a21531d000aDE8F714b7610": {
+      "usdc_lr": "17763"
+    },
+    "0xAF74Ee2EC3a1218604b729323AE7034e34C66dd6": {
+      "usdc_lr": "17562"
+    },
+    "0xC3632E3c63B1E9643358aafed0660cF6522b94e5": {
+      "usdc_lr": "17275"
+    },
+    "0x0f122f710f6aa85C0Db8B1C61496cD63AfC24C04": {
+      "usdc_lr": "17091"
+    },
+    "0x2390a09A854dF4403E7D64C8fc8A10E7675f26C8": {
+      "usdc_lr": "16083"
+    },
+    "0x148CA58048F065B58E4fc90DfE6912964319Dc15": {
+      "usdc_lr": "15599"
+    },
+    "0x9ee9D8B639e39EB9d27894E092Bb3701D968A05A": {
+      "usdc_lr": "15247"
+    },
+    "0x591E4063f8B3CBA934F024Ff3510fE44FFac136e": {
+      "usdc_lr": "12299"
+    },
+    "0xD55260994BeA955fbF51e3942736E4a34B8469E0": {
+      "usdc_lr": "11882"
+    },
+    "0x5A65E389B63c632E28bf2C415eA13BC467cb71fb": {
+      "usdc_lr": "11252"
+    },
+    "0x71303DDf45eDf22FBCaBB116078E977F6B69b097": {
+      "usdc_lr": "9337"
+    },
+    "0x414E88b5553E2C07827eE2F9B91ef709B552d867": {
+      "usdc_lr": "8848"
+    },
+    "0x8bAC096825e5d2Cb2296752ed41e8D0d4d8b063f": {
+      "usdc_lr": "8588"
+    },
+    "0x1507B4e1068a6918B2cfd2Df0E3f4371A5bD7E06": {
+      "usdc_lr": "7772"
+    },
+    "0x734FEedeB234d1EB93491107336442Baa96e5173": {
+      "usdc_lr": "7582"
+    },
+    "0x8854235cc28ff3320f74c54F0fC4d74b6fCDCCd4": {
+      "usdc_lr": "7170"
+    },
+    "0x968d3009b1DECF43801310b40438475d8A25b17C": {
+      "usdc_lr": "7028"
+    },
+    "0xEdaa1B492FdcDE3CCc173c033Bef95c691019611": {
+      "usdc_lr": "6520"
+    },
+    "0xa83119b547665f654cbD311c95B3066d69772A94": {
+      "usdc_lr": "5944"
+    },
+    "0xB3d84152eC200d76e2660AbbaC0E5618538723e5": {
+      "usdc_lr": "5711"
+    },
+    "0xD691dD08f4119209947435c37816C0c606933325": {
+      "usdc_lr": "5648"
+    },
+    "0xA5d75102143D05636a377e9fE32979f4FfA3AC93": {
+      "usdc_lr": "4906"
+    },
+    "0xDeCEB9d7eD3137517cB870a9a484754b39BF23c8": {
+      "usdc_lr": "3979"
+    },
+    "0x234cB7Cb07eCaAe4D8a0F38EC51F8e92E1eD3E33": {
+      "usdc_lr": "3907"
+    },
+    "0x8B520E4761313529e2d92Fa3603f9f511132D31E": {
+      "usdc_lr": "3760"
+    },
+    "0xfFD18d1919c450dDd902ACb293f509439Af5bBf5": {
+      "usdc_lr": "3731"
+    },
+    "0xF6B7eb8aB2aE408Ef55A6475B20D3a671f79c6A9": {
+      "usdc_lr": "3689"
+    },
+    "0xaE786BAcF1B30D26f909E673926C30f155E7e4db": {
+      "usdc_lr": "3530"
+    },
+    "0x5238CE8152Ef73Ca5D6C091189Ab1Ce71b2D0dCE": {
+      "usdc_lr": "3197"
+    },
+    "0x0F94A0E07BE8d5410a4e88BEE59ffD13cc41A4B8": {
+      "usdc_lr": "2877"
+    },
+    "0x3bDbD4Fe28FDAfeC3c3B5671c423d5DFc55c2C28": {
+      "usdc_lr": "2788"
+    },
+    "0x5bD0AF9d2D488bB9aa780d8461b328A709eDcCf1": {
+      "usdc_lr": "2589"
+    },
+    "0x3EA68F8d482E4a288Ef571E7aB1A3239949C229e": {
+      "usdc_lr": "2545"
+    },
+    "0xcd8666538968f857858A4b652bA5248BbF831823": {
+      "usdc_lr": "2494"
+    },
+    "0xA18057307680Fa27D96BCEFA7FC2eed594A300D1": {
+      "usdc_lr": "2484"
+    },
+    "0x46AF4f0eab7d01C236783A12128fDf023eaE538f": {
+      "usdc_lr": "2126"
+    },
+    "0xcd3b046f73f2F586BC4f7701698E633A5E7aF066": {
+      "usdc_lr": "1991"
+    },
+    "0x700c942fE24b943E026fAcE4c19009D148eBaEBE": {
+      "usdc_lr": "1952"
+    },
+    "0x1Faaf82da8bdaBf245EE2a4bbCF2c3b6FBD9e2BF": {
+      "usdc_lr": "1899"
+    },
+    "0x54455B4944210d6B07267cBB792Ae92916863FE7": {
+      "usdc_lr": "1434"
+    },
+    "0xC722Ca2F6fE102da249A0DBd30Ae6c51C264fd14": {
+      "usdc_lr": "1234"
+    },
+    "0xf9F8451D3da9Df4a19663059Bb2D08b9dDD08eb3": {
+      "usdc_lr": "1148"
+    },
+    "0x2aFe563d1AA6B621eAb4eBEff0aEfd8e76138ecE": {
+      "usdc_lr": "1072"
+    },
+    "0xa6b3C5819bA625923A20bf2B1af20a856942f71f": {
+      "usdc_lr": "1041"
+    },
+    "0xbE27193B35250Fd175C326B85DC6882602279787": {
+      "usdc_lr": "1028"
+    },
+    "0x92E1f95aa5EaCcb6064BE859556256190DC255c6": {
+      "usdc_lr": "977"
+    },
+    "0xE84585bbE50Eb6A5F0d7312Ab1154cFD3EA2F421": {
+      "usdc_lr": "965"
+    },
+    "0xD5E5C251cadC37b8F7aE3D473f817E7E482D8A07": {
+      "usdc_lr": "962"
+    },
+    "0x52F6991B7d12398D50ebB5286fB2b7853A43A22e": {
+      "usdc_lr": "959"
+    },
+    "0xA50C6d29F78Ae02FA80c07b98DB706C2ee89dcFc": {
+      "usdc_lr": "959"
+    },
+    "0xa67aB975a0AE0C0dcf0bd791ff96c9F6a298b7bf": {
+      "usdc_lr": "914"
+    },
+    "0x269A205d4f9fbe8b63C4EC32498bc6051d135cA8": {
+      "usdc_lr": "877"
+    },
+    "0x06e6C70c6320f927A70C061B81691233754B432f": {
+      "usdc_lr": "851"
+    },
+    "0x692a07e43f7C58fbdE82b05Ca6b14782BaAF425A": {
+      "usdc_lr": "793"
+    },
+    "0x2e51D33945802848F9DdA26B00527c7BCeB4db57": {
+      "usdc_lr": "734"
+    },
+    "0x00f7cCBC1C8e23FF475294Ef2EBB6EfF9c1587D7": {
+      "usdc_lr": "729"
+    },
+    "0x876f0b4DA3De3b274637946BE4E124FFB390D0C4": {
+      "usdc_lr": "725"
+    },
+    "0xb49B6d039EC81E869bAbF2654986D8284bee3401": {
+      "usdc_lr": "540"
+    },
+    "0x3aB135aFaAf20259Babf87f4883411bf8d13B8Dc": {
+      "usdc_lr": "520"
+    },
+    "0x5A6104FE1cFE9328535271a46B6f623dc5879C90": {
+      "usdc_lr": "515"
+    },
+    "0xF873a7f77d0DF95e574834dFBDC062B105dDff1f": {
+      "usdc_lr": "484"
+    },
+    "0x9d57a9F8B4Dd0C50f7993115ca17Eaabb04F54B4": {
+      "usdc_lr": "477"
+    },
+    "0xB5e2475BB3253F1F590F5B5d9A9fC792D9dfC758": {
+      "usdc_lr": "460"
+    },
+    "0xcCb5908297E4Bf271f10c1b7a0b9eBFEFDcf876A": {
+      "usdc_lr": "441"
+    },
+    "0x2652A0385848c029515f14b07219ff969E9f96A9": {
+      "usdc_lr": "425"
+    },
+    "0xEf6505ec874AaA26f91f5D1fE83Ff9Dd211F0D56": {
+      "usdc_lr": "395"
+    },
+    "0xfB898A4e7c59c8C7fFaebC9F19976B76BB6804da": {
+      "usdc_lr": "391"
+    },
+    "0xe5FC8F3730b9Ddfaeff05f2c97fa7dD51D9213b6": {
+      "usdc_lr": "363"
+    },
+    "0x4596230ACd3ABa78D5FaF13d9EBf6f130061A3D4": {
+      "usdc_lr": "345"
+    },
+    "0x00ADAD101db40c2b61Cb069A8F7F30e2B99a6B82": {
+      "usdc_lr": "343"
+    },
+    "0x2E8330129ea5c01dA9Ea088f7FA14BaC78748CfA": {
+      "usdc_lr": "342"
+    },
+    "0xD12A4F0A739A49Ad3D606F7a2f7e5f1493f6e7a0": {
+      "usdc_lr": "318"
+    },
+    "0x8D8F4980f446FC93A647F58c6D33AA7383Ca7AE5": {
+      "usdc_lr": "317"
+    },
+    "0xcd55CdBC7ca4f60aC2d3637E727431E7BD83150E": {
+      "usdc_lr": "314"
+    },
+    "0x83a32753d0Fc6eC5Dd5cbfCFdF49b2bA744E0b6C": {
+      "usdc_lr": "305"
+    },
+    "0x68747FE36279f77022646e9332B9769836A3da76": {
+      "usdc_lr": "286"
+    },
+    "0x939ed27b52f326FceD003DE1D2AE2D7BDb71746E": {
+      "usdc_lr": "270"
+    },
+    "0x760A2C5dAe9043B1F96c4C1209977deCD26b9aaB": {
+      "usdc_lr": "267"
+    },
+    "0x4Ba03461fCABAa4B290f2a7b652836cdb18f5Ffd": {
+      "usdc_lr": "267"
+    },
+    "0x46cc85E75631A834422f1DB603B7e025995e3F6c": {
+      "usdc_lr": "265"
+    },
+    "0x09Be4D1f3555660021fcE5b9D1B7A4919eCcFAa1": {
+      "usdc_lr": "260"
+    },
+    "0xD9539D9024fec9A271C72b6847546A5829Efa218": {
+      "usdc_lr": "258"
+    },
+    "0x501b1b9332b2218FC0E9F28E61da5F0838A83d5F": {
+      "usdc_lr": "255"
+    },
+    "0xaeD4F1087A2D5fc6FD4D46DE485C97360C6a6f48": {
+      "usdc_lr": "253"
+    },
+    "0xD8f4c8F5146f6893CAD8A49c9E9292987a1eaa9B": {
+      "usdc_lr": "249"
+    },
+    "0x453581629065E2C16C5b332fBF9395c5Bf0A1A74": {
+      "usdc_lr": "246"
+    },
+    "0xd34Aa5580554D6aFC5Dc9afcd0f63968D5df5122": {
+      "usdc_lr": "231"
+    },
+    "0x7b99B502D6Fd890521e910051b7e697a5a5aC926": {
+      "usdc_lr": "228"
+    },
+    "0x2858a8D37744790De50301BdAAF980dF901554fe": {
+      "usdc_lr": "225"
+    },
+    "0x491b8d3b58E76126483966239120f77F106F18B9": {
+      "usdc_lr": "225"
+    },
+    "0x29e8372B927DAf2BF8CBf44De81f1AFa187b24a8": {
+      "usdc_lr": "220"
+    },
+    "0x53D6b7AB281347C93D9617411E2D983B723bbfB0": {
+      "usdc_lr": "169"
+    },
+    "0xBFD324173596D103E73C3E2cD73acDf768d753b0": {
+      "usdc_lr": "165"
+    },
+    "0xDc8aF175FC603cda1869982D206e78733ad69085": {
+      "usdc_lr": "160"
+    },
+    "0x99587486e802e39347cB3E50C517d504dC87772A": {
+      "usdc_lr": "130"
+    },
+    "0xa0F6Fa10937F65D5A6A3D483A8eB7F52a5d0B344": {
+      "usdc_lr": "116"
+    },
+    "0x432Cd39d7C406869B7baFE91a30998A5Dd1918B8": {
+      "usdc_lr": "110"
+    },
+    "0xAa4a3ccEB578305e56E34A7160154d776ccFaFC4": {
+      "usdc_lr": "95"
+    },
+    "0xc8e335F578E7fCD398ec2c7f4b4c9b9aD1d19802": {
+      "usdc_lr": "70"
+    },
+    "0xd4eA1ee752AbdC81074C54e1074Ff81Fc3730278": {
+      "usdc_lr": "65"
+    },
+    "0x5829A6DE69a33e17d6cf6181811Ffc0f828BF9dB": {
+      "usdc_lr": "55"
+    },
+    "0xD1683efB3d316526EBD75bc3673eed477AD1E240": {
+      "usdc_lr": "16"
+    },
+    "0xc815041f1f8402bC28c37B52635D4550d9f2f23d": {
+      "usdc_lr": "12"
+    },
+    "0xf11a6f14E202ab0e98177BEc0b04c59dA74e074A": {
+      "usdc_lr": "3"
+    },
+    "0x389B603c7b126Ce9C7586edD2BB89eFd560c8858": {
+      "usdc_lr": "3"
+    },
+    "0x5b83c8D917B5A5FbA776adA9804c1300DCe75D10": {
+      "usdc_lr": "1"
+    },
+    "0x9C1AE32c81993146Eb0CB0030F1277a931902419": {
+      "usdc_hr": "182042893770"
+    },
+    "0x3aD13E5ECEc45874F55313B6760f44CeC72BF4ac": {
+      "usdc_hr": "18809136950"
+    },
+    "0x51BC9862AD17023fa88435f51FcaA6E677B2ca97": {
+      "usdc_hr": "14651503330"
+    },
+    "0x41338e279D54DDb142588D025E91714cd6760A51": {
+      "usdc_hr": "14467638190"
+    },
+    "0x2F9fB3Cd8A11B73BC10E4A05b79D759d6B35405a": {
+      "usdc_hr": "14446219400"
+    },
+    "0x2698ea57Dd3831a91E367aA667238E84DA4cB0C1": {
+      "usdc_hr": "5985426290"
+    },
+    "0x83dc37B97AAbBF3cdf0833192507D871BbEbb3E9": {
+      "usdc_hr": "4971362410"
+    },
+    "0xDa41109927AC8fFae1e9fBEeEC40fbEDD2221684": {
+      "usdc_hr": "2975592400"
+    },
+    "0xb4B06eDc410071156881B887bD09222d158dD4ac": {
+      "usdc_hr": "2041843110"
+    },
+    "0xb0dD3df3f4F9B4767e5cC68De3A41c91624bFF76": {
+      "usdc_hr": "1171806260"
+    },
+    "0xd9eb339BEeb9048307B699E74a8640e518F01604": {
+      "usdc_hr": "362215010"
+    },
+    "0x9842f269256066d7531F4B0686563DfE8361ad98": {
+      "usdc_hr": "305175760"
+    },
+    "0xb81Eb60c0e7497B7aAd200E5b50De9d052785bB4": {
+      "usdc_hr": "91564330"
+    },
+    "0x8Cce2310608EEf6A1B20076F723FE07AA62F0D08": {
+      "usdc_hr": "29262310"
+    },
+    "0x01c84ff8c26fd7cf4AD6e1e35428d8d4146cAd14": {
+      "usdc_hr": "14622840"
+    },
+    "0x21dC459fbA0B1Ea037Cd221D35b928Be1C26141a": {
+      "usdc_hr": "2923800"
+    },
+    "0x798fF1e6D7AFd28c333eE6eBe03125d30ec6eF10": {
+      "usdc_hr": "588250"
+    },
+    "0xFA9847f1A5eB0236D40500145135d18DB6C6AD4E": {
+      "usdc_hr": "57910"
+    }
+  }
+}
