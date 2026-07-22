@@ -61,7 +61,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0xD1E9242e075Db4bdd3f3c721D7d5fd4180A94A7e",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-Alpha_USDC_Enhanced-1",
@@ -73,7 +73,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0x951a9f4A2cE19B9DeA6B37e691d076A345b6c0F8",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-Steakhouse_Reservoir_USDC-1",
@@ -97,7 +97,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0x093272C07700d3cA5301C3Bf9B3A392624179E2F",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-Gauntlet_USDC_Frontier-1",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0x9a1D6bd5b8642C41F25e0958129B85f8E1176F3e",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-KPK_USDC_Yield_V2-1",
@@ -121,7 +121,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0xD5cCe260E7a755DDf0Fb9cdF06443d593AaeaA13",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-Steakhouse_3Fx_USDC-1",
@@ -181,7 +181,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho_V2",
       "pool": "0x7ceB0f01Cb7187a2EBED5661eCC4d5701d8F2350",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdc-Yearn_OG_USDC_v2-1",
@@ -217,7 +217,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Fluid",
       "pool": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Syrup-usdc-1",
@@ -241,7 +241,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x777791C4d6DC2CE140D00D2828a7C93503c67777",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Clearstar_High_Yield_USDC-1",
@@ -253,7 +253,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0x9B5E92fd227876b4C07a8c02367E2CB23c639DfA",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdc-Alpha_USDC_Core-1",
@@ -265,7 +265,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Morpho",
       "pool": "0xb0f05E4De970A1aaf77f8C2F823953a367504BA9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",

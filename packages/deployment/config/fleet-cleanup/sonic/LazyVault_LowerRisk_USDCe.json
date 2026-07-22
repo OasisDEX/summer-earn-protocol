@@ -2,7 +2,7 @@
   "network": "sonic",
   "chainId": 146,
   "configType": "prod",
-  "generatedAt": "2026-07-08T14:36:14.720Z",
+  "generatedAt": "2026-07-10T12:37:08.387Z",
   "fleetName": "LazyVault_LowerRisk_USDCe",
   "fleetAddress": "0x507A2D9E87DBD3076e65992049C41270b47964f8",
   "bufferArk": "0x809a0C98fac68a0c4319f3a3E864540C772562af",
@@ -25,7 +25,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "AaveV3",
       "pool": "0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_MEV_Capital-usdce-146",
@@ -37,7 +37,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0x196F3C7443E940911EE2Bb88e019Fd71400349D9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Re7_Labs-usdce-146",
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Euler",
       "pool": "0x3D9e5462A940684073EED7e4a13d19AE0Dcd13bc",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Silo-market_20-usdce-146",
@@ -85,7 +85,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": null,
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "SiloManagedVault-re7labs-usdce-146",
@@ -97,7 +97,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": null,
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "SiloManagedVault-apostro-usdce-146",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": null,
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "SiloManagedVault-greenhouse-usdce-146",
@@ -121,7 +121,7 @@
       "depositCapFormatted": "0 USDC",
       "protocol": "Silo",
       "pool": "0xf6bC16B79c469b94Cdd25F3e2334DD4FEE47A581",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",

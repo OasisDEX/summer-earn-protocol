@@ -25,7 +25,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x47fe8Ab9eE47DD65c24df52324181790b9F47EfC",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-weth-Steakhouse_Prime_Instant_V2-1",
@@ -85,7 +85,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x739d8a60ED4b14E4cB6DCAEAF79d2ec0Ca092237",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-weth-Gauntlet_WETH_Prime_V2-1",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho_V2",
       "pool": "0x5dbf760b4fd0cDdDe0366b33aEb338b2A6d77725",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-weth-Yearn_OG_WETH_V2-1",
@@ -133,7 +133,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho_V2",
       "pool": "0xBb50A5341368751024ddf33385BA8cf61fE65FF9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidLite-weth-1",
@@ -145,7 +145,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Fluid",
       "pool": "0xa0d3707c569ff8c87fa923d3823ec5d81c98be78",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "BufferArk",

@@ -73,7 +73,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Fluid",
       "pool": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Gearbox-weth-1",
@@ -85,7 +85,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Gearbox",
       "pool": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Prime-weth-1",
@@ -97,7 +97,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Euler",
       "pool": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-weth-Gauntlet_WETH_Prime-1",
@@ -121,7 +121,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho",
       "pool": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Origin-weth-1",
@@ -133,7 +133,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Origin",
       "pool": "0x856c4Efb76C1D1AE02e20CEB03A2A6a08b0b8dC3",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Frontier_Puffer-weth-1",
@@ -145,7 +145,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Euler",
       "pool": "0xc2c4aBae84fbb5b7bAAB52301A924b1F986C66bd",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-weth-1",
@@ -157,7 +157,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Fluid",
       "pool": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Gearbox_KPK_WETH_Pool-weth-1",
@@ -169,7 +169,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Gearbox",
       "pool": "0x9396dcbf78fc526bb003665337c5e73b699571ef",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_Steakhouse_Prime_Instant-weth-1",
@@ -181,7 +181,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho_V2",
       "pool": "0xbeef0046fcab1dE47E41fB75BB3dC4Dfc94108E3",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_KPK_ETH_Prime_v2-weth-1",
@@ -193,7 +193,7 @@
       "depositCapFormatted": "0 WETH",
       "protocol": "Morpho_V2",
       "pool": "0xBb50A5341368751024ddf33385BA8cf61fE65FF9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-weth-Steakhouse_Prime_Instant_V2-1",

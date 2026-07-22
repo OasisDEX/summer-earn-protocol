@@ -25,7 +25,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Morpho",
       "pool": "0xA0804346780b4c2e3bE118ac957D1DB82F9d7484",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "AaveV3-usdt-1",
@@ -49,7 +49,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "CompoundV3",
       "pool": "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Fluid-usdt-1",
@@ -61,7 +61,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Fluid",
       "pool": "0x5C20B550819128074FD538Edf79791733ccEdd18",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Gearbox-usdt-1",
@@ -73,7 +73,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Gearbox",
       "pool": "0x05a811275fe9b4de503b3311f51edf6a856d936e",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Prime-usdt-1",
@@ -85,7 +85,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Euler",
       "pool": "0x313603FA690301b0CaeEf8069c065862f9162162",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Euler_Yield-usdt-1",
@@ -97,7 +97,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Euler",
       "pool": "0x7c280DBDEf569e96c7919251bD2B0edF0734C5A8",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdt-Flagship_USDT-1",
@@ -109,7 +109,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Morpho",
       "pool": "0x2C25f6C25770fFEC5959D34B94Bf898865e5D6b1",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoVault-usdt-Steakhouse_USDT-1",
@@ -145,7 +145,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Morpho",
       "pool": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "Spark-usdt-1",
@@ -169,7 +169,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Syrup",
       "pool": "0x356B8d89c1e1239Cbbb9dE4815c39A1474d5BA7D",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "FluidFToken-usdt-1",
@@ -181,7 +181,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Fluid",
       "pool": "0x5C20B550819128074FD538Edf79791733ccEdd18",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "ERC4626-Morpho_V2_Steakhouse_Prime_Instant-usdt-1",
@@ -193,7 +193,7 @@
       "depositCapFormatted": "0 USDT",
       "protocol": "Morpho_V2",
       "pool": "0xbeef003C68896c7D2c3c60d363e8d71a49Ab2bf9",
-      "action": "leave"
+      "action": "removeArk"
     },
     {
       "name": "MorphoV2Vault-usdt-Steakhouse_Prime_Instant-1",
