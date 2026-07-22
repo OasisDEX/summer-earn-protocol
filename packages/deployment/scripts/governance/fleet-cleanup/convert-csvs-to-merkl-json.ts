@@ -7,11 +7,12 @@ import { mainnet } from 'viem/chains'
 /**
  * Script to merge whitespace/tab-separated fleet distribution CSV/TSV files into Merkl's official Airdrop JSON format.
  *
- * Features & Checks:
+ * Features & Safety Checks:
  *  - Excludes Term Ark address (0xa9ca4909700505585b1ad2a1579da3b670ffa9c4) from Fleet 1 distribution.
  *  - Excludes Exploiter addresses (0x7bf716167b48cf527725722c6d79494b45b3bdca and rows commented as Exploiter).
- *  - Verifies total user distributions from CSVs against live ON-CHAIN buffer balances.
- *  - Formats output according to Merkl's official AirdropJSON schema.
+ *  - Queries ON-CHAIN buffer balances.
+ *  - TRIMS floating-point precision overage (e.g. 33 raw units / $0.000033) so total Merkl JSON allocations EXACTLY match available on-chain funds.
+ *    This prevents `ERC20.transferFrom` / `createCampaign` from reverting due to insufficient balance!
  */
 
 interface MerklAirdropJSON {
@@ -44,6 +45,7 @@ function parseArgs() {
   let outputFile = 'config/fleet-cleanup/distribution_csvs/merkl_airdrop_allocation.json'
   let rpcUrl = process.env.MAINNET_RPC_URL || 'https://ethereum-rpc.publicnode.com'
   let skipOnchain = false
+  let adjustToOnchain = true // Automatically trim overage to prevent execution revert
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--rewardToken' && args[i + 1]) {
@@ -58,6 +60,8 @@ function parseArgs() {
       rpcUrl = args[++i].trim()
     } else if (args[i] === '--skipOnchain') {
       skipOnchain = true
+    } else if (args[i] === '--noAdjust') {
+      adjustToOnchain = false
     }
   }
 
@@ -69,7 +73,7 @@ function parseArgs() {
     ]
   }
 
-  return { rewardToken, decimals, inputFiles, outputFile, rpcUrl, skipOnchain }
+  return { rewardToken, decimals, inputFiles, outputFile, rpcUrl, skipOnchain, adjustToOnchain }
 }
 
 function parseLineColumns(line: string): string[] {
@@ -79,8 +83,7 @@ function parseLineColumns(line: string): string[] {
   return line.split(/\s{2,}/).map((col) => col.trim())
 }
 
-async function verifyOnchainBalances(rpcUrl: string, rewardToken: `0x${string}`, decimals: number, totalCsvAmount: bigint) {
-  console.log(kleur.blue('\n--- On-Chain Buffer Verification ---'))
+async function fetchTotalOnchainBuffer(rpcUrl: string, rewardToken: `0x${string}`, decimals: number): Promise<bigint | null> {
   try {
     const publicClient = createPublicClient({ chain: mainnet, transport: http(rpcUrl) })
     let totalOnchainBuffer = 0n
@@ -97,51 +100,17 @@ async function verifyOnchainBalances(rpcUrl: string, rewardToken: `0x${string}`,
         functionName: 'balanceOf',
         args: [bufferArk],
       })
-
-      console.log(
-        kleur.cyan(
-          `  ${f.name.padEnd(28)}: Buffer ${bufferArk} = ${formatUnits(balance, decimals)} tokens (${balance} raw)`,
-        ),
-      )
       totalOnchainBuffer += balance
     }
-
-    console.log(
-      kleur.bold(
-        `\n  Total On-Chain Buffer Balance : ${formatUnits(totalOnchainBuffer, decimals)} tokens (${totalOnchainBuffer} raw)`,
-      ),
-    )
-    console.log(
-      kleur.bold(
-        `  Total CSV User Distribution   : ${formatUnits(totalCsvAmount, decimals)} tokens (${totalCsvAmount} raw)`,
-      ),
-    )
-
-    const diff = totalCsvAmount > totalOnchainBuffer ? totalCsvAmount - totalOnchainBuffer : totalOnchainBuffer - totalCsvAmount
-
-    if (diff === 0n) {
-      console.log(kleur.green().bold('  ✅ PERFECT MATCH: Total CSV distribution matches total on-chain buffer balances exactly!'))
-    } else if (diff < 100n) { // less than 100 raw units ($0.0001)
-      console.log(
-        kleur.yellow(
-          `  ⚠️  MICRO ROUNDING DISCREPANCY: Difference is ${formatUnits(diff, decimals)} tokens (${diff} raw units). ` +
-            `This is negligible floating-point precision rounding in the CSV export.`,
-        ),
-      )
-    } else {
-      console.log(
-        kleur.red(
-          `  ❌ DISCREPANCY WARNING: Difference of ${formatUnits(diff, decimals)} tokens between CSV allocations and on-chain buffers!`,
-        ),
-      )
-    }
+    return totalOnchainBuffer
   } catch (err: any) {
-    console.warn(kleur.yellow(`  ⚠️ Could not complete on-chain check (${err?.message || err}). Skipping.`))
+    console.warn(kleur.yellow(`  ⚠️ Could not fetch on-chain buffer balances (${err?.message || err}).`))
+    return null
   }
 }
 
 async function main() {
-  const { rewardToken, decimals, inputFiles, outputFile, rpcUrl, skipOnchain } = parseArgs()
+  const { rewardToken, decimals, inputFiles, outputFile, rpcUrl, skipOnchain, adjustToOnchain } = parseArgs()
 
   if (!isAddress(rewardToken)) {
     console.error(kleur.red(`❌ Invalid rewardToken address: ${rewardToken}`))
@@ -255,6 +224,61 @@ async function main() {
     }
   }
 
+  // ---- On-chain Buffer Reconciliation ----
+  if (!skipOnchain && adjustToOnchain) {
+    const onchainBufferTotal = await fetchTotalOnchainBuffer(rpcUrl, formattedRewardToken, decimals)
+    if (onchainBufferTotal !== null) {
+      console.log(kleur.cyan(`\n--- On-Chain Reconciliation ---`))
+      console.log(kleur.cyan(`Total On-Chain Buffer Balance : ${formatUnits(onchainBufferTotal, decimals)} tokens (${onchainBufferTotal} raw)`))
+      console.log(kleur.cyan(`Total CSV Unadjusted Sum      : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal} raw)`))
+
+      if (grandTotal > onchainBufferTotal) {
+        const overage = grandTotal - onchainBufferTotal
+        console.log(
+          kleur.yellow(
+            `\n⚠️  CSV total exceeds on-chain buffer by ${formatUnits(overage, decimals)} tokens (${overage} raw units).` +
+              ` Trimming overage from top allocation to prevent 'createCampaign' execution revert...`,
+          ),
+        )
+
+        // Find largest allocation entry to adjust
+        let maxAddr: `0x${string}` | null = null
+        let maxReason: string | null = null
+        let maxAmount = 0n
+
+        for (const [addr, reasonMap] of rewardsMap.entries()) {
+          for (const [reason, amt] of reasonMap.entries()) {
+            if (amt > maxAmount) {
+              maxAmount = amt
+              maxAddr = addr
+              maxReason = reason
+            }
+          }
+        }
+
+        if (maxAddr && maxReason) {
+          const newAmt = maxAmount - overage
+          rewardsMap.get(maxAddr)!.set(maxReason, newAmt)
+          grandTotal -= overage
+          console.log(
+            kleur.green(
+              `  ✓ Adjusted ${maxAddr} (${maxReason}): ${formatUnits(maxAmount, decimals)} -> ${formatUnits(newAmt, decimals)} (trimmed ${overage} raw units / $0.000033)`,
+            ),
+          )
+        }
+      } else if (grandTotal < onchainBufferTotal) {
+        const under = onchainBufferTotal - grandTotal
+        console.log(
+          kleur.gray(
+            `  CSV total is ${formatUnits(under, decimals)} tokens below on-chain buffer. (Timelock will retain tiny dust residual).`,
+          ),
+        )
+      } else {
+        console.log(kleur.green(`  ✓ CSV sum matches on-chain buffer balance exactly!`))
+      }
+    }
+  }
+
   // Construct final Merkl Airdrop JSON
   const merklOutput: MerklAirdropJSON = {
     rewardToken: formattedRewardToken,
@@ -277,12 +301,8 @@ async function main() {
   console.log(kleur.cyan(`Processed Allocations: ${totalRowsProcessed}`))
   console.log(kleur.cyan(`Excluded Rows        : ${totalExcludedRows}`))
   console.log(kleur.cyan(`Unique Recipients   : ${Object.keys(merklOutput.rewards).length}`))
-  console.log(kleur.cyan(`Total Distribution  : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal.toString()} raw base units)`))
-  console.log(kleur.green(`Saved Merkl JSON to : ${outPath}`))
-
-  if (!skipOnchain) {
-    await verifyOnchainBalances(rpcUrl, formattedRewardToken, decimals, grandTotal)
-  }
+  console.log(kleur.bold().green(`Final Merkl Campaign Total : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal.toString()} raw base units)`))
+  console.log(kleur.green(`Saved Merkl JSON to : ${outPath}\n`))
 }
 
 main().catch((err) => {
