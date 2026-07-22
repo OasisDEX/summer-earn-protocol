@@ -294,9 +294,23 @@ async function main() {
     const amount = cfg.amount === 'live' ? totalBufferBalance : BigInt(cfg.amount)
     if (amount === 0n) fail(`${cfg.name}: campaign amount is 0 — nothing to distribute.`)
     if (amount > totalBufferBalance) {
-      fail(
-        `${cfg.name}: pinned amount ${amount} exceeds the combined live buffer balance ` +
-          `${totalBufferBalance} — regenerate after expected inflows land (or lower the amount).`,
+      const timelockBalance = await publicClient.readContract({
+        address: campaignAsset,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [timelock],
+      })
+      if (amount > totalBufferBalance + timelockBalance) {
+        fail(
+          `${cfg.name}: pinned amount ${amount} exceeds combined buffer balance (${totalBufferBalance}) ` +
+            `plus timelock balance (${timelockBalance}) — reduce amount or check funds.`,
+        )
+      }
+      console.log(
+        kleur.yellow(
+          `  ℹ Note: pinned amount ${amount} exceeds swept buffer balance (${totalBufferBalance}) by ` +
+            `${amount - totalBufferBalance} raw units, covered by existing timelock balance (${timelockBalance} raw units).`,
+        ),
       )
     }
     if (!/^0x[0-9a-fA-F]+$/.test(cfg.campaignData) || cfg.campaignData.length < 10) {
