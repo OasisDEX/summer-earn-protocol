@@ -1,4 +1,4 @@
-import { defineTask, runSettled, type MultistepTask, type StepExecutor } from '@halaprix/domino'
+import { defineTask, type MultistepTask, runSettled, type StepExecutor } from '@halaprix/domino'
 import { getAddress } from 'viem'
 
 import { CHAIN_RPC_URLS } from '@/config/chains'
