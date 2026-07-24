@@ -195,45 +195,60 @@ export async function getWrappedSlipstreamTokenAmounts(
     const ids = stakedIds as readonly bigint[]
     if (ids.length === 0) return []
 
-    // Keep only the token ids currently owned by `owner` on the wrapper.
-    const owners = await Promise.all(
-      ids.map((id) =>
-        client
-          .readContract({ address: wrapper, abi: WRAPPER_ABI, functionName: 'ownerOf', args: [id] })
-          .catch(() => null),
+    // Fetch every staked id's wrapper owner and NFPM position in one concurrent
+    // burst (the client's multicall batching folds these into a single request),
+    // then keep only the positions currently owned by `owner`. Positions for ids
+    // we end up discarding cost nothing extra — they ride in the same multicall.
+    const [owners, positions] = await Promise.all([
+      Promise.all(
+        ids.map((id) =>
+          client
+            .readContract({
+              address: wrapper,
+              abi: WRAPPER_ABI,
+              functionName: 'ownerOf',
+              args: [id],
+            })
+            .catch(() => null),
+        ),
       ),
-    )
-    const ownedIds = ids.filter(
-      (_, i) => owners[i] && (owners[i] as string).toLowerCase() === ownerAddress.toLowerCase(),
-    )
-    if (ownedIds.length === 0) return []
+      Promise.all(
+        ids.map((id) =>
+          client
+            .readContract({
+              address: nfpmAddress,
+              abi: NFPM_ABI,
+              functionName: 'positions',
+              args: [id],
+            })
+            .catch(() => null),
+        ),
+      ),
+    ])
 
     const totals = new Map<string, bigint>()
-    await Promise.all(
-      ownedIds.map(async (id) => {
-        const p = (await client.readContract({
-          address: nfpmAddress,
-          abi: NFPM_ABI,
-          functionName: 'positions',
-          args: [id],
-        })) as readonly unknown[]
-        const token0 = getAddress(p[2] as string)
-        const token1 = getAddress(p[3] as string)
-        const tickLower = Number(p[5] as bigint | number)
-        const tickUpper = Number(p[6] as bigint | number)
-        const liquidity = p[7] as bigint
-        if (liquidity === 0n) return
+    ids.forEach((_, i) => {
+      const posOwner = owners[i]
+      const p = positions[i] as readonly unknown[] | null
+      if (!p || !posOwner || (posOwner as string).toLowerCase() !== ownerAddress.toLowerCase()) {
+        return
+      }
+      const token0 = getAddress(p[2] as string)
+      const token1 = getAddress(p[3] as string)
+      const tickLower = Number(p[5] as bigint | number)
+      const tickUpper = Number(p[6] as bigint | number)
+      const liquidity = p[7] as bigint
+      if (liquidity === 0n) return
 
-        const { amount0: a0, amount1: a1 } = getAmountsForLiquidity(
-          sqrtPriceX96,
-          getSqrtRatioAtTick(tickLower),
-          getSqrtRatioAtTick(tickUpper),
-          liquidity,
-        )
-        totals.set(token0, (totals.get(token0) ?? 0n) + a0)
-        totals.set(token1, (totals.get(token1) ?? 0n) + a1)
-      }),
-    )
+      const { amount0: a0, amount1: a1 } = getAmountsForLiquidity(
+        sqrtPriceX96,
+        getSqrtRatioAtTick(tickLower),
+        getSqrtRatioAtTick(tickUpper),
+        liquidity,
+      )
+      totals.set(token0, (totals.get(token0) ?? 0n) + a0)
+      totals.set(token1, (totals.get(token1) ?? 0n) + a1)
+    })
 
     return Array.from(totals.entries())
       .filter(([, amount]) => amount > 0n)

@@ -151,6 +151,10 @@ export function getPublicClient(chainId: number): PublicClient {
   const client = createPublicClient({
     transport: createRpcTransport(rpcUrls),
     chain,
+    // Aggregate same-tick readContract calls into one Multicall3 request —
+    // Promise.all bursts (slipstream ownerOf/positions, ENS reverse lookups)
+    // become a single round-trip instead of one HTTP request per call.
+    batch: { multicall: true },
   })
   publicClientCache[chainId] = client
   return client
