@@ -1,4 +1,4 @@
-import { defineTask, runSettled, type MultistepTask, type StepExecutor } from '@halaprix/domino'
+import { defineTask, type MultistepTask, runSettled, type StepExecutor } from '@halaprix/domino'
 
 import { getHarborCommand, getTipJarInstances } from '@/app/tipjar/lib/tipJarConfig'
 import { ArksOverviewError } from '@/lib/arks-overview'

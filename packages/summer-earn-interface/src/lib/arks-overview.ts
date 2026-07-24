@@ -8,9 +8,9 @@ import {
   buildArkOverviewTask,
   buildFleetArksIndexTask,
   buildFleetSummaryTask,
+  type FleetSummaryReads,
   toArkOverview,
   toFleetSummary,
-  type FleetSummaryReads,
 } from '@/lib/domino/tasks/arks-overview-task'
 import type { ChainId } from '@/types'
 

@@ -1,12 +1,7 @@
 import { runSettled } from '@halaprix/domino'
 
 import { callKey, FAIL, MockStepExecutor } from '../testing/mock-executor'
-import {
-  buildTipJarFleetMetaTask,
-  buildTipJarInstanceTask,
-  buildTipJarPendingTask,
-  getTipjarPayload,
-} from './tipjar-task'
+import { buildTipJarPendingTask, getTipjarPayload } from './tipjar-task'
 
 jest.mock('@/app/tipjar/lib/tipJarConfig', () => ({
   getTipJarInstances: (chainId: string) =>

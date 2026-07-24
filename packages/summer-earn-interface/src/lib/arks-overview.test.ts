@@ -1,7 +1,7 @@
 import {
   computeBufferSharePct,
-  getArkStatus,
   getArksForFleet,
+  getArkStatus,
   getFleetsForChain,
   parseArkDetails,
 } from './arks-overview'

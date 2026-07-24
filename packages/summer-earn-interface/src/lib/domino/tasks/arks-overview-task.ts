@@ -1,12 +1,12 @@
 import { defineTask, type MultistepTask } from '@halaprix/domino'
 
 import {
-  ArksOverviewError,
-  getArkStatus,
-  parseArkDetails,
   type ArkDetails,
   type ArkOverview,
+  ArksOverviewError,
   type FleetSummary,
+  getArkStatus,
+  parseArkDetails,
 } from '@/lib/arks-overview'
 
 type Address = `0x${string}`

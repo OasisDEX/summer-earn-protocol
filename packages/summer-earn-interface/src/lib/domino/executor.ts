@@ -1,4 +1,4 @@
-import { Eip1193Executor, Presets, type BatchOptions, type StepExecutor } from '@halaprix/domino'
+import { type BatchOptions, Eip1193Executor, Presets, type StepExecutor } from '@halaprix/domino'
 import { createPublicClient } from 'viem'
 
 import { CHAIN_RPC_URLS, createRpcTransport, VIEM_CHAIN_ENTITIES } from '@/config/chains'

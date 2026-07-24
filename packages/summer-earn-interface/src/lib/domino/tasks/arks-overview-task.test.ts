@@ -1,16 +1,17 @@
 import { runSettled } from '@halaprix/domino'
 
 import { ArksOverviewError } from '@/lib/arks-overview'
+
 import { callKey, FAIL, MockStepExecutor } from '../testing/mock-executor'
 import {
+  type ArkReads,
   buildActiveFleetsTask,
   buildArkOverviewTask,
   buildFleetArksIndexTask,
   buildFleetSummaryTask,
+  type FleetSummaryReads,
   toArkOverview,
   toFleetSummary,
-  type ArkReads,
-  type FleetSummaryReads,
 } from './arks-overview-task'
 
 const FLEET = '0xF1EE7000000000000000000000000000000000F1' as const

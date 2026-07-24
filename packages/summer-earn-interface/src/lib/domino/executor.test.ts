@@ -1,4 +1,4 @@
-import { DEFAULT_RUN_OPTIONS, createExecutorForChain } from './executor'
+import { createExecutorForChain,DEFAULT_RUN_OPTIONS } from './executor'
 
 describe('executor', () => {
   it('DEFAULT_RUN_OPTIONS spreads Presets.throughput', () => {
