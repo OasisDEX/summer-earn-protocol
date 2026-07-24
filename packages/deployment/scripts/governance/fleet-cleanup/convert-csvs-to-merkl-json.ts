@@ -1,7 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import kleur from 'kleur'
-import { createPublicClient, formatUnits, getAddress, http, isAddress, parseAbi, parseUnits } from 'viem'
+import {
+  createPublicClient,
+  formatUnits,
+  getAddress,
+  http,
+  isAddress,
+  parseAbi,
+  parseUnits,
+} from 'viem'
 import { mainnet } from 'viem/chains'
 
 /**
@@ -27,8 +35,14 @@ const EXCLUDED_ADDRESSES = new Set<string>([
 
 // Target fleets to verify on-chain
 const TARGET_FLEETS = [
-  { name: 'LazyVault_HigherRisk_USDC', address: '0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06' as const },
-  { name: 'LazyVault_LowerRisk_USDC', address: '0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17' as const },
+  {
+    name: 'LazyVault_HigherRisk_USDC',
+    address: '0xE9cDA459bED6dcfb8AC61CD8cE08E2D52370cB06' as const,
+  },
+  {
+    name: 'LazyVault_LowerRisk_USDC',
+    address: '0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17' as const,
+  },
 ]
 
 const fleetAbi = parseAbi([
@@ -66,7 +80,15 @@ function parseArgs() {
   }
 
   if (inputFiles.length === 0) {
-    const baseDir = path.join(__dirname, '..', '..', '..', 'config', 'fleet-cleanup', 'distribution_csvs')
+    const baseDir = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'config',
+      'fleet-cleanup',
+      'distribution_csvs',
+    )
     inputFiles = [
       path.join(baseDir, 'fleet1_allocations.csv'),
       path.join(baseDir, 'fleet2_allocations.csv'),
@@ -83,7 +105,11 @@ function parseLineColumns(line: string): string[] {
   return line.split(/\s{2,}/).map((col) => col.trim())
 }
 
-async function fetchTotalOnchainBuffer(rpcUrl: string, rewardToken: `0x${string}`, decimals: number): Promise<bigint | null> {
+async function fetchTotalOnchainBuffer(
+  rpcUrl: string,
+  rewardToken: `0x${string}`,
+  decimals: number,
+): Promise<bigint | null> {
   try {
     const publicClient = createPublicClient({ chain: mainnet, transport: http(rpcUrl) })
     let totalOnchainBuffer = 0n
@@ -104,13 +130,16 @@ async function fetchTotalOnchainBuffer(rpcUrl: string, rewardToken: `0x${string}
     }
     return totalOnchainBuffer
   } catch (err: any) {
-    console.warn(kleur.yellow(`  ⚠️ Could not fetch on-chain buffer balances (${err?.message || err}).`))
+    console.warn(
+      kleur.yellow(`  ⚠️ Could not fetch on-chain buffer balances (${err?.message || err}).`),
+    )
     return null
   }
 }
 
 async function main() {
-  const { rewardToken, decimals, inputFiles, outputFile, rpcUrl, skipOnchain, adjustToOnchain } = parseArgs()
+  const { rewardToken, decimals, inputFiles, outputFile, rpcUrl, skipOnchain, adjustToOnchain } =
+    parseArgs()
 
   if (!isAddress(rewardToken)) {
     console.error(kleur.red(`❌ Invalid rewardToken address: ${rewardToken}`))
@@ -140,12 +169,15 @@ async function main() {
     const fileReason = fileName.toLowerCase().includes('fleet1')
       ? 'Fleet 1 LR entitlement'
       : fileName.toLowerCase().includes('fleet2')
-      ? 'Fleet 2 HR entitlement'
-      : `Entitlement (${fileName})`
+        ? 'Fleet 2 HR entitlement'
+        : `Entitlement (${fileName})`
 
     console.log(kleur.yellow(`Reading ${absolutePath} (${fileReason})…`))
     const content = fs.readFileSync(absolutePath, 'utf8')
-    const lines = content.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0)
+    const lines = content
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
 
     if (lines.length <= 1) {
       console.warn(kleur.gray(`Skipping empty or header-only file: ${file}`))
@@ -158,7 +190,11 @@ async function main() {
     const commentIdx = header.findIndex((h) => h.includes('comment') || h.includes('reason'))
 
     if (addrIdx === -1 || amountIdx === -1) {
-      console.error(kleur.red(`❌ File ${file} missing required columns (Account ID / Address and Recovered / Amount).`))
+      console.error(
+        kleur.red(
+          `❌ File ${file} missing required columns (Account ID / Address and Recovered / Amount).`,
+        ),
+      )
       process.exit(1)
     }
 
@@ -174,15 +210,23 @@ async function main() {
       if (!rawAddr || !rawAmount) continue
 
       if (!isAddress(rawAddr)) {
-        console.error(kleur.red(`❌ Invalid Ethereum address on line ${i + 1} in ${file}: "${rawAddr}"`))
+        console.error(
+          kleur.red(`❌ Invalid Ethereum address on line ${i + 1} in ${file}: "${rawAddr}"`),
+        )
         process.exit(1)
       }
 
       const lowerAddr = rawAddr.toLowerCase()
 
       // Exclusion rules: Term address or Exploiter comment/address
-      if (EXCLUDED_ADDRESSES.has(lowerAddr) || comment.toLowerCase().includes('exploiter') || comment.toLowerCase().includes('term')) {
-        console.log(kleur.gray(`  Excluded line ${i + 1} (${rawAddr}): ${comment || 'Blacklisted address'}`))
+      if (
+        EXCLUDED_ADDRESSES.has(lowerAddr) ||
+        comment.toLowerCase().includes('exploiter') ||
+        comment.toLowerCase().includes('term')
+      ) {
+        console.log(
+          kleur.gray(`  Excluded line ${i + 1} (${rawAddr}): ${comment || 'Blacklisted address'}`),
+        )
         totalExcludedRows++
         continue
       }
@@ -200,7 +244,9 @@ async function main() {
           parsedAmount = BigInt(cleanAmountStr)
         }
       } catch (err) {
-        console.error(kleur.red(`❌ Invalid amount format on line ${i + 1} in ${file}: "${rawAmount}"`))
+        console.error(
+          kleur.red(`❌ Invalid amount format on line ${i + 1} in ${file}: "${rawAmount}"`),
+        )
         process.exit(1)
       }
 
@@ -229,8 +275,16 @@ async function main() {
     const onchainBufferTotal = await fetchTotalOnchainBuffer(rpcUrl, formattedRewardToken, decimals)
     if (onchainBufferTotal !== null) {
       console.log(kleur.cyan(`\n--- On-Chain Reconciliation ---`))
-      console.log(kleur.cyan(`Total On-Chain Buffer Balance : ${formatUnits(onchainBufferTotal, decimals)} tokens (${onchainBufferTotal} raw)`))
-      console.log(kleur.cyan(`Total CSV Unadjusted Sum      : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal} raw)`))
+      console.log(
+        kleur.cyan(
+          `Total On-Chain Buffer Balance : ${formatUnits(onchainBufferTotal, decimals)} tokens (${onchainBufferTotal} raw)`,
+        ),
+      )
+      console.log(
+        kleur.cyan(
+          `Total CSV Unadjusted Sum      : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal} raw)`,
+        ),
+      )
 
       if (grandTotal > onchainBufferTotal) {
         const overage = grandTotal - onchainBufferTotal
@@ -301,7 +355,13 @@ async function main() {
   console.log(kleur.cyan(`Processed Allocations: ${totalRowsProcessed}`))
   console.log(kleur.cyan(`Excluded Rows        : ${totalExcludedRows}`))
   console.log(kleur.cyan(`Unique Recipients   : ${Object.keys(merklOutput.rewards).length}`))
-  console.log(kleur.bold().green(`Final Merkl Campaign Total : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal.toString()} raw base units)`))
+  console.log(
+    kleur
+      .bold()
+      .green(
+        `Final Merkl Campaign Total : ${formatUnits(grandTotal, decimals)} tokens (${grandTotal.toString()} raw base units)`,
+      ),
+  )
   console.log(kleur.green(`Saved Merkl JSON to : ${outPath}\n`))
 }
 
