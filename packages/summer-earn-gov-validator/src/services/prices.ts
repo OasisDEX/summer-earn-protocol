@@ -14,6 +14,8 @@ const SYMBOL_TO_ID: Record<string, string> = {
   LDO: 'lido-dao',
   LINK: 'chainlink',
   USDS: 'usds',
+  AERO: 'aerodrome-finance',
+  VEAERO: 'aerodrome-finance', // veAERO is locked AERO; valued at the AERO spot price
 }
 
 export interface PriceResponse {

@@ -5,7 +5,8 @@ import { connection } from 'next/server'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DelegatesList } from '@/components/DelegatesList'
 import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
-import { resolveEnsNames } from '@/services/ens'
+import { getCuriaDelegates } from '@/services/curia'
+import { getEnsNamesCached } from '@/services/ens-cached'
 import { getDelegatesCached } from '@/services/subgraph-cached'
 import { Delegate } from '@/types/governance'
 
@@ -33,7 +34,14 @@ async function DelegatesListServer() {
   try {
     const subgraphDelegates = await getDelegatesCached()
     const addresses = subgraphDelegates.map((d) => d.id)
-    const ensMap = await resolveEnsNames(addresses)
+    // Normalize (dedupe + sort) so the ENS cache key is independent of order.
+    // Curia is intentionally NOT wrapped in `use cache`: its DynamoDB layer already
+    // caches for a day, and an in-process cache would pin the empty no-key result
+    // for up to an hour after the CURIA_API_KEY secret is added.
+    const [ensMap, curiaMap] = await Promise.all([
+      getEnsNamesCached([...new Set(addresses.map((a) => a.toLowerCase()))].sort()),
+      getCuriaDelegates(),
+    ])
 
     delegates = subgraphDelegates.map((d) => {
       const address = d.id.toLowerCase()
@@ -50,6 +58,7 @@ async function DelegatesListServer() {
         bio: tallyInfo?.bio || '',
         picture: tallyInfo?.picture || null,
         twitter: tallyInfo?.twitter || '',
+        curia: curiaMap[address],
       }
     })
   } catch (error) {

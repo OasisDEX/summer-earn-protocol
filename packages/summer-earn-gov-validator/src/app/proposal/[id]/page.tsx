@@ -10,6 +10,7 @@ import { ProposalExecutionDetails } from '@/components/ProposalExecutionDetails'
 import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { ProposalVotingInfo } from '@/components/ProposalVotingInfo'
 import { RecentVotes } from '@/components/RecentVotes'
+import { getProposalResourceLinks } from '@/config/proposalLinks'
 import { getEnsNamesCached } from '@/services/ens-cached'
 import { getProposalByIdCached } from '@/services/subgraph-cached'
 import { SupportedNetworks } from '@/services/validation'
@@ -82,6 +83,9 @@ async function ProposalDetailServer({ params }: PageProps) {
         return SupportedNetworks.ARBITRUM
       case 'sonic':
         return SupportedNetworks.SONIC
+      case 'hyperevm':
+      case 'hyperliquid':
+        return SupportedNetworks.HYPERLIQUID
       default:
         return SupportedNetworks.BASE
     }
@@ -149,9 +153,24 @@ async function ProposalDetailServer({ params }: PageProps) {
               <SimulateProposalButton fullProposal={fullProposal} status={proposal.status} />
             </div>
           </div>
-          <h1 className="text-4xl font-extrabold text-on-surface tracking-tighter mb-6">
+          <h1 className="text-4xl font-extrabold text-on-surface tracking-tighter mb-4">
             {proposal.title}
           </h1>
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {getProposalResourceLinks().map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-tight bg-surface-container-low/60 border border-outline/15 text-on-surface-variant hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">{link.icon}</span>
+                {link.label}
+                <span className="material-symbols-outlined text-xs opacity-60">open_in_new</span>
+              </a>
+            ))}
+          </div>
           <div className="text-on-surface-variant leading-relaxed space-y-4">
             <Markdown
               remarkPlugins={[remarkGfm]}

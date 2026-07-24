@@ -12,7 +12,6 @@ export function SideNavBar() {
     { path: '/proposals', label: 'Proposals', icon: 'ballot' },
     { path: '/treasury', label: 'Treasury', icon: 'account_balance_wallet' },
     { path: '/delegates', label: 'Delegates', icon: 'groups' },
-    { path: '/cross-chain', label: 'Cross-Chain', icon: 'swap_calls' },
   ]
 
   return (

@@ -12,7 +12,7 @@ export function BottomNavBar() {
     { id: 'home-proposals', path: '/proposals', label: 'Home', icon: 'home' },
     { id: 'treasury-main', path: '/treasury', label: 'Treasury', icon: 'account_balance' },
     { id: 'vote-proposals', path: '/proposals', label: 'Vote', icon: 'how_to_vote', filled: true },
-    { id: 'cross-chain', path: '/cross-chain', label: 'Bridge', icon: 'hub' },
+    { id: 'delegates', path: '/delegates', label: 'Delegates', icon: 'groups' },
     { id: 'treasury-wallet', path: '/treasury', label: 'Wallet', icon: 'account_balance_wallet' },
   ]
 

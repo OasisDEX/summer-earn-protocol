@@ -7,6 +7,7 @@ import { TREASURY_WALLETS, TreasuryWallet } from '@/config/treasuryWallets'
 
 import { getPrices } from './prices'
 import { getWrappedSlipstreamTokenAmounts } from './slipstream'
+import { getVeAeroLockedAmount, VE_AERO_ESCROW } from './veaero'
 
 export interface TreasuryHolding {
   token: string
@@ -36,6 +37,12 @@ export interface WalletSection {
   key: string
   label: string
   externalUrl?: string
+  safeUrl?: string
+  // Representative wallet address (Base where available) for display/explorer links.
+  address?: string
+  // Full per-chain address map so the view can link to the correct address for the
+  // selected chain (e.g. Sonic/HyperEVM use different timelocks than Base).
+  addresses: Partial<Record<SupportedChainId, string>>
   totalValue: number
   value: string
   holdings: TreasuryHolding[]
@@ -155,6 +162,43 @@ async function scanSlipstreamPositions(
   return holdings
 }
 
+// Value the wallet's veAERO (vote-escrowed AERO) locks at the underlying locked AERO,
+// priced at the AERO spot price. Skips chains without a known VotingEscrow.
+async function scanVeAero(
+  chainId: SupportedChainId,
+  owner: string,
+  prices: PriceMap,
+  wallet: TreasuryWallet,
+): Promise<TreasuryHolding[]> {
+  if (!VE_AERO_ESCROW[chainId]) return []
+
+  const lockedAmount = await getVeAeroLockedAmount(chainId, owner)
+  if (lockedAmount <= 0n) return []
+
+  const config = CHAIN_CONFIG[chainId]
+  const aeroToken = TOKEN_LISTS[chainId].find((t) => t.symbol === 'AERO')
+  const formattedBalance = formatUnits(lockedAmount, aeroToken?.decimals ?? 18)
+  const price = prices['AERO'] || 0
+  const usdValue = Number(formattedBalance) * price
+
+  return [
+    {
+      token: 'Vote-escrowed AERO (locked)',
+      symbol: 'veAERO',
+      chain: config.name,
+      balance: `${Number(formattedBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })} veAERO`,
+      formattedBalance,
+      usdValue,
+      value: usdValue > 0 ? formatUsd(usdValue) : '—',
+      logoURI: aeroToken?.logoURI,
+      chainId,
+      address: VE_AERO_ESCROW[chainId],
+      walletKey: wallet.key,
+      walletLabel: wallet.label,
+    },
+  ]
+}
+
 export async function fetchTreasuryBalances(): Promise<TreasuryData> {
   const supportedChains = Object.keys(CHAIN_CONFIG).map(Number) as SupportedChainId[]
 
@@ -183,11 +227,15 @@ export async function fetchTreasuryBalances(): Promise<TreasuryData> {
           const chainId = Number(chainIdStr) as SupportedChainId
           try {
             const client = getPublicClient(chainId)
-            const [erc20Holdings, slipstreamHoldings] = await Promise.all([
+            const [erc20Holdings, slipstreamHoldings, veAeroHoldings] = await Promise.all([
               scanErc20(client, chainId, address, prices, wallet),
               scanSlipstreamPositions(chainId, address, prices, wallet),
+              scanVeAero(chainId, address, prices, wallet),
             ])
-            return { key: wallet.key, holdings: [...erc20Holdings, ...slipstreamHoldings] }
+            return {
+              key: wallet.key,
+              holdings: [...erc20Holdings, ...slipstreamHoldings, ...veAeroHoldings],
+            }
           } catch (error) {
             console.error(`Error fetching ${wallet.key} on chain ${chainId}:`, error)
             return { key: wallet.key, holdings: [] as TreasuryHolding[] }
@@ -205,10 +253,14 @@ export async function fetchTreasuryBalances(): Promise<TreasuryData> {
         .flatMap((r) => r.holdings)
         .sort((a, b) => b.usdValue - a.usdValue)
       const totalValue = holdings.reduce((sum, h) => sum + h.usdValue, 0)
+      const address = wallet.addresses[8453] ?? Object.values(wallet.addresses)[0]
       return {
         key: wallet.key,
         label: wallet.label,
         externalUrl: wallet.externalUrl,
+        safeUrl: wallet.safeUrl,
+        address,
+        addresses: wallet.addresses,
         totalValue,
         value: formatUsd(totalValue),
         holdings,

@@ -101,6 +101,18 @@ export interface Delegate {
   picture?: string | null
   twitter?: string
   isPrioritized?: boolean
+  // CuriaLab analytics (participation metrics + forum PRS); absent when the Curia
+  // API is unconfigured or has no data for this delegate.
+  curia?: CuriaDelegateStats
+}
+
+export interface CuriaDelegateStats {
+  prsScore: number | null
+  votesCast: number
+  proposalsCount: number
+  recentVotes: number
+  delegatorCount: number
+  percentOfVotingPower: number
 }
 
 export interface SubgraphDelegate {

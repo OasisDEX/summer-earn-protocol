@@ -2,10 +2,28 @@
 
 import { useState } from 'react'
 
+import type { SupportedChainId } from '@/config/constants'
 import type { TreasuryData, TreasuryHolding } from '@/services/treasury'
 
 interface TreasuryViewProps {
   initialData: TreasuryData
+}
+
+// Chain-filter label (lowercased) → chain id, and chain id → block explorer base.
+const CHAIN_NAME_TO_ID: Record<string, SupportedChainId> = {
+  mainnet: 1,
+  base: 8453,
+  arbitrum: 42161,
+  sonic: 146,
+  hyperevm: 999,
+}
+
+const EXPLORER_BASE: Record<number, string> = {
+  1: 'https://etherscan.io/address/',
+  8453: 'https://basescan.org/address/',
+  42161: 'https://arbiscan.io/address/',
+  146: 'https://sonicscan.org/address/',
+  999: 'https://explorer.hyperliquid.xyz/address/',
 }
 
 function HoldingsTable({ holdings }: { holdings: TreasuryHolding[] }) {
@@ -79,10 +97,41 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
   const matchesChain = (holding: TreasuryHolding) =>
     selectedChain === 'all' || holding.chain.toLowerCase() === selectedChain.toLowerCase()
 
-  // Per-wallet sections, each filtered by the selected chain; hide empties.
+  const selectedChainId =
+    selectedChain === 'all' ? undefined : CHAIN_NAME_TO_ID[selectedChain.toLowerCase()]
+
+  // Per-wallet sections, each filtered by the selected chain; hide empties. Totals are
+  // recomputed from the filtered holdings so the header always matches the rows shown.
   const walletSections = initialData.wallets
-    .map((section) => ({ ...section, holdings: section.holdings.filter(matchesChain) }))
+    .map((section) => {
+      const holdings = section.holdings.filter(matchesChain)
+      const totalValue = holdings.reduce((sum, h) => sum + h.usdValue, 0)
+      return { ...section, holdings, totalValue }
+    })
     .filter((section) => section.holdings.length > 0)
+
+  // Each wallet's share of the currently-shown total (consistent with the filter).
+  const grandTotal = walletSections.reduce((sum, w) => sum + w.totalValue, 0)
+  const shareOfTotal = (value: number) => (grandTotal > 0 ? (value / grandTotal) * 100 : 0)
+  const formatUsd = (value: number) =>
+    `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const truncate = (addr: string) => `${addr.slice(0, 6)}…${addr.slice(-4)}`
+
+  // Resolve the address for the selected chain (wallets like the Main Treasury use a
+  // different timelock per chain); fall back to the representative address.
+  const sectionAddress = (section: (typeof walletSections)[number]) =>
+    (selectedChainId && section.addresses?.[selectedChainId]) || section.address
+  const sectionLink = (section: (typeof walletSections)[number]) => {
+    const addr = sectionAddress(section)
+    // A Safe / external link only applies to the representative (cross-chain) address.
+    if (addr === section.address) {
+      if (section.safeUrl) return section.safeUrl
+      if (section.externalUrl) return section.externalUrl
+    }
+    if (!addr) return undefined
+    const explorer = (selectedChainId && EXPLORER_BASE[selectedChainId]) || EXPLORER_BASE[8453]
+    return `${explorer}${addr}`
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto w-full">
@@ -192,7 +241,7 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
 
       {/* Chain Filter */}
       <div className="flex gap-2">
-        {['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic'].map((chain) => (
+        {['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic', 'HyperEVM'].map((chain) => (
           <button
             key={chain}
             onClick={() => setSelectedChain(chain)}
@@ -230,30 +279,43 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
           </div>
         ) : (
           <div className="space-y-8">
-            {walletSections.map((section) => (
-              <div key={section.key} className="space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-lg font-bold text-on-surface">{section.label}</h4>
-                    {section.externalUrl && (
-                      <a
-                        href={section.externalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-on-surface-variant hover:text-primary transition-colors"
-                        title="View account"
-                      >
-                        <span className="material-symbols-outlined text-base align-middle">
-                          open_in_new
-                        </span>
-                      </a>
-                    )}
+            {walletSections.map((section) => {
+              const link = sectionLink(section)
+              const address = sectionAddress(section)
+              const isSafe = link === section.safeUrl
+              return (
+                <div key={section.key} className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <h4 className="text-lg font-bold text-on-surface">{section.label}</h4>
+                      {address && link && (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-primary transition-colors"
+                          title={isSafe ? 'Open in Safe' : 'View account'}
+                        >
+                          {truncate(address)}
+                          <span className="material-symbols-outlined text-sm align-middle">
+                            open_in_new
+                          </span>
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                        {shareOfTotal(section.totalValue).toFixed(1)}%
+                      </span>
+                      <span className="text-lg font-black text-primary">
+                        {formatUsd(section.totalValue)}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-lg font-black text-primary">{section.value}</span>
+                  <HoldingsTable holdings={section.holdings} />
                 </div>
-                <HoldingsTable holdings={section.holdings} />
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
