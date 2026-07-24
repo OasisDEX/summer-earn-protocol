@@ -2,6 +2,7 @@ import { defineTask, type MultistepTask, runSettled, type StepExecutor } from '@
 
 import { getHarborCommand, getTipJarInstances } from '@/app/tipjar/lib/tipJarConfig'
 import { ArksOverviewError } from '@/lib/arks-overview'
+import { erc20AbiHuman, fleetCommanderAbiHuman, tipJarAbiHuman } from '@/lib/domino/abis'
 import { createExecutorForChain, DEFAULT_RUN_OPTIONS } from '@/lib/domino/executor'
 import { buildActiveFleetsTask } from '@/lib/domino/tasks/arks-overview-task'
 import type { ChainId } from '@/types'
@@ -9,25 +10,6 @@ import type { ChainId } from '@/types'
 type Address = `0x${string}`
 
 type RawStream = { recipient: Address; allocation: bigint; lockedUntilEpoch: bigint }
-
-const tipJarAbiHuman = [
-  'function getAllTipStreams() view returns ((address recipient, uint256 allocation, uint256 lockedUntilEpoch)[])',
-  'function getTotalAllocation() view returns (uint256)',
-  'function paused() view returns (bool)',
-] as const
-
-const fleetCommanderAbiHuman = [
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function asset() view returns (address)',
-  'function balanceOf(address) view returns (uint256)',
-  'function convertToAssets(uint256) view returns (uint256)',
-] as const
-
-const erc20AbiHuman = [
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-] as const
 
 export interface TipJarInstanceReads {
   streams: readonly RawStream[] | undefined
@@ -157,6 +139,8 @@ export async function getTipjarPayload(
   chainId: ChainId,
   executor?: StepExecutor,
 ): Promise<TipjarPayload> {
+  // getTipJarInstances returns an empty array for unsupported chainIds.
+  // Note: CHAIN_RPC_URLS validation is handled inside createExecutorForChain.
   const instances = getTipJarInstances(chainId)
   if (instances.length === 0) {
     throw new ArksOverviewError('Unsupported chain or no TipJar deployed', 400)
@@ -195,6 +179,18 @@ export async function getTipjarPayload(
       DEFAULT_RUN_OPTIONS,
     ),
   ])
+
+  // Total RPC outage guard: if every instance read fails completely, fail with 502 instead of returning zeroed defaults
+  const allInstancesFailed = instanceResults.every((res) => {
+    if (res.status === 'rejected') return true
+    const val = res.value as TipJarInstanceReads
+    return (
+      val.streams === undefined && val.totalAllocation === undefined && val.paused === undefined
+    )
+  })
+  if (allInstancesFailed) {
+    throw new ArksOverviewError('Failed to read tipjar data', 502)
+  }
 
   const fleetCount = activeFleets.length
   const payloadInstances = instances.map((inst, ii) => {

@@ -21,5 +21,5 @@ export function createExecutorForChain(chainId: string): StepExecutor {
   // Eip1193Executor falls back to deployless Multicall3 on chains missing
   // from its deployment table (e.g. HyperEVM), so no manual multicall3
   // chain-entity injection is needed.
-  return new Eip1193Executor(client as any)
+  return new Eip1193Executor(client as unknown as ConstructorParameters<typeof Eip1193Executor>[0])
 }

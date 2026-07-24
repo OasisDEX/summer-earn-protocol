@@ -3,27 +3,10 @@ import { getAddress } from 'viem'
 
 import { CHAIN_RPC_URLS } from '@/config/chains'
 import { ArksOverviewError } from '@/lib/arks-overview'
+import { erc20AbiHuman, fleetCommanderAbiHuman } from '@/lib/domino/abis'
 import { createExecutorForChain, DEFAULT_RUN_OPTIONS } from '@/lib/domino/executor'
 
 type Address = `0x${string}`
-
-const fleetCommanderAbiHuman = [
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function asset() view returns (address)',
-  'function totalAssets() view returns (uint256)',
-  'function withdrawableTotalAssets() view returns (uint256)',
-  'function decimals() view returns (uint8)',
-  'function getConfig() view returns ((address bufferArk, uint256 minimumBufferBalance, uint256 depositCap, uint256 maxRebalanceOperations, address stakingRewardsManager))',
-  'function balanceOf(address) view returns (uint256)',
-] as const
-
-const erc20AbiHuman = [
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-  'function balanceOf(address) view returns (uint256)',
-  'function allowance(address,address) view returns (uint256)',
-] as const
 
 export interface FleetDetailReads {
   name: string | undefined

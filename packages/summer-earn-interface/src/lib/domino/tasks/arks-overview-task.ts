@@ -8,51 +8,16 @@ import {
   getArkStatus,
   parseArkDetails,
 } from '@/lib/arks-overview'
+import {
+  arkAbiHuman,
+  arkWithWithdrawalRequestAbiHuman,
+  erc20AbiHuman,
+  fleetCommanderAbiHuman,
+  harborCommandAbiHuman,
+  wisdomTreeArkAbiHuman,
+} from '@/lib/domino/abis'
 
 type Address = `0x${string}`
-
-const harborCommandAbiHuman = [
-  'function getActiveFleetCommanders() view returns (address[])',
-] as const
-
-const fleetCommanderAbiHuman = [
-  'function getActiveArks() view returns (address[])',
-  'function bufferArk() view returns (address)',
-  'function asset() view returns (address)',
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function totalAssets() view returns (uint256)',
-  'function withdrawableTotalAssets() view returns (uint256)',
-  'function getConfig() view returns ((address bufferArk, uint256 minimumBufferBalance, uint256 depositCap, uint256 maxRebalanceOperations, address stakingRewardsManager))',
-] as const
-
-const arkAbiHuman = [
-  'function totalAssets() view returns (uint256)',
-  'function withdrawableTotalAssets() view returns (uint256)',
-  'function name() view returns (string)',
-  'function depositCap() view returns (uint256)',
-  'function maxDepositPercentageOfTVL() view returns (uint256)',
-  'function maxRebalanceInflow() view returns (uint256)',
-  'function maxRebalanceOutflow() view returns (uint256)',
-  'function details() view returns (string)',
-] as const
-
-const arkWithWithdrawalRequestAbiHuman = [
-  'function withdrawalRequestId() view returns (uint256)',
-  'function assetsInWithdrawalQueue() view returns (uint256)',
-  'function isWithdrawalClaimRequired() view returns (bool)',
-] as const
-
-const wisdomTreeArkAbiHuman = [
-  'function pendingDepositAssets() view returns (uint256)',
-  'function sharesToAssets(uint256) view returns (uint256)',
-] as const
-
-const erc20AbiHuman = [
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-  'function balanceOf(address) view returns (uint256)',
-] as const
 
 export interface FleetArksIndexReads {
   activeArks: unknown
