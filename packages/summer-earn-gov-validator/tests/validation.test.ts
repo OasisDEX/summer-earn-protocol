@@ -588,4 +588,3 @@ describe('decodeCalldata for Raft, PAM, and Merkl Distributor', () => {
     expect(decodedAccept?.functionName).toBe('acceptConditions')
   })
 })
-
