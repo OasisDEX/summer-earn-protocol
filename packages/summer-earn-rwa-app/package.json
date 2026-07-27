@@ -19,7 +19,7 @@
     "@reown/appkit-adapter-wagmi": "1.8.19",
     "@tanstack/react-query": "^5.76.1",
     "@wagmi/core": "3.4.0",
-    "next": "16.2.6",
+    "next": "16.2.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sonner": "^2.0.7",
