@@ -17,8 +17,11 @@ import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/ex
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/*
+/**
  * @title SummerGovernorV2
+ * @notice Cross-chain governor (V2) for the Summer protocol using a hub-and-satellite architecture: voting
+ * happens on the hub chain with xSUMR voting power, and finalized proposals can be relayed to satellite
+ * chains via LayerZero for queuing and timed execution.
  * @dev Governance V2 with hub-and-satellite architecture. Voting happens on the hub with xSUMR; finalized proposals
  *      can be sent cross-chain to satellites via LayerZero for queuing and timed execution. Guardianship and proposal
  *      thresholds are enforced; ETH receive is hardened to only accept funds from LayerZero endpoint or timelock.
@@ -37,12 +40,14 @@ contract SummerGovernorV2 is
 
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
+    /// @notice Chain ID of the hub chain on which proposals are created, voted on and executed
     uint32 public immutable HUB_CHAIN_ID;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Address of the ProtocolAccessManager used for guardian checks
     address public immutable ACCESS_MANAGER;
 
     /*//////////////////////////////////////////////////////////////
@@ -466,6 +471,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns the minimum number of votes required for an account to create a proposal
      * @dev Returns the current proposal threshold.
      * @return The current proposal threshold.
      */
@@ -479,6 +485,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns the current lifecycle state of a proposal
      * @dev Returns the state of a proposal.
      * @param proposalId The ID of the proposal.
      * @return The current state of the proposal.
@@ -495,6 +502,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns whether the contract implements the interface defined by the given identifier (ERC-165)
      * @dev Checks if the contract supports an interface.
      * @param interfaceId The interface identifier.
      * @return True if the contract supports the interface, false otherwise.
@@ -556,6 +564,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns whether a proposal must be queued in the timelock before it can be executed
      * @dev Checks if a proposal needs queuing.
      * @param proposalId The ID of the proposal.
      * @return True if the proposal needs queuing, false otherwise.
@@ -572,6 +581,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns a machine-readable description of the clock used for governance timepoints (ERC-6372)
      * @dev Returns the clock mode used by the contract.
      * @return A string describing the clock mode.
      */
@@ -585,6 +595,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns the current timepoint used for governance snapshots (ERC-6372 clock)
      * @dev Returns the current clock value used by the contract.
      * @return The current clock value.
      */
@@ -598,6 +609,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns the number of votes required for a proposal to succeed at a given timepoint
      * @dev Calculates the quorum for a specific timepoint.
      * @param timepoint The timepoint to calculate the quorum for.
      * @return The quorum value.
@@ -614,6 +626,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns the delay, in the units of the governor clock, between proposal creation and the start of voting
      * @dev Returns the current voting delay.
      * @return The current voting delay
      */
@@ -627,6 +640,7 @@ contract SummerGovernorV2 is
     }
 
     /**
+     * @notice Returns the duration, in the units of the governor clock, of the voting window for a proposal
      * @dev Returns the current voting period.
      * @return The current voting period
      */

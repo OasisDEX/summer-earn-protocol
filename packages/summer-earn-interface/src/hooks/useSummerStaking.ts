@@ -445,7 +445,7 @@ export function useSummerStaking(chainId: ChainId) {
       let color = 'bg-green-600'
       // Assumption: thresholds are remaining capacity. <=25% red; <=50% orange; <=75% yellow; else green
       if (cap === BigInt(0)) {
-        color = 'bg-gray-600'
+        color = 'bg-white/10'
       } else if (remaining <= 25) {
         color = 'bg-red-600'
       } else if (remaining <= 50) {

@@ -20,6 +20,7 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     /// @notice The solver who owns this bond
     address public immutable solver;
 
+    /// @notice The address of the factory contract that deployed this bond
     address public immutable factory;
 
     /// @notice The Summer token used for bonding
@@ -33,12 +34,14 @@ contract SolverBond is ReentrancyGuard, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     constructor(address _solver, address _summerToken) {
-        if (_solver == address(0))
+        if (_solver == address(0)) {
             revert SolverBond__InvalidAddress("solver cannot be zero address");
-        if (_summerToken == address(0))
+        }
+        if (_summerToken == address(0)) {
             revert SolverBond__InvalidAddress(
                 "summer token cannot be zero address"
             );
+        }
         solver = _solver;
         summerToken = IERC20(_summerToken);
         factory = msg.sender;
@@ -53,6 +56,7 @@ contract SolverBond is ReentrancyGuard, AccessControl {
         _;
     }
 
+    /// @notice Modifier that restricts access to only the factory contract
     modifier onlyFactory() {
         if (msg.sender != factory) revert SolverBond__UnauthorizedCaller();
         _;
@@ -137,16 +141,30 @@ contract SolverBond is ReentrancyGuard, AccessControl {
                                         EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a solver adds tokens to their bond
+    /// @param solver Address of the solver
+    /// @param amount Amount of tokens added
+    /// @param totalBonded Total amount of tokens now bonded
     event BondAdded(
         address indexed solver,
         uint256 amount,
         uint256 totalBonded
     );
+
+    /// @notice Emitted when a solver removes tokens from their bond
+    /// @param solver Address of the solver
+    /// @param amount Amount of tokens removed
+    /// @param totalBonded Total amount of tokens now bonded
     event BondRemoved(
         address indexed solver,
         uint256 amount,
         uint256 totalBonded
     );
+
+    /// @notice Emitted when the bond is slashed
+    /// @param solver Address of the solver whose bond was slashed
+    /// @param slashAmount Amount of tokens slashed
+    /// @param remainingBond Remaining amount of tokens bonded
     event BondSlashed(
         address indexed solver,
         uint256 slashAmount,
@@ -157,8 +175,16 @@ contract SolverBond is ReentrancyGuard, AccessControl {
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when the caller is not authorized to perform the operation
     error SolverBond__UnauthorizedCaller();
+
+    /// @notice Thrown when the specified token amount is invalid (e.g. zero)
     error SolverBond__InvalidAmount();
+
+    /// @notice Thrown when the solver has an insufficient bond balance for the operation
     error SolverBond__InsufficientBond();
+
+    /// @notice Thrown when an input address parameters is invalid (e.g. zero address)
+    /// @param message Reason describing why the address is invalid
     error SolverBond__InvalidAddress(string message);
 }

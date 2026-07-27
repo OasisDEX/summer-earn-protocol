@@ -101,14 +101,23 @@ contract SummerVestingWalletsEscrow is
         return _vestingFactories.at(index);
     }
 
-    /// @inheritdoc ISummerVestingWalletsEscrow
+    /**
+     * @notice Returns the list of vesting factories the user currently has staked positions with
+     * @param _user The user to query
+     * @return The addresses of the user's staked vesting factories
+     */
     function userStakedVestingFactories(
         address _user
     ) external view override returns (address[] memory) {
         return _userStakedVestingFactoriesBalance[_user].keys();
     }
 
-    /// @inheritdoc ISummerVestingWalletsEscrow
+    /**
+     * @notice Returns the vesting factory at a given index in the user's staked-factory list
+     * @param _user The user to query
+     * @param _index Index into the user's staked vesting factories list
+     * @return The vesting factory address at the given index
+     */
     function getUserStakedVestingFactory(
         address _user,
         uint256 _index
@@ -121,7 +130,11 @@ contract SummerVestingWalletsEscrow is
 
     // ============ EXTERNAL FUNCTIONS - ADMIN ============
 
-    /// @inheritdoc ISummerVestingWalletsEscrow
+    /**
+     * @notice Adds a vesting factory to the governance-controlled allowlist
+     * @dev Only callable by the protocol governor
+     * @param _vestingFactory The vesting factory address to add (must be non-zero and not already present)
+     */
     function addVestingFactory(
         address _vestingFactory
     ) external override onlyGovernor {
@@ -138,7 +151,11 @@ contract SummerVestingWalletsEscrow is
         emit VestingFactoryAdded(_vestingFactory);
     }
 
-    /// @inheritdoc ISummerVestingWalletsEscrow
+    /**
+     * @notice Removes a vesting factory from the governance-controlled allowlist
+     * @dev Only callable by the protocol governor
+     * @param _vestingFactory The vesting factory address to remove (must be non-zero and present)
+     */
     function removeVestingFactory(
         address _vestingFactory
     ) external override onlyGovernor {
@@ -157,7 +174,12 @@ contract SummerVestingWalletsEscrow is
     }
     // ============ EXTERNAL FUNCTIONS - RESCUE ============
 
-    /// @inheritdoc ISummerVestingWalletsEscrow
+    /**
+     * @notice Transfers ownership of a vesting wallet held by the escrow to a new owner (emergency use)
+     * @dev Only callable by the protocol governor
+     * @param _wallet The vesting wallet address whose ownership will be transferred
+     * @param _newOwner The new owner address (must be non-zero)
+     */
     function rescueWallet(
         address _wallet,
         address _newOwner
@@ -169,7 +191,12 @@ contract SummerVestingWalletsEscrow is
         IMinimalVestingWallet(_wallet).transferOwnership(_newOwner);
     }
 
-    /// @inheritdoc ISummerVestingWalletsEscrow
+    /**
+     * @notice Sweeps the escrow's full balance of an arbitrary ERC20 token to a recipient (emergency use)
+     * @dev Only callable by the protocol governor
+     * @param _token The ERC-20 token address to rescue
+     * @param _to The recipient of the rescued tokens
+     */
     function rescueToken(
         address _token,
         address _to

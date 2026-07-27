@@ -144,6 +144,15 @@
         "package.json"
       ],
       "outputs": []
+    },
+    "docs:gen": {
+      "inputs": [
+        "src/**/*.sol",
+        "foundry.toml"
+      ],
+      "outputs": [
+        "docs/generated/**"
+      ]
     }
   },
   "futureFlags": {

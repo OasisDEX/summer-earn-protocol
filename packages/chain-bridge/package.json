@@ -5,7 +5,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "format": "prettier --check \"**/*.sol\" --no-error-on-unmatched-pattern",
-    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern"
+    "format:fix": "prettier --write \"**/*.sol\" --no-error-on-unmatched-pattern",
+    "docs:gen": "forge doc"
   },
   "dependencies": {
     "@layerzerolabs/toolbox-foundry": "0.1.12",

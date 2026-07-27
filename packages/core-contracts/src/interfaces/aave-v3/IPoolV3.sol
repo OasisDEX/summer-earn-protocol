@@ -4,9 +4,11 @@ pragma solidity ^0.8.15;
 import {DataTypes} from "./DataTypes.sol";
 import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
 
+/// @title IPoolV3
+/// @notice Minimal interface for the Aave V3 Pool (supply/withdraw and reserve views)
 interface IPoolV3 {
     /**
-     * @dev Emitted on supply()
+     * @notice Emitted on supply()
      * @param reserve The address of the underlying asset of the reserve
      * @param user The address initiating the supply
      * @param onBehalfOf The beneficiary of the supply, receiving the aTokens

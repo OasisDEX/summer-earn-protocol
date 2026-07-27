@@ -1,6 +1,7 @@
 # Full reference https://github.com/foundry-rs/foundry/tree/master/crates/config
 
 [profile.default]
+extra_output = ["devdoc", "userdoc"]
 src = "src"
 out = "out"
 libs = ["lib","node_modules"]
@@ -49,3 +50,9 @@ fs_permissions = [
   optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
   polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
   sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
+
+[doc]
+out = "docs/generated"
+title = "Summer Dutch Auction"
+repository = "https://github.com/OasisDEX/summer-earn-protocol"
+ignore = ["**/mocks/**", "**/test/**"]

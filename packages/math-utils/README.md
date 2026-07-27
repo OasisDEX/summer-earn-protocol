@@ -1,107 +1,63 @@
-Here's a README for the MathUtils library:
-
 # MathUtils Library
 
-The MathUtils library provides advanced mathematical operations for Solidity smart contracts, with a
-focus on high-precision calculations.
+`@summerfi/math-utils` is a Solidity library package providing fixed-point exponentiation for use in
+other Summer.fi Solidity packages. The single contract `contracts/MathUtils.sol` exposes `rpow`, a
+square-and-multiply algorithm (derived from MakerDAO's Pot.sol) used for compound-interest
+calculations.
 
-## Table of Contents
+## Key contract
 
-- [MathUtils Library](#mathutils-library)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Functions](#functions)
-    - [rpow](#rpow)
-  - [Usage](#usage)
-  - [Security Considerations](#security-considerations)
-  - [Gas Optimization](#gas-optimization)
-  - [Testing](#testing)
-  - [Contributing](#contributing)
-  - [License](#license)
+**`contracts/MathUtils.sol`** — `library MathUtils`
 
-## Overview
+- `rpow(Percentage wrappedX, uint256 n, Percentage wrappedBase) internal pure returns (Percentage)`
+  — typed overload that accepts and returns `Percentage`-wrapped values.
+- `rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256)` — raw overload for
+  unwrapped values; contains the inline-assembly square-and-multiply loop and reverts on overflow.
+  The `Percentage` overload delegates to this one (no direct assembly in the wrapper).
 
-The MathUtils library is designed to perform complex mathematical operations that are not natively
-available in Solidity. It currently includes an optimized implementation of exponentiation with a
-fractional base and integer exponent, which is particularly useful for financial calculations
-involving compound interest or any scenario requiring precise power operations.
+Depends on `@summerfi/percentage-solidity` for the `Percentage` type (see `remappings.txt`).
+`forge-std` is resolved through `@summerfi/dependencies`.
 
-## Functions
+## Build and test
 
-### rpow
-
-```solidity
-function rpow(
-    Percentage wrappedX,
-    uint256 n,
-    Percentage wrappedBase
-) internal pure returns (Percentage z)
+```bash
+# from the package root
+pnpm build          # forge build --quiet
+pnpm test           # forge test
+pnpm test:coverage  # forge coverage
+pnpm docs:gen       # forge doc  (output: docs/generated/)
+pnpm format:fix     # prettier --write "**/*.sol"
 ```
 
-Calculates `x^n` with a precision of `base` (typically 1e18).
+## Cross-package connections
 
-- `wrappedX`: The base number wrapped as a `Percentage`
-- `n`: The exponent (integer)
-- `wrappedBase`: The precision factor (typically 1e18) wrapped as a `Percentage`
-- Returns: The result of `x^n`, representing `x^n * base` wrapped as a `Percentage`
+**Consumes:**
 
-This function uses an optimized assembly implementation for efficiency. It is equivalent to
-`exp(ln(rate) * secondsSince)` and is derived from a similar function in MakerDAO's Pot.sol
-contract.
+- `@summerfi/percentage-solidity` — provides the `Percentage` value type imported in
+  `contracts/MathUtils.sol`.
+- `@summerfi/dependencies` — supplies `forge-std` at the path used in `remappings.txt`.
 
-## Usage
+**Consumed by** (verified via `remappings.txt` in each package):
 
-To use the MathUtils library in your Solidity contract:
+- `packages/core-contracts`
+- `packages/gov-contracts`
+- `packages/deployment`
+- `packages/intent-system`
 
-1. Import the library:
-
-```solidity
-import { MathUtils } from 'path/to/MathUtils.sol';
-import { Percentage, toPercentage } from '@summerfi/percentage-solidity/contracts/Percentage.sol';
-```
-
-2. Use the library functions:
+All four packages declare the remapping
+`@summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/`. Import path to use:
 
 ```solidity
-contract MyContract {
-  using MathUtils for Percentage;
-
-  function calculateCompoundInterest(
-    uint256 principal,
-    uint256 rate,
-    uint256 time
-  ) public pure returns (uint256) {
-    Percentage wrappedRate = toPercentage(rate);
-    Percentage wrappedBase = toPercentage(1e18);
-    Percentage result = MathUtils.rpow(wrappedRate, time, wrappedBase);
-    return (principal * Percentage.unwrap(result)) / 1e18;
-  }
-}
+import { MathUtils } from '@summerfi/math-utils/contracts/MathUtils.sol';
 ```
 
-## Security Considerations
+**Gotchas:**
 
-- The `rpow` function includes multiple checks to prevent overflow and ensure the validity of the
-  calculations. However, it's important to use appropriate input values to avoid unexpected results.
-- The function will revert if any intermediate calculation overflows, providing a safeguard against
-  invalid results.
+- The `remappings.txt` files in consuming packages must be updated manually whenever this package
+  moves or renames `contracts/MathUtils.sol`; there is no automated sync.
+- License is `BUSL-1.1`, not MIT.
 
-## Gas Optimization
+## Documentation
 
-The `rpow` function uses inline assembly for optimal gas efficiency. This implementation is
-significantly more gas-efficient than naive Solidity implementations of power functions.
-
-## Testing
-
-Thorough testing of this library is crucial due to its complex nature and use of assembly. Ensure to
-test with a wide range of inputs, including edge cases, to verify its correctness and robustness.
-
-## Contributing
-
-Contributions to improve the MathUtils library are welcome. Please ensure that any changes are
-thoroughly tested and do not compromise the security or efficiency of the existing implementation.
-
-## License
-
-This library is released under the MIT License. See the SPDX-License-Identifier at the top of the
-source file for details.
+GitBook reference: [Math Library / MathUtils](../../gitbook/contracts/libraries/math/math-utils.md)
+(relative path within the monorepo; published path mirrors `gitbook/SUMMARY.md`).

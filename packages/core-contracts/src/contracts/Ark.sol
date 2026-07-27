@@ -123,6 +123,9 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         emit ArkSwept(sweptTokens, sweptAmounts);
     }
 
+    /// @notice Toggles a Merkl operator that may claim Merkl rewards on behalf of this Ark
+    /// @dev Callable only by the keeper; forwards to the Merkl distributor's toggleOperator
+    /// @param operator The operator address to toggle
     function whitelistMerklOperator(address operator) external onlyKeeper {
         MERKL_DISTRIBUTOR.toggleOperator(address(this), operator);
     }
@@ -159,6 +162,10 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     }
 
     /// @inheritdoc IArk
+    /// @param amount The amount of assets to move
+    /// @param receiverArk The Ark that receives the moved assets
+    /// @param boardData Additional data forwarded to the receiving Ark's board operation
+    /// @param disembarkData Additional data forwarded to this Ark's disembark operation
     function move(
         uint256 amount,
         address receiverArk,

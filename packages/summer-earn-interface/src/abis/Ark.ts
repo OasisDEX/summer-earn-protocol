@@ -47,4 +47,11 @@ export const arkAbi = [
     outputs: [{ type: 'uint256', name: '' }],
     stateMutability: 'view',
   },
+  {
+    type: 'function',
+    name: 'details',
+    inputs: [],
+    outputs: [{ type: 'string', name: '' }],
+    stateMutability: 'view',
+  },
 ] as const

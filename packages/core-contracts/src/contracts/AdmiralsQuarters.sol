@@ -79,6 +79,7 @@ contract AdmiralsQuarters is
     address public immutable NATIVE_PSEUDO_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable WRAPPED_NATIVE;
+    /// @notice The Merkl distributor contract used to claim Merkl rewards
     address public immutable MERKL_DISTRIBUTOR =
         0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
     address public constant PERMIT2 =
@@ -363,6 +364,11 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
+    /// @param fromToken The token being sold
+    /// @param toToken The token being bought
+    /// @param assets The amount of `fromToken` to swap
+    /// @param minTokensReceived The minimum acceptable amount of `toToken` to receive
+    /// @param swapCalldata The encoded 1inch router calldata performing the swap
     function swap(
         IERC20 fromToken,
         IERC20 toToken,
@@ -477,6 +483,7 @@ contract AdmiralsQuarters is
         }
     }
 
+    /// @notice Reverts unless `fleetCommander` is an active FleetCommander registered in HarborCommand
     function _validateFleetCommander(address fleetCommander) internal view {
         if (
             !IHarborCommand(harborCommand()).activeFleetCommanders(
@@ -487,14 +494,17 @@ contract AdmiralsQuarters is
         }
     }
 
+    /// @notice Reverts when the token address is the zero address
     function _validateToken(IERC20 token) internal pure {
         if (address(token) == address(0)) revert InvalidToken();
     }
 
+    /// @notice Reverts when the amount is zero
     function _validateAmount(uint256 amount) internal pure {
         if (amount == 0) revert ZeroAmount();
     }
 
+    /// @notice Reverts when the supplied amount does not match the native value sent or exceeds the balance
     function _validateNativeAmount(
         uint256 amount,
         uint256 msgValue
@@ -607,6 +617,8 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
+    /// @param cToken The Compound cToken whose underlying position is imported
+    /// @param assets The amount of underlying assets to move; 0 imports the caller's full balance
     function moveFromCompoundToAdmiralsQuarters(
         address cToken,
         uint256 assets
@@ -624,6 +636,8 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
+    /// @param aToken The Aave aToken whose underlying position is imported
+    /// @param assets The amount of underlying assets to move; 0 imports the caller's full balance
     function moveFromAaveToAdmiralsQuarters(
         address aToken,
         uint256 assets

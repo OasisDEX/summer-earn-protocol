@@ -106,6 +106,29 @@ module "rwa_app" {
   tags                  = local.common_tags
 }
 
+# Static export (no server runtime): the inspector only renders committed
+# data/*.json snapshots, so it deploys as a plain WEB app built with
+# `pnpm run build:static` (see packages/institution-inspector/scripts/build-static.mjs).
+module "institution_inspector" {
+  source       = "./modules/amplify_app"
+  app_name     = "institution-inspector"
+  repository   = var.github_repository
+  github_token = var.github_token
+  package_root = "packages/institution-inspector"
+  build_filter = "institution-inspector"
+
+  platform                 = "WEB"
+  framework                = "Next.js - SSG"
+  build_command            = "pnpm run build:static"
+  artifacts_base_directory = "out"
+  build_compute_type       = "STANDARD_8GB"
+
+  # No server runtime -> no SSM secrets and none of the shared SSR app env vars.
+  environment_variables = {}
+  secrets               = {}
+  tags                  = local.common_tags
+}
+
 module "gov_alert_bot" {
   source     = "./modules/ecs_worker"
   app_name   = "summer-earn-gov-alert-bot"

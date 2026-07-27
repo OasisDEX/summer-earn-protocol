@@ -9,8 +9,11 @@ import {IGaugeHookReceiver} from "../../interfaces/silo/IGaugeHookReceiver.sol";
 import {ISiloVaultIncentivesModule} from "../../interfaces/silo/ISiloVaultIncentivesModule.sol";
 import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.sol";
 
+/// @notice Thrown when the supplied Silo vault address is the zero address
 error InvalidSiloAddress();
+/// @notice Thrown when the supplied Silo incentives controller address is the zero address
 error InvalidIncentivesControllerAddress();
+/// @notice Thrown when the resolved gauge (hook receiver) address is the zero address
 error InvalidGaugeAddress();
 
 /**

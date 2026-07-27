@@ -2,6 +2,7 @@
 
 import { CHAIN_NAMES } from '../config/chains'
 import { ChainId } from '../types'
+import { selectBase } from './ui'
 
 interface ChainSelectorProps {
   selectedChain: ChainId
@@ -12,7 +13,7 @@ interface ChainSelectorProps {
 export function ChainSelector({ selectedChain, onChange, readOnly = false }: ChainSelectorProps) {
   return (
     <div className="flex flex-col space-y-2">
-      <label htmlFor="chain-select" className="text-sm font-medium text-white">
+      <label htmlFor="chain-select" className="text-sm font-medium text-on-surface">
         Select Chain
       </label>
       <select
@@ -20,9 +21,7 @@ export function ChainSelector({ selectedChain, onChange, readOnly = false }: Cha
         value={selectedChain}
         onChange={(e) => onChange(e.target.value as ChainId)}
         disabled={readOnly}
-        className={`px-3 py-2 rounded-lg border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white ${
-          readOnly ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-800'
-        }`}
+        className={selectBase}
       >
         {Object.entries(CHAIN_NAMES).map(([id, name]) => (
           <option key={id} value={id}>

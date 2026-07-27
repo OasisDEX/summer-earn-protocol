@@ -4,7 +4,11 @@ pragma solidity 0.8.28;
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
+/// @title SummerTimelockController
+/// @notice Timelock controller for Summer governance that adds guardian-aware cancellation and special
+/// handling for guardian-expiry operations on top of OpenZeppelin's TimelockController.
 contract SummerTimelockController is TimelockController {
+    /// @notice The ProtocolAccessManager used to resolve governor and guardian roles
     IProtocolAccessManager public immutable accessManager;
 
     // Add mapping to track guardian expiry operations
@@ -21,6 +25,7 @@ contract SummerTimelockController is TimelockController {
     }
 
     /**
+     * @notice Cancels a scheduled timelock operation, enforcing guardian-aware authorization rules
      * @dev Override of the TimelockController's cancel function to support guardian-based cancellation
      * with special handling for guardian expiry proposals.
      *
@@ -112,7 +117,16 @@ contract SummerTimelockController is TimelockController {
             accessManager.isActiveGuardian(account);
     }
 
-    // Override schedule to track guardian expiry operations
+    /**
+     * @notice Schedules a single operation, flagging it if it sets a guardian expiration
+     * @dev Override schedule to track guardian expiry operations. Callable only by PROPOSER_ROLE.
+     * @param target The address the operation will call
+     * @param value The native token value to send with the call
+     * @param data The calldata of the operation
+     * @param predecessor The id of a predecessor operation that must execute first (or zero)
+     * @param salt A salt to disambiguate otherwise-identical operations
+     * @param delay The delay, in seconds, before the operation becomes executable
+     */
     function schedule(
         address target,
         uint256 value,
@@ -134,7 +148,16 @@ contract SummerTimelockController is TimelockController {
         super.schedule(target, value, data, predecessor, salt, delay);
     }
 
-    // Override scheduleBatch to track guardian expiry operations
+    /**
+     * @notice Schedules a batch of operations, flagging the batch if any payload sets a guardian expiration
+     * @dev Override scheduleBatch to track guardian expiry operations. Callable only by PROPOSER_ROLE.
+     * @param targets The addresses each operation will call
+     * @param values The native token values to send with each call
+     * @param payloads The calldata for each operation
+     * @param predecessor The id of a predecessor operation that must execute first (or zero)
+     * @param salt A salt to disambiguate otherwise-identical batches
+     * @param delay The delay, in seconds, before the batch becomes executable
+     */
     function scheduleBatch(
         address[] calldata targets,
         uint256[] calldata values,

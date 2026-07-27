@@ -99,3 +99,45 @@ dataSources:
             kind: polling
             every: {{interval-handler-block-interval }}    
       file: ./src/mapping.ts
+  {{#franklin-data-sources}}
+  - kind: ethereum/contract
+    name: BenjiTransferAgent
+    network: {{network}}
+    source:
+      abi: TransferAgentModule
+      address: "{{benji-transfer-agent-address}}"
+      startBlock: {{benji-transfer-agent-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.8
+      language: wasm/assemblyscript
+      entities:
+        - VaultState
+      abis:
+        - name: TransferAgentModule
+          file: ./abis/franklin/TransferAgentModule.json
+      eventHandlers:
+        - event: DividendDistributed(indexed address,indexed uint256,int256,uint256,uint256,uint256,uint256,bool)
+          handler: handleDividendDistributed
+      file: ./src/franklinMapping.ts
+  - kind: ethereum/contract
+    name: IBenjiTransferAgent
+    network: {{network}}
+    source:
+      abi: TransferAgentModule
+      address: "{{ibenji-transfer-agent-address}}"
+      startBlock: {{ibenji-transfer-agent-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.8
+      language: wasm/assemblyscript
+      entities:
+        - VaultState
+      abis:
+        - name: TransferAgentModule
+          file: ./abis/franklin/TransferAgentModule.json
+      eventHandlers:
+        - event: DividendDistributed(indexed address,indexed uint256,int256,uint256,uint256,uint256,uint256,bool)
+          handler: handleDividendDistributed
+      file: ./src/franklinMapping.ts
+  {{/franklin-data-sources}}

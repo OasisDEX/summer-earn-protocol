@@ -21,6 +21,7 @@ import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { SparkProduct } from '../products/SparkProduct'
 import { SecuritizeDailyAccrualProduct } from '../products/SecuritizeDailyAccrualProduct'
 import { SecuritizePriceFeedProduct } from '../products/SecuritizePriceFeedProduct'
+import { FranklinDividendProduct } from '../products/FranklinDividendProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
 /**
@@ -919,6 +920,25 @@ class ProtocolConfig {
           BigInt.fromI32(25029442),
           'Securitize',
           Address.fromString('0x5cC480aeCAd8F52ebd25b9B427737e401E47e8B0'), // VBILL daily-accrual feed
+        ),
+      ]),
+      // Franklin Templeton BENJI / iBENJI money-market funds. Yield signal is the `rate` param
+      // of TransferAgentModule's DividendDistributed event (src/franklinMapping.ts writes it into
+      // VaultState keyed by the module address); fund token address is used as the pool address.
+      new Protocol('FranklinTempleton', [
+        new FranklinDividendProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x3DDc84940Ab509C11B20B76B466933f40b750dc9'), // BENJI fund token
+          BigInt.fromI32(20500000),
+          'FranklinTempleton',
+          Address.fromString('0x8C8Bfc3151C2161a4baD77268e246A08e5D9c666'), // BENJI TransferAgentModule
+        ),
+        new FranklinDividendProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x90276e9d4A023b5229E0C2e9D4b2a83fe3A2b48c'), // iBENJI fund token
+          BigInt.fromI32(22000000),
+          'FranklinTempleton',
+          Address.fromString('0xaB266e4fa5D088cC440433C3EA1e066fD710a0a5'), // iBENJI TransferAgentModule
         ),
       ]),
     ]

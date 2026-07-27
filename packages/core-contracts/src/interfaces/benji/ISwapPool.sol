@@ -48,6 +48,10 @@ interface ISwapPool {
     /**
      * @notice Whether `trader` may swap the `tokenA`/`tokenB` pair (pair authorized and, if the pair
      *         enforces trader authorization, the trader is on the allow-list).
+     * @param trader The trader to check
+     * @param tokenA One token of the pair
+     * @param tokenB The other token of the pair
+     * @return True if the trader is allowed to swap the pair
      */
     function isTraderAllowed(
         address trader,
@@ -58,11 +62,16 @@ interface ISwapPool {
     /**
      * @notice Whether `token` is flagged unsupported (all swaps involving it revert). An
      *         owner-mutable kill-switch independent of pair authorization.
+     * @param token The token to check
+     * @return True if the token is flagged unsupported
      */
     function unsupportedTokens(address token) external view returns (bool);
 
     /**
      * @notice Whether the `tokenA`/`tokenB` pair is authorized for swapping.
+     * @param tokenA One token of the pair
+     * @param tokenB The other token of the pair
+     * @return True if the pair is authorized
      */
     function isTokenPairAuthorized(
         address tokenA,

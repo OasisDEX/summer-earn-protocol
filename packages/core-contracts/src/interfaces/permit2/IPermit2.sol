@@ -3,10 +3,16 @@ pragma solidity >=0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/// @title IEIP712
+/// @notice Exposes the EIP-712 domain separator used for signature verification
 interface IEIP712 {
+    /// @notice Returns the EIP-712 domain separator for the contract
+    /// @return The domain separator
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
 
+/// @title IAllowanceTransfer
+/// @notice Handles ERC20 allowance-based transfers via Permit2
 interface IAllowanceTransfer is IEIP712 {
     /// @notice Thrown when an allowance on a token has expired.
     /// @param deadline The timestamp at which the allowed amount is no longer valid
@@ -117,6 +123,12 @@ interface IAllowanceTransfer is IEIP712 {
     /// @notice A mapping from owner address to token address to spender address to PackedAllowance struct, which contains details and conditions of the approval.
     /// @notice The mapping is indexed in the above order see: allowance[ownerAddress][tokenAddress][spenderAddress]
     /// @dev The packed slot holds the allowed amount, expiration at which the allowed amount is no longer valid, and current nonce thats updated on any signature based approvals.
+    /// @param user The owner of the tokens
+    /// @param token The token the allowance applies to
+    /// @param spender The address permitted to spend
+    /// @return amount The currently allowed amount
+    /// @return expiration The timestamp at which the allowance expires
+    /// @return nonce The current nonce for this owner/token/spender
     function allowance(
         address user,
         address token,
@@ -332,6 +344,7 @@ interface ISignatureTransfer is IEIP712 {
     function invalidateUnorderedNonces(uint256 wordPos, uint256 mask) external;
 }
 
+/// @title IPermit2
 /// @notice Permit2 handles signature-based transfers in SignatureTransfer and allowance-based transfers in AllowanceTransfer.
 /// @dev Users must approve Permit2 before calling any of the transfer functions.
 interface IPermit2 is ISignatureTransfer, IAllowanceTransfer {

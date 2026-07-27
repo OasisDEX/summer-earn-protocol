@@ -1,0 +1,54 @@
+{
+  "group": "mono:misc",
+  "sourceRepo": "/home/halaprix/Projects/summerfi-monorepo",
+  "docs": [
+    {
+      "doc": "README.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 24,
+      "staleClaims": [
+        {
+          "claim": "Apps section lists summerfi-api as the app",
+          "currentTruth": "summerfi-api is a top-level API/functions directory, while the current app workspaces live under apps/ (earn-protocol, earn-protocol-landing-page, earn-protocol-institutions).",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/README.md:7-10; /home/halaprix/Projects/summerfi-monorepo/apps/; /home/halaprix/Projects/summerfi-monorepo/package.json:4-8"
+        },
+        {
+          "claim": "Packages section lists sdk, eslint-config-custom, and tsconfig",
+          "currentTruth": "The repo now has many packages and SDK workspaces. The eslint and TypeScript config packages are named packages/eslint-config and packages/typescript-config, not eslint-config-custom and tsconfig.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/README.md:12-17; /home/halaprix/Projects/summerfi-monorepo/packages/eslint-config/package.json; /home/halaprix/Projects/summerfi-monorepo/packages/typescript-config/package.json; /home/halaprix/Projects/summerfi-monorepo/sdk/"
+        }
+      ],
+      "unverifiable": [
+        "Codecov badge status and external Turborepo documentation links were not queried."
+      ],
+      "notes": "The documented root commands pnpm i, pnpm build, and pnpm dev remain valid. The submodule guidance is directionally plausible because root package.json still has armada:install/generate scripts, but the structure section is stale for the current repo layout."
+    },
+    {
+      "doc": "misc README inventory",
+      "verdict": "partially-stale",
+      "claimsChecked": 28,
+      "staleClaims": [
+        {
+          "claim": "packages/eslint-config/README.md identifies the package correctly",
+          "currentTruth": "The README heading is @turbo/eslint-config, but the current package is @summerfi/eslint-config.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/packages/eslint-config/README.md:1-3; /home/halaprix/Projects/summerfi-monorepo/packages/eslint-config/package.json:2"
+        },
+        {
+          "claim": "packages/hardhat-utils/README.md links to contracts/core/hardhat.config.ts",
+          "currentTruth": "The referenced contracts/core and contracts/hedging-vault workspaces are not present at the checked repo root. Current hardhat-utils consumers include packages/core-contracts, packages/contracts-utils, packages/deployment-utils, and packages/deployment-configs.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/packages/hardhat-utils/README.md:1-12; /home/halaprix/Projects/summerfi-monorepo/packages/core-contracts/package.json; /home/halaprix/Projects/summerfi-monorepo/packages/deployment-utils/package.json"
+        },
+        {
+          "claim": "Top-level package READMEs are substantive",
+          "currentTruth": "Several checked package READMEs are explicit stubs with only 'TBD': summer-beach-club-db, summer-institutions-db, and summer-protocol-db.",
+          "evidence": "/home/halaprix/Projects/summerfi-monorepo/packages/summer-beach-club-db/README.md:1; /home/halaprix/Projects/summerfi-monorepo/packages/summer-institutions-db/README.md:1; /home/halaprix/Projects/summerfi-monorepo/packages/summer-protocol-db/README.md:1"
+        }
+      ],
+      "unverifiable": [
+        "External API route behavior was not exercised; README claims were checked against repository package/file structure only."
+      ],
+      "notes": "Other non-bundle READMEs are substantive enough to keep for later detailed checks: summer-events-subgraph, background job rewards, external campaign/protocol APIs, sdk-router-function, summerfi-api requests, and get-rates-function. Generated docs under docs/generated/sdk were excluded from stale prose assessment because they are generated artifacts."
+    }
+  ],
+  "summary": "Audited miscellaneous summerfi-monorepo README surfaces outside the SDK bundle docs (52 claims). The root README is partially-stale: root commands remain valid, but the structure section refers to old app/package names and misses the current apps/ and sdk/package layout. Misc package README inventory found one stale package heading (@turbo/eslint-config), stale hardhat-utils workspace links, and three TBD stubs in database packages. Generated TypeDoc output was intentionally excluded."
+}

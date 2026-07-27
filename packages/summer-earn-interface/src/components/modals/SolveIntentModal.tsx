@@ -6,6 +6,8 @@ import { useAccount } from 'wagmi'
 import type { Environment } from '../../config/environments'
 import { useIntentSystem } from '../../hooks/useIntentSystem'
 import type { ChainId } from '../../types'
+import { Button, helpTextBase, inputBase, labelBase, selectBase } from '../ui'
+import { Modal } from '../ui/Modal'
 
 interface IntentData {
   intentId: string
@@ -260,206 +262,188 @@ export function SolveIntentModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-charcoal-800 rounded-xl p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">Solve Intent</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            ✕
-          </button>
+    <Modal onClose={onClose} title="Solve Intent" size="md">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Ark Address */}
+        <div>
+          <label className={labelBase}>Ark Address</label>
+          <input
+            type="text"
+            value={formData.user}
+            onChange={(e) => handleInputChange('user', e.target.value)}
+            placeholder="0x..."
+            className={inputBase}
+            required
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Ark Address */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Ark Address</label>
-            <input
-              type="text"
-              value={formData.user}
-              onChange={(e) => handleInputChange('user', e.target.value)}
-              placeholder="0x..."
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
+        {/* Required Notional */}
+        <div>
+          <label className={labelBase}>Required Notional (USDC)</label>
+          <input
+            type="number"
+            value={formData.requiredNotional}
+            onChange={(e) => handleInputChange('requiredNotional', e.target.value)}
+            placeholder="1000000"
+            className={inputBase}
+            required
+          />
+          <div className={helpTextBase}>
+            USDC amount in wei (6 decimals) - enter the raw token amount
           </div>
+        </div>
 
-          {/* Required Notional */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Required Notional (USDC)
-            </label>
-            <input
-              type="number"
-              value={formData.requiredNotional}
-              onChange={(e) => handleInputChange('requiredNotional', e.target.value)}
-              placeholder="1000000"
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
-            <div className="text-xs text-gray-400 mt-1">
-              USDC amount in wei (6 decimals) - enter the raw token amount
+        {/* Required Bond */}
+        <div>
+          <label className={labelBase}>Required Bond (USD)</label>
+          <input
+            type="number"
+            value={formData.requiredBond}
+            onChange={(e) => handleInputChange('requiredBond', e.target.value)}
+            placeholder="1000"
+            className={inputBase}
+            required
+          />
+          <div className={helpTextBase}>
+            USD amount (e.g., enter &quot;1000&quot; for $1000 USD - will be converted to 18
+            decimals automatically)
+          </div>
+        </div>
+
+        {/* Term */}
+        <div>
+          <label className={labelBase}>Term (days)</label>
+          <input
+            type="number"
+            value={formData.term}
+            onChange={(e) => handleInputChange('term', e.target.value)}
+            placeholder="30"
+            min="1"
+            max="365"
+            className={inputBase}
+            required
+          />
+        </div>
+
+        {/* Target Yield */}
+        <div>
+          <label className={labelBase}>Target Yield (USDC)</label>
+          <input
+            type="number"
+            value={formData.targetYield}
+            onChange={(e) => handleInputChange('targetYield', e.target.value)}
+            placeholder="50000"
+            className={inputBase}
+            required
+          />
+        </div>
+
+        {/* Token */}
+        <div>
+          <label className={labelBase}>Token</label>
+          <select
+            value={formData.token}
+            onChange={(e) => handleInputChange('token', e.target.value)}
+            className={`${selectBase} w-full`}
+            required
+          >
+            <option value="">Select token</option>
+            {tokens &&
+              Object.entries(tokens).map(([symbol, address]) => (
+                <option key={symbol} value={address}>
+                  {symbol}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        {/* Oracle */}
+        <div>
+          <label className={labelBase}>Oracle Address</label>
+          <input
+            type="text"
+            value={formData.oracle}
+            onChange={(e) => handleInputChange('oracle', e.target.value)}
+            placeholder="0x..."
+            className={inputBase}
+            required
+          />
+        </div>
+
+        {/* Expiry */}
+        <div>
+          <label className={labelBase}>Expiry Date</label>
+          <input
+            type="datetime-local"
+            value={formData.expiry}
+            onChange={(e) => handleInputChange('expiry', e.target.value)}
+            className={inputBase}
+            required
+          />
+        </div>
+
+        {/* Escrowed Yield */}
+        <div>
+          <label className={labelBase}>Escrowed Yield (USDC)</label>
+          <input
+            type="number"
+            value={formData.escrowedYield}
+            onChange={(e) => handleInputChange('escrowedYield', e.target.value)}
+            placeholder="50000"
+            className={inputBase}
+            required
+          />
+          <p className={helpTextBase}>Amount of yield to escrow upfront</p>
+        </div>
+
+        {/* Token Approval Section */}
+        {formData.escrowedYield && BigInt(formData.escrowedYield) > BigInt(0) && (
+          <div className="bg-white/[0.02] p-4 rounded-lg border border-white/5">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-on-surface">Token Approval</h4>
+              <Button
+                type="button"
+                onClick={checkTokenApproval}
+                disabled={approvalStatus === 'checking'}
+                variant="secondary"
+                size="sm"
+              >
+                {approvalStatus === 'checking' ? 'Checking...' : 'Check Approval'}
+              </Button>
             </div>
-          </div>
 
-          {/* Required Bond */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Required Bond (USD)
-            </label>
-            <input
-              type="number"
-              value={formData.requiredBond}
-              onChange={(e) => handleInputChange('requiredBond', e.target.value)}
-              placeholder="1000"
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
-            <div className="text-xs text-gray-400 mt-1">
-              USD amount (e.g., enter &quot;1000&quot; for $1000 USD - will be converted to 18
-              decimals automatically)
-            </div>
-          </div>
-
-          {/* Term */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Term (days)</label>
-            <input
-              type="number"
-              value={formData.term}
-              onChange={(e) => handleInputChange('term', e.target.value)}
-              placeholder="30"
-              min="1"
-              max="365"
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
-          </div>
-
-          {/* Target Yield */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Target Yield (USDC)
-            </label>
-            <input
-              type="number"
-              value={formData.targetYield}
-              onChange={(e) => handleInputChange('targetYield', e.target.value)}
-              placeholder="50000"
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
-          </div>
-
-          {/* Token */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Token</label>
-            <select
-              value={formData.token}
-              onChange={(e) => handleInputChange('token', e.target.value)}
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-              required
-            >
-              <option value="">Select token</option>
-              {tokens &&
-                Object.entries(tokens).map(([symbol, address]) => (
-                  <option key={symbol} value={address}>
-                    {symbol}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* Oracle */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Oracle Address</label>
-            <input
-              type="text"
-              value={formData.oracle}
-              onChange={(e) => handleInputChange('oracle', e.target.value)}
-              placeholder="0x..."
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
-          </div>
-
-          {/* Expiry */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Expiry Date</label>
-            <input
-              type="datetime-local"
-              value={formData.expiry}
-              onChange={(e) => handleInputChange('expiry', e.target.value)}
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-              required
-            />
-          </div>
-
-          {/* Escrowed Yield */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Escrowed Yield (USDC)
-            </label>
-            <input
-              type="number"
-              value={formData.escrowedYield}
-              onChange={(e) => handleInputChange('escrowedYield', e.target.value)}
-              placeholder="50000"
-              className="w-full px-3 py-2 bg-charcoal-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              required
-            />
-            <p className="text-xs text-gray-400 mt-1">Amount of yield to escrow upfront</p>
-          </div>
-
-          {/* Token Approval Section */}
-          {formData.escrowedYield && BigInt(formData.escrowedYield) > BigInt(0) && (
-            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-white">Token Approval</h4>
+            {approvalStatus === 'needs-approval' && (
+              <div className="space-y-2">
+                <p className="text-xs text-warning">You need to approve tokens for spending</p>
                 <button
                   type="button"
-                  onClick={checkTokenApproval}
-                  disabled={approvalStatus === 'checking'}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-xs rounded transition-colors"
+                  onClick={handleApprove}
+                  disabled={isApproving()}
+                  className="w-full py-2 px-4 bg-warning/15 border border-warning/30 text-warning hover:bg-warning/25 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
                 >
-                  {approvalStatus === 'checking' ? 'Checking...' : 'Check Approval'}
+                  {isApproving() ? 'Approving...' : 'Approve Tokens'}
                 </button>
               </div>
+            )}
 
-              {approvalStatus === 'needs-approval' && (
-                <div className="space-y-2">
-                  <p className="text-xs text-yellow-400">You need to approve tokens for spending</p>
-                  <button
-                    type="button"
-                    onClick={handleApprove}
-                    disabled={isApproving()}
-                    className="w-full py-2 px-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-                  >
-                    {isApproving() ? 'Approving...' : 'Approve Tokens'}
-                  </button>
-                </div>
-              )}
+            {approvalStatus === 'approved' && (
+              <p className="text-xs text-success">✅ Tokens approved for spending</p>
+            )}
+          </div>
+        )}
 
-              {approvalStatus === 'approved' && (
-                <p className="text-xs text-green-400">✅ Tokens approved for spending</p>
-              )}
-            </div>
-          )}
+        {/* Error Display */}
+        {error && (
+          <div className="text-error text-sm bg-error/15 border border-error/30 p-3 rounded-lg">
+            {error}
+          </div>
+        )}
 
-          {/* Error Display */}
-          {error && (
-            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{error}</div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading || needsApproval}
-            className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-          >
-            {loading ? 'Solving...' : needsApproval ? 'Approve Tokens First' : 'Solve Intent'}
-          </button>
-        </form>
-      </div>
-    </div>
+        {/* Submit Button */}
+        <Button type="submit" disabled={loading || needsApproval} variant="primary" fullWidth>
+          {loading ? 'Solving...' : needsApproval ? 'Approve Tokens First' : 'Solve Intent'}
+        </Button>
+      </form>
+    </Modal>
   )
 }

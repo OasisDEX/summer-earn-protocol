@@ -3,9 +3,11 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
+import { Button, labelBase, PageHeader, RetiredDataNotice, selectBase } from '../../components/ui'
 import { VaultAprChart } from '../../components/VaultAprChart'
 import { CHAIN_NAMES } from '../../config/chains'
 import { ChainId } from '../../types'
+import { formatAddress } from '../../utils/address'
 
 interface InterestRate {
   id: string
@@ -91,10 +93,10 @@ export default function VaultAprPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black p-8">
+      <div className="min-h-screen p-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-96">
-            <div className="text-white text-lg">Loading vault APR data...</div>
+            <div className="text-on-surface text-lg">Loading vault APR data…</div>
           </div>
         </div>
       </div>
@@ -103,53 +105,51 @@ export default function VaultAprPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black p-8">
+      <div className="min-h-screen p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-red-400">
-            Error loading vault APR data: {error instanceof Error ? error.message : 'Unknown error'}
-            <button
-              onClick={() => refetch()}
-              className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
-            >
-              Retry
-            </button>
-          </div>
+          <RetiredDataNotice
+            what="Vault APR analytics"
+            action={
+              <Button variant="secondary" onClick={() => refetch()}>
+                Retry
+              </Button>
+            }
+          />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black p-8">
+    <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Vault APR Analytics</h1>
-            <p className="text-gray-400">
+        <PageHeader
+          title="Vault APR Analytics"
+          description={
+            <>
               View interest rates across all vaults with weekly, daily, and hourly granularity
-            </p>
-            {data && (
-              <p className="text-sm text-gray-500 mt-2">
-                Last updated: {new Date(data.lastUpdated).toLocaleString()}
-                {data.cached && ' (cached)'}
-              </p>
-            )}
-          </div>
-          <button
-            onClick={() => refetch()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm"
-          >
-            Refresh
-          </button>
-        </div>
+              {data && (
+                <span className="block mt-1.5 text-xs text-on-surface-variant/80">
+                  Last updated: {new Date(data.lastUpdated).toLocaleString()}
+                  {data.cached && ' (cached)'}
+                </span>
+              )}
+            </>
+          }
+          actions={
+            <Button variant="primary" onClick={() => refetch()}>
+              Refresh
+            </Button>
+          }
+        />
 
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-400">Filter by Chain</label>
+            <label className={labelBase}>Filter by Chain</label>
             <select
-              className="w-full p-2 border rounded bg-gray-900 text-white border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className={`${selectBase} w-full`}
               value={selectedChain}
               onChange={(e) => {
                 setSelectedChain(e.target.value as ChainId | 'all')
@@ -166,9 +166,9 @@ export default function VaultAprPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-400">Select Vault</label>
+            <label className={labelBase}>Select Vault</label>
             <select
-              className="w-full p-2 border rounded bg-gray-900 text-white border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className={`${selectBase} w-full`}
               value={selectedVault || ''}
               onChange={(e) => setSelectedVault(e.target.value || null)}
             >
@@ -185,17 +185,21 @@ export default function VaultAprPage() {
 
         {/* Stats Summary */}
         {data && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {data.data.map((chainData) => (
               <div
                 key={chainData.chainId}
-                className="bg-gray-900 rounded-lg border border-gray-800 p-4"
+                className="bg-surface-container-high border border-white/10 rounded-lg p-4"
               >
-                <div className="text-sm text-gray-400 mb-1">{CHAIN_NAMES[chainData.chainId]}</div>
-                <div className="text-2xl font-bold text-white">{chainData.vaults.length}</div>
-                <div className="text-xs text-gray-500 mt-1">vaults</div>
+                <div className="text-sm text-on-surface-variant mb-1">
+                  {CHAIN_NAMES[chainData.chainId]}
+                </div>
+                <div className="text-2xl font-bold text-on-surface tabular-nums">
+                  {chainData.vaults.length}
+                </div>
+                <div className="text-xs text-on-surface-variant/80 mt-1">vaults</div>
                 {chainData.latestDates.hourly && (
-                  <div className="text-xs text-gray-500 mt-2">
+                  <div className="text-xs text-on-surface-variant/80 mt-2">
                     Latest: {new Date(Number(chainData.latestDates.hourly) * 1000).toLocaleString()}
                   </div>
                 )}
@@ -206,16 +210,16 @@ export default function VaultAprPage() {
 
         {/* Chart */}
         {selectedVaultData && (
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+          <div className="bg-surface-container-high border border-white/10 rounded-lg p-6">
             <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white mb-1">
+              <h2 className="text-xl font-semibold text-on-surface mb-1">
                 {selectedVaultData.name || selectedVaultData.symbol || selectedVaultData.id}
               </h2>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-on-surface-variant">
                 Chain: {selectedVaultData.chainName} | Token:{' '}
                 {selectedVaultData.inputToken.symbol || selectedVaultData.inputToken.id}
               </div>
-              <div className="text-xs text-gray-500 mt-2">
+              <div className="text-xs text-on-surface-variant/80 mt-2">
                 Weekly: {selectedVaultData.weeklyInterestRates.length} points | Daily:{' '}
                 {selectedVaultData.dailyInterestRates.length} points | Hourly:{' '}
                 {selectedVaultData.hourlyInterestRates.length} points
@@ -232,8 +236,8 @@ export default function VaultAprPage() {
 
         {/* Vaults List */}
         {!selectedVaultData && (
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">
+          <div className="bg-surface-container-high border border-white/10 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-on-surface mb-4">
               Vaults ({filteredVaults.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -265,32 +269,36 @@ export default function VaultAprPage() {
                 return (
                   <div
                     key={`${vault.chainId}-${vault.id}`}
-                    className="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:border-blue-500 cursor-pointer transition-colors"
+                    className="bg-white/5 rounded-lg border border-white/10 p-4 hover:border-primary/50 cursor-pointer transition-colors"
                     onClick={() => setSelectedVault(`${vault.chainId}-${vault.id}`)}
                   >
-                    <div className="text-white font-medium mb-2">
-                      {vault.name || vault.symbol || vault.id.slice(0, 8) + '...'}
+                    <div className="text-on-surface font-medium mb-2">
+                      {vault.name || vault.symbol || formatAddress(vault.id)}
                     </div>
-                    <div className="text-sm text-gray-400 mb-3">
+                    <div className="text-sm text-on-surface-variant mb-3">
                       {vault.chainName} • {vault.inputToken.symbol || 'Unknown'}
                     </div>
                     <div className="space-y-1 text-xs">
                       {avg1Day !== null && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">1d Avg:</span>
-                          <span className="text-green-400 font-medium">{avg1Day.toFixed(4)}%</span>
+                          <span className="text-on-surface-variant/80">1d Avg:</span>
+                          <span className="text-success font-medium tabular-nums">
+                            {avg1Day.toFixed(4)}%
+                          </span>
                         </div>
                       )}
                       {avg7Day !== null && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">7d Avg:</span>
-                          <span className="text-blue-400 font-medium">{avg7Day.toFixed(4)}%</span>
+                          <span className="text-on-surface-variant/80">7d Avg:</span>
+                          <span className="text-primary font-medium tabular-nums">
+                            {avg7Day.toFixed(4)}%
+                          </span>
                         </div>
                       )}
                       {avg30Day !== null && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">30d Avg:</span>
-                          <span className="text-purple-400 font-medium">
+                          <span className="text-on-surface-variant/80">30d Avg:</span>
+                          <span className="text-accent font-medium tabular-nums">
                             {avg30Day.toFixed(4)}%
                           </span>
                         </div>

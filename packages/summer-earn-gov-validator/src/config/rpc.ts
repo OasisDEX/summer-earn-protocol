@@ -128,12 +128,19 @@ export function createRpcTransport(rpcUrls: string[]): Transport {
   return fallback(rpcUrls.map((url) => http(url)))
 }
 
+// Reuse one public client per chain — creating a client (and its fallback transport)
+// on every call is wasteful when many reads target the same chain in one render.
+const publicClientCache: Record<number, PublicClient> = {}
+
 /**
  * Gets a public client for a given chainId.
  * @param chainId
  * @returns A PublicClient instance with fallback/retry support
  */
 export function getPublicClient(chainId: number): PublicClient {
+  const cached = publicClientCache[chainId]
+  if (cached) return cached
+
   const rpcUrls = CHAIN_RPC_URLS[chainId]
   const chain = VIEM_CHAIN_ENTITIES[chainId]
 
@@ -141,8 +148,14 @@ export function getPublicClient(chainId: number): PublicClient {
     throw new Error(`Unsupported chainId: ${chainId}`)
   }
 
-  return createPublicClient({
+  const client = createPublicClient({
     transport: createRpcTransport(rpcUrls),
     chain,
+    // Aggregate same-tick readContract calls into one Multicall3 request —
+    // Promise.all bursts (slipstream ownerOf/positions, ENS reverse lookups)
+    // become a single round-trip instead of one HTTP request per call.
+    batch: { multicall: true },
   })
+  publicClientCache[chainId] = client
+  return client
 }

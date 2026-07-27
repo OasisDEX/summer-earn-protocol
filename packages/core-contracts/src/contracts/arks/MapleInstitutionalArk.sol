@@ -6,7 +6,9 @@ import {ISyrupPool} from "../../interfaces/syrup/ISyrupPool.sol";
 import {ISyrupWithdrawalManagerV2} from "../../interfaces/syrup/ISyrupWithdrawalManagerV2.sol";
 import "../ArkWithWithdrawalRequest.sol";
 
+/// @notice Thrown when the Maple pool's manager reports a zero withdrawal manager address
 error InvalidWithdrawalManager();
+/// @notice Thrown when cancelling a withdrawal returns a different share amount than was escrowed
 error WrongAmountOfSharesReturned();
 
 /**
@@ -22,8 +24,11 @@ contract MapleInstitutionalArk is ArkWithWithdrawalRequest {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The Maple/Syrup pool (ERC4626-style vault) this Ark deposits into
     ISyrupPool public immutable vault;
+    /// @notice The Maple/Syrup pool manager, used to resolve the withdrawal manager
     ISyrupManager public immutable manager;
+    /// @notice The Maple/Syrup withdrawal manager that escrows shares and processes redemptions
     ISyrupWithdrawalManagerV2 public immutable withdrawalManager;
 
     /*//////////////////////////////////////////////////////////////
@@ -194,16 +199,19 @@ contract MapleInstitutionalArk is ArkWithWithdrawalRequest {
         return IERC20(vault.asset()).balanceOf(address(this));
     }
 
+    /// @notice Deposits the asset into the Maple pool, receiving pool shares
     function _board(uint256 amount, bytes calldata) internal override {
         IERC20(vault.asset()).forceApprove(address(vault), amount);
         vault.deposit(amount, address(this));
     }
 
+    /// @notice No-op disembark hook; exits are asynchronous via requestWithdrawal through the withdrawal manager
     function _disembark(uint256, bytes calldata) internal override {
         // No-op: disembark is handled by Ark contract implementation
         // Withdrawals must be requested through withdrawal manager
     }
 
+    /// @notice No-op harvest: the Maple pool auto-accrues yield, so no rewards are claimed here
     function _harvest(
         bytes calldata
     )
@@ -217,10 +225,12 @@ contract MapleInstitutionalArk is ArkWithWithdrawalRequest {
         rewardAmounts = new uint256[](0);
     }
 
+    /// @notice Validates the board data (no-op; this Ark requires no board data)
     function _validateBoardData(bytes calldata) internal override {
         // No additional validation needed
     }
 
+    /// @notice Validates the disembark data (no-op; this Ark requires no disembark data)
     function _validateDisembarkData(bytes calldata) internal override {}
 
     /**

@@ -1,0 +1,107 @@
+{
+  "group": "earn:pkg-readmes",
+  "classification": {
+    "substantive": [
+      "packages/deployment/README.md",
+      "packages/dutch-auction/README.md",
+      "packages/gov-contracts/README.md",
+      "packages/intent-system/README.md",
+      "packages/math-utils/README.md",
+      "packages/oracle-cli/README.md",
+      "packages/oracle-dashboard/README.md",
+      "packages/percentage/README.md",
+      "packages/price-utils/README.md",
+      "packages/rewards-contracts/README.md",
+      "packages/rwa-oracles/README.md",
+      "packages/summer-earn-gov-validator/README.md",
+      "packages/summer-earn-institutions-v2-subgraph/README.md",
+      "packages/summer-earn-rates-subgraph/README.md",
+      "packages/voting-decay/README.md"
+    ],
+    "stub": [
+      "packages/eslint-config/README.md"
+    ],
+    "boilerplate": [
+      "packages/core-contracts/README.md",
+      "packages/summer-earn-rwa-app/README.md"
+    ],
+    "missing": [
+      "packages/access-contracts/README.md",
+      "packages/ark-rebalancer/README.md",
+      "packages/chain-bridge/README.md",
+      "packages/config-contracts/README.md",
+      "packages/configuration-manager-contracts/README.md",
+      "packages/constants/README.md",
+      "packages/external-dependencies/README.md",
+      "packages/jest-config/README.md",
+      "packages/legacy-dependencies/README.md",
+      "packages/referral-validator/README.md",
+      "packages/scripts/README.md",
+      "packages/simple-interface/README.md",
+      "packages/simple-interface-app/README.md",
+      "packages/skills/README.md",
+      "packages/subgraph/README.md",
+      "packages/subgraph-common/README.md",
+      "packages/summer-earn-auctions-frontend/README.md",
+      "packages/summer-earn-auctions-subgraph/README.md",
+      "packages/summer-earn-composition/README.md",
+      "packages/summer-earn-dca-app/README.md",
+      "packages/summer-earn-dca-subgraph/README.md",
+      "packages/summer-earn-gov-alert-bot/README.md",
+      "packages/summer-earn-info/README.md",
+      "packages/summer-earn-institutions-subgraph/README.md",
+      "packages/summer-earn-interface/README.md",
+      "packages/summer-earn-protocol-gov-subgraph/README.md",
+      "packages/summer-earn-protocol-subgraph/README.md",
+      "packages/summer-earn-shareseconds-subgraph/README.md",
+      "packages/tenderly-utils/README.md",
+      "packages/typescript-config/README.md",
+      "packages/.antigravitycli/README.md",
+      "packages/.claude/README.md"
+    ]
+  },
+  "docs": [
+    {
+      "doc": "packages/*/README.md inventory",
+      "verdict": "partially-stale",
+      "claimsChecked": 48,
+      "staleClaims": [
+        {
+          "claim": "Every top-level package has a useful README",
+          "currentTruth": "Only 16 of 48 top-level package directories have README.md files. 32 package directories are missing a top-level README entirely.",
+          "evidence": "find packages -mindepth 1 -maxdepth 1 -type d; find packages -mindepth 2 -maxdepth 2 -name README.md"
+        },
+        {
+          "claim": "packages/core-contracts/README.md documents the core-contracts package",
+          "currentTruth": "The file is the default Foundry template and does not document the package's FleetCommander, Arks, DCA, rounds-vault, whitelist, or institutional contract surfaces.",
+          "evidence": "packages/core-contracts/README.md:1-42; packages/core-contracts/src/contracts/"
+        },
+        {
+          "claim": "packages/summer-earn-rwa-app/README.md documents the RWA app",
+          "currentTruth": "The file is the default create-next-app template. It points to app/page.tsx even though this package uses src/app/page.tsx, and it describes next/font despite the app importing Geist from @fontsource.",
+          "evidence": "packages/summer-earn-rwa-app/README.md:1-36; packages/summer-earn-rwa-app/src/app/page.tsx; packages/summer-earn-rwa-app/src/app/layout.tsx:11-17"
+        },
+        {
+          "claim": "packages/eslint-config/README.md identifies the package correctly",
+          "currentTruth": "The README is a three-line stub headed @turbo/eslint-config, while package.json names the package @summerfi/eslint-config.",
+          "evidence": "packages/eslint-config/README.md:1-3; packages/eslint-config/package.json:2"
+        },
+        {
+          "claim": "Utility contract READMEs consistently state the active license",
+          "currentTruth": "math-utils and voting-decay READMEs claim MIT, while checked package Solidity sources use BUSL-1.1 SPDX headers. dutch-auction README also claims MIT while its active src files were already found to use BUSL-1.1 in the intent-arks audit.",
+          "evidence": "packages/math-utils/README.md:106-107; packages/math-utils/contracts/MathUtils.sol:1; packages/voting-decay/README.md:97; packages/voting-decay/src/; docs/audit/2026-06/staleness/earn-intent-arks.json"
+        },
+        {
+          "claim": "Package READMEs consistently state current runtime prerequisites",
+          "currentTruth": "deployment and rewards-contracts READMEs still say Node.js 16+, while the repo root engines require node >=20.",
+          "evidence": "packages/deployment/README.md:175; packages/rewards-contracts/README.md:88; package.json:83-85"
+        }
+      ],
+      "unverifiable": [
+        "No external package registry or deployment URLs were queried; classification is based on checked repository files only."
+      ],
+      "notes": "Previously audited substantive READMEs are not duplicated here: deployment, dutch-auction, gov-contracts, intent-system, summer-earn-institutions-v2-subgraph and summer-earn-rwa-app have claim-level findings in their domain groups. Utility READMEs are generally plausible for API shape (percentage/price/math/rewards/rwa-oracles), but need license/runtime cleanup and a fuller pass during README remediation."
+    }
+  ],
+  "summary": "Classified every top-level packages/* README slot in summer-earn-protocol: 15 substantive READMEs, 1 stub, 2 boilerplate templates, and 32 missing READMEs. The package README surface is therefore partially-stale overall. Major remediation buckets: replace core-contracts Foundry boilerplate, replace summer-earn-rwa-app create-next boilerplate, fix eslint-config's stale @turbo package name, add READMEs for 32 missing packages, and clean up stale license/runtime claims in utility READMEs. Several substantive READMEs already have claim-level stale findings in earlier domain groups."
+}

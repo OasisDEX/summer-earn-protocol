@@ -24,14 +24,23 @@ interface IIntentOracle {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a token's price is updated
+    /// @param token The address of the token
+    /// @param price The new price of the token in USD (18 decimals)
+    /// @param timestamp The block timestamp when the price was updated
     event PriceUpdated(address indexed token, uint256 price, uint256 timestamp);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when attempting to retrieve or use a stale price
     error StalePrice();
+
+    /// @notice Thrown when attempting to query price for an unsupported/invalid token
     error InvalidToken();
+
+    /// @notice Thrown when the retrieved price timestamp is older than allowed
     error PriceTooOld();
 
     /*//////////////////////////////////////////////////////////////

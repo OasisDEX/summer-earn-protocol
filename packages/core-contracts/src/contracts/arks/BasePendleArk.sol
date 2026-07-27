@@ -343,9 +343,12 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
     /**
      * @notice Calculates the total assets held by the Ark
      * @return The total assets in underlying token
-     * @dev We handle this differently based on whether the market has expired:
-     * 1. If the market has expired: return the exact PT / LP balance (1:1 ratio)
-     * 2. If the market has not expired: subtract slippage from the calculated asset amount
+     * @dev In both branches the PT / LP balance is converted to assets via
+     * _arkTokensToAsset, i.e. at the current oracle exchange rate
+     * (_fetchArkTokenToAssetRate), not a 1:1 ratio. The two branches differ only
+     * in slippage handling:
+     * 1. If the market has expired: return the oracle-converted asset value with no slippage deduction
+     * 2. If the market has not expired: subtract slippage from the oracle-converted asset amount
      *
      * By subtracting slippage from total assets when the market is active, we ensure that:
      * a) We provide a conservative estimate of the Ark's value

@@ -48,15 +48,15 @@ export function RefreshButton({ lastUpdated }: { lastUpdated: number }) {
         disabled={disabled}
         className={`px-4 py-2 rounded font-mono text-xs font-bold transition-all ${
           disabled
-            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg hover:shadow-blue-500/20'
+            ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+            : 'bg-primary text-on-primary hover:bg-primary-dim shadow-lg hover:shadow-primary/20'
         }`}
       >
         {disabled ? `COOLING DOWN (${timeLeft})` : 'INVALIDATE CACHE'}
       </button>
 
       {disabled && (
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2 bg-black border border-gray-700 rounded text-[10px] text-center text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2 bg-surface-container-lowest border border-white/10 rounded text-[11px] text-center text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Updates limited to once every 5 minutes.
         </div>
       )}

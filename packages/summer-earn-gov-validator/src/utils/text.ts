@@ -31,15 +31,18 @@ export function extractProposalMetadata(description: string): ProposalMetadata {
   const hasNewLineCharacters = description.includes('\n')
   // Split by newline or ###, then trim each segment
   const rawLines = hasNewLineCharacters ? description.split('\n') : description.split('###')
-  const lines = rawLines.map((l) => l.trim()).filter(Boolean)
+  const trimmedLines = rawLines.map((l) => l.trim())
+  const nonEmptyLinesWithIndices = trimmedLines
+    .map((l, idx) => ({ content: l, originalIndex: idx }))
+    .filter((item) => item.content !== '')
 
   let title = 'Untitled Proposal'
   let displayId: string | null = null
   let titleFound = false
   let startIndex = 0
 
-  for (let i = 0; i < lines.length; i++) {
-    const trimmedLine = lines[i]
+  for (let i = 0; i < nonEmptyLinesWithIndices.length; i++) {
+    const { content: trimmedLine, originalIndex } = nonEmptyLinesWithIndices[i]
 
     // If it's a heading, it's likely the title
     if (trimmedLine.startsWith('#')) {
@@ -56,31 +59,32 @@ export function extractProposalMetadata(description: string): ProposalMetadata {
         title = fullTitleWithoutBrackets
       }
       titleFound = true
-      startIndex = i + 1
+      startIndex = originalIndex + 1
       break
     } else if (i === 0) {
-      // If the first line doesn't start with #, but is short, treat it as a potential title
+      // If the first non-empty line doesn't start with #, but is short, treat it as a potential title
       if (trimmedLine.length < 150) {
         const idMatch = trimmedLine.match(/^([a-zA-Z0-9-.]+)(?::|\s+)(.*)$/)
         if (idMatch) {
           displayId = idMatch[1]
           title = idMatch[2].trim()
           titleFound = true
-          startIndex = i + 1
+          startIndex = originalIndex + 1
           break
         }
       }
     }
   }
 
-  // Fallback to first line if no clear title found
-  if (!titleFound && lines.length > 0) {
-    title = lines[0].slice(0, 100)
-    startIndex = 1
+  // Fallback to first non-empty line if no clear title found
+  if (!titleFound && nonEmptyLinesWithIndices.length > 0) {
+    const firstNonEmpty = nonEmptyLinesWithIndices[0]
+    title = firstNonEmpty.content.slice(0, 100)
+    startIndex = firstNonEmpty.originalIndex + 1
   }
 
-  // Construct clean description from the remaining lines
-  const remainingLines = lines.slice(startIndex)
+  // Construct clean description from the remaining lines of rawLines (preserving empty lines)
+  const remainingLines = rawLines.slice(startIndex)
   let cleanDescription = remainingLines
     .join(hasNewLineCharacters ? '\n' : ' ')
     .trim()

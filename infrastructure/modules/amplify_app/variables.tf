@@ -34,6 +34,46 @@ variable "build_filter" {
   nullable    = false
 }
 
+variable "platform" {
+  description = "Amplify hosting platform: WEB_COMPUTE (Next.js SSR) or WEB (static export)"
+  type        = string
+  default     = "WEB_COMPUTE"
+
+  validation {
+    condition     = contains(["WEB_COMPUTE", "WEB"], var.platform)
+    error_message = "platform must be WEB_COMPUTE or WEB."
+  }
+}
+
+variable "framework" {
+  description = "Framework label for the Amplify branch (e.g. 'Next.js - SSR', 'Next.js - SSG')"
+  type        = string
+  default     = "Next.js - SSR"
+}
+
+variable "build_command" {
+  description = "Build command run in the package root"
+  type        = string
+  default     = "pnpm run build"
+}
+
+variable "artifacts_base_directory" {
+  description = "Build output directory relative to the package root"
+  type        = string
+  default     = ".next"
+}
+
+variable "build_compute_type" {
+  description = "Amplify build compute size (STANDARD_8GB, LARGE_16GB or XLARGE_72GB)"
+  type        = string
+  default     = "XLARGE_72GB"
+
+  validation {
+    condition     = contains(["STANDARD_8GB", "LARGE_16GB", "XLARGE_72GB"], var.build_compute_type)
+    error_message = "build_compute_type must be one of STANDARD_8GB, LARGE_16GB, XLARGE_72GB."
+  }
+}
+
 variable "tags" {
   description = "Tags to apply to all resources in this module"
   type        = map(string)

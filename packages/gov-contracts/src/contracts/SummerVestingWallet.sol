@@ -9,6 +9,9 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 
 /**
  * @title SummerVestingWallet
+ * @notice Vesting wallet with a 6-month cliff, monthly time-based release over 2 years, and optional
+ * performance-based (milestone) release for team members; the foundation can add goals, mark goals
+ * reached, and recall unvested performance tokens.
  * @dev Implementation of ISummerVestingWallet
  */
 contract SummerVestingWallet is
@@ -40,13 +43,13 @@ contract SummerVestingWallet is
     /// @inheritdoc ISummerVestingWallet
     address public immutable token;
 
-    // Performance-based vesting amounts
+    /// @inheritdoc ISummerVestingWallet
     uint256[] public goalAmounts;
 
-    // Performance milestone flags
+    /// @inheritdoc ISummerVestingWallet
     bool[] public goalsReached;
 
-    // Time-based vesting amount
+    /// @inheritdoc ISummerVestingWallet
     uint256 public immutable timeBasedVestingAmount;
 
     //////////////////////////////////////////////
@@ -118,6 +121,10 @@ contract SummerVestingWallet is
         );
     }
 
+    /**
+     * @notice Appends a new performance-based vesting goal and a matching unreached flag
+     * @param goalAmount The token amount associated with the new performance goal
+     */
     function _addNewGoal(uint256 goalAmount) internal {
         goalAmounts.push(goalAmount);
         goalsReached.push(false);

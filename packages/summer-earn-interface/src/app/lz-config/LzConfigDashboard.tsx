@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 
 import { StatCard } from '../../components/StatCard'
+import { PageHeader } from '../../components/ui'
+import { formatAddress } from '../../utils/address'
 import { AdminCard } from './components/AdminCard'
 import { ChainAndOAppPicker } from './components/ChainAndOAppPicker'
 import { EditConfigDrawer } from './components/EditConfigDrawer'
@@ -22,11 +24,6 @@ import {
   listRemoteChainsWithDvns,
 } from './lib/configReader'
 import type { ChainName, OAppKind, PendingEdit } from './lib/types'
-
-function shortenAddress(addr: string | null): string {
-  if (!addr) return '—'
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`
-}
 
 export function LzConfigDashboard() {
   const [sourceChain, setSourceChain] = useState<ChainName>('base')
@@ -54,14 +51,16 @@ export function LzConfigDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">LayerZero Config Explorer</h1>
-        <p className="text-slate-400 max-w-3xl">
-          Compare on-chain LZ ULN configuration vs the desired configuration in{' '}
-          <code className="bg-white/5 px-1 py-0.5 rounded text-xs">config/index.json</code>, stage
-          edits and export them as Safe Transaction Builder JSON files.
-        </p>
-      </header>
+      <PageHeader
+        title="LayerZero Config Explorer"
+        description={
+          <>
+            Compare on-chain LZ ULN configuration vs the desired configuration in{' '}
+            <code className="bg-white/5 px-1 py-0.5 rounded text-xs">config/index.json</code>, stage
+            edits and export them as Safe Transaction Builder JSON files.
+          </>
+        }
+      />
 
       <section className="mb-6">
         <ChainAndOAppPicker
@@ -79,9 +78,9 @@ export function LzConfigDashboard() {
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Endpoint" value={shortenAddress(endpoint)} />
+        <StatCard label="Endpoint" value={formatAddress(endpoint)} />
         <StatCard label="EID" value={String(eid || '—')} />
-        <StatCard label="OApp" value={shortenAddress(oAppAddress)} />
+        <StatCard label="OApp" value={formatAddress(oAppAddress)} />
         <StatCard label="Routes configured" value={String(remotes.length)} highlight />
       </section>
 

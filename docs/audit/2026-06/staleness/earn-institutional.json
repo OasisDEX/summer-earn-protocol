@@ -1,0 +1,63 @@
+{
+  "group": "earn:institutional",
+  "docs": [
+    {
+      "doc": "packages/core-contracts/src/contracts/rounds-vault/docs/INSTITUTIONAL_REFERENCE.md",
+      "verdict": "partially-stale",
+      "claimsChecked": 110,
+      "staleClaims": [
+        {
+          "claim": "A redeployed rounds-vault pair is registered against the same target via a new registerPair only if the previous one was first removed",
+          "currentTruth": "RoundsVaultRegistry has no removal function. A registered pair can be updated with setInputVault/setOutputVault, cleared on one side, deactivated, or reactivated, but registerPair always reverts PairAlreadyExists while _pairs[pairId].targetVault remains non-zero, even if the pair is inactive.",
+          "evidence": "packages/core-contracts/src/contracts/rounds-vault/docs/INSTITUTIONAL_REFERENCE.md:636-640; packages/core-contracts/src/contracts/rounds-vault/RoundsVaultRegistry.sol:90-133; packages/core-contracts/src/contracts/rounds-vault/RoundsVaultRegistry.sol:135-210"
+        }
+      ],
+      "unverifiable": [
+        "Operational timing claims such as WisdomTree T+0 before 3:30 PM ET / T+1 otherwise were treated as external process notes and were not verified against off-chain provider documentation."
+      ],
+      "notes": "The core technical claims are current: FleetCommanderWhitelist is an ERC-4626 Fleet with operator gateway checks; AQ and RoundsVault both enforce user whitelist checks against the Fleet context; RoundsVaultInput deposits the target vault underlying and exchanges for target shares; RoundsVaultOutput deposits target shares and exchanges for the target underlying; round 0 opens in the constructor; nextRound/retry/setRoundSettled are keeper-gated; emergencyRollbackRound and setMinPositionSize are governor-gated; settlement flips to Settled before _operate; exchange rates are Price{baseAmount=outputAmount, quoteAmount=frozenAmount}; registry pair ids are keccak256(targetVault); WisdomTreeArk totalAssets, pending deposit/withdrawal accounting, freeze behavior, oracle heartbeat, keeper full-clear path, governor emergency-clear path, sweep slippage and emergencySweep behavior match the implementation."
+    },
+    {
+      "doc": "packages/summer-earn-rwa-app/README.md",
+      "verdict": "boilerplate",
+      "claimsChecked": 12,
+      "staleClaims": [
+        {
+          "claim": "The app can be edited by modifying app/page.tsx",
+          "currentTruth": "This package uses a src/app layout; the page lives at packages/summer-earn-rwa-app/src/app/page.tsx. The README is the default create-next-app template and does not describe the institutional RWA app routes, config, subgraph usage, roles, or rounds flows.",
+          "evidence": "packages/summer-earn-rwa-app/README.md:19; packages/summer-earn-rwa-app/src/app/page.tsx; packages/summer-earn-rwa-app/src/app/institutions/[institutionId]/fleets/[fleetAddress]/page.tsx"
+        },
+        {
+          "claim": "The project uses next/font to automatically optimize and load Geist",
+          "currentTruth": "The app imports Geist from @fontsource packages in src/app/layout.tsx and styles globals.css; it does not use next/font in the checked source.",
+          "evidence": "packages/summer-earn-rwa-app/README.md:21; packages/summer-earn-rwa-app/package.json:16-17; packages/summer-earn-rwa-app/src/app/layout.tsx:11-17; packages/summer-earn-rwa-app/src/app/globals.css:36-37"
+        }
+      ],
+      "unverifiable": [
+        "The create-next-app bootstrap claim was not independently verified from project history."
+      ],
+      "notes": "The package itself is substantive: package.json has Next 16.2.6, React 19.2.3, wagmi 3.5.0 and Reown AppKit; source contains institution/fleet pages, admin panels, rounds forms, RoundsVault/WisdomTree ABIs, multi-chain subgraph config, and WalletConnect env handling. The README should be replaced rather than patched line-by-line."
+    },
+    {
+      "doc": "packages/summer-earn-rwa-app/AGENTS.md",
+      "verdict": "current",
+      "claimsChecked": 4,
+      "staleClaims": [],
+      "unverifiable": [
+        "The instruction to read node_modules/next/dist/docs before editing is workflow guidance and was not validated as a source-code claim."
+      ],
+      "notes": "The file is a short agent instruction wrapper, not product documentation. Its core warning is directionally consistent with this app using Next 16.2.6 in package.json."
+    },
+    {
+      "doc": "packages/summer-earn-institutions-v2-subgraph/README.md",
+      "verdict": "current",
+      "claimsChecked": 34,
+      "staleClaims": [],
+      "unverifiable": [
+        "The statement that initial deployments target Base + Mainnet was not checked against external Goldsky deployment state."
+      ],
+      "notes": "The README matches the v2 subgraph package: package.json defines prepare/build/deploy scripts for base, mainnet, arbitrum, sonic, and hyperliquid; subgraph.template.yaml has InstitutionalVaultRegistry and RoundsVaultRegistry data sources and RoundsVaultInput/Output templates; registry mappings spawn per-vault templates from RoundsVaultPairRegistered/Updated events; schema tracks RoundsVaultPair, RoundsVault, Round, Receipt, exchange-rate fields, current receipt supply, and activity feeds."
+    }
+  ],
+  "summary": "Audited 4 institutional/RWA docs against rounds-vault contracts, WisdomTreeArk, MapleInstitutionalArk, FleetCommanderWhitelist/AQ whitelist access paths, the RWA app, and the v2 institutions subgraph (160 claims). The main institutional technical reference is mostly current and detailed, with one registry lifecycle drift: there is no removal path that would allow re-registering a pair for the same target; existing pairs are updated/deactivated/reactivated instead. The RWA app README is default create-next-app boilerplate and has stale path/font claims despite the package containing a real institutional UI. The app AGENTS note and the v2 subgraph README are current for their narrow scope."
+}

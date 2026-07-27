@@ -1,0 +1,15 @@
+{
+  "package": "math-utils",
+  "out": "contracts/libraries/math",
+  "tree": [
+    {
+      "dir": "",
+      "pages": [
+        {
+          "title": "MathUtils",
+          "file": "contracts/libraries/math/math-utils.md"
+        }
+      ]
+    }
+  ]
+}

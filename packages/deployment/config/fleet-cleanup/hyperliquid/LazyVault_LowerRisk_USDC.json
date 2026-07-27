@@ -1,0 +1,79 @@
+{
+  "network": "hyperliquid",
+  "chainId": 999,
+  "configType": "prod",
+  "generatedAt": "2026-07-10T12:37:11.340Z",
+  "fleetName": "LazyVault_LowerRisk_USDC",
+  "fleetAddress": "0x252E5Aa42c1804b85b2ce6712cd418A0561232Ba",
+  "bufferArk": "0xd01CBC731ED26DDCC1e632Bc7371DF93ae05F2e2",
+  "asset": "0xb88339CB7199b77E23DB6E890353E22632Ba630f",
+  "assetSymbol": "USDC",
+  "assetDecimals": 6,
+  "fleetTotalAssets": "15758409456",
+  "fleetTotalAssetsFormatted": "15758.409456 USDC",
+  "paused": false,
+  "unpauseNotBefore": null,
+  "repauseAfter": false,
+  "arks": [
+    {
+      "name": "Hyperlend-usdc-999",
+      "address": "0xe950Cc4C6D35014725a639980CeC9C9A52dAfB7a",
+      "isBufferArk": false,
+      "totalAssets": "0",
+      "totalAssetsFormatted": "0 USDC",
+      "depositCap": "0",
+      "depositCapFormatted": "0 USDC",
+      "protocol": "Hyperlend",
+      "pool": "0x00A89d7a5A02160f20150EbEA7a2b5E4879A1A8b",
+      "action": "removeArk"
+    },
+    {
+      "name": "MorphoVault-usdc-Felix_USDC-999",
+      "address": "0x01815EA3dC1a3AA378B943872beA4d5d24cad6ea",
+      "isBufferArk": false,
+      "totalAssets": "0",
+      "totalAssetsFormatted": "0 USDC",
+      "depositCap": "0",
+      "depositCapFormatted": "0 USDC",
+      "protocol": "Morpho",
+      "pool": "0x8a862fd6c12f9ad34c9c2ff45ab2b6712e8cea27",
+      "action": "removeArk"
+    },
+    {
+      "name": "MorphoVault-usdc-Gauntlet_USDC-999",
+      "address": "0x08e5bdf113d0213edD5DaC0F36FB106F72c7A45A",
+      "isBufferArk": false,
+      "totalAssets": "0",
+      "totalAssetsFormatted": "0 USDC",
+      "depositCap": "0",
+      "depositCapFormatted": "0 USDC",
+      "protocol": "Morpho",
+      "pool": "0x08C00F8279dFF5B0CB5a04d349E7d79708Ceadf3",
+      "action": "removeArk"
+    },
+    {
+      "name": "Hypurr-usdc-999",
+      "address": "0x1A58fAf5d652814A47081791ACf13fcA83d7790E",
+      "isBufferArk": false,
+      "totalAssets": "0",
+      "totalAssetsFormatted": "0 USDC",
+      "depositCap": "0",
+      "depositCapFormatted": "0 USDC",
+      "protocol": "Hypurr",
+      "pool": "0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b",
+      "action": "removeArk"
+    },
+    {
+      "name": "BufferArk",
+      "address": "0xd01CBC731ED26DDCC1e632Bc7371DF93ae05F2e2",
+      "isBufferArk": true,
+      "totalAssets": "15758409456",
+      "totalAssetsFormatted": "15758.409456 USDC",
+      "depositCap": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "depositCapFormatted": "MAX",
+      "protocol": null,
+      "pool": null,
+      "action": "leave"
+    }
+  ]
+}

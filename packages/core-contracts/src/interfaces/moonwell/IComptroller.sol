@@ -1,5 +1,7 @@
 pragma solidity 0.8.28;
 
+/// @title IComptroller
+/// @notice Minimal interface for the Moonwell Comptroller reward claiming
 interface IComptroller {
     /**
      * @notice Claim all the WELL accrued by holder in the specified markets
@@ -17,5 +19,7 @@ interface IComptroller {
      */
     function claimReward(address payable holder) external;
 
+    /// @notice Returns the address of the reward distributor contract
+    /// @return The reward distributor address
     function rewardDistributor() external view returns (address);
 }

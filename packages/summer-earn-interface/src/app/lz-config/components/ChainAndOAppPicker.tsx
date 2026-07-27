@@ -31,8 +31,8 @@ function Pill({ active, label, onClick }: { active: boolean; label: string; onCl
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
         active
-          ? 'bg-white/10 text-white shadow-xl'
-          : 'text-slate-400 hover:text-white hover:bg-white/5'
+          ? 'bg-white/10 text-on-surface shadow-xl'
+          : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
       }`}
     >
       {label}
@@ -44,7 +44,9 @@ export function ChainAndOAppPicker({ sourceChain, onChainChange, oApp, onOAppCha
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
-        <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Source chain</div>
+        <div className="text-xs uppercase tracking-wider text-on-surface-variant mb-2">
+          Source chain
+        </div>
         <div className="inline-flex items-center bg-white/5 border border-white/10 p-1.5 rounded-xl">
           {ALL_CHAINS.map((c) => (
             <Pill
@@ -57,7 +59,7 @@ export function ChainAndOAppPicker({ sourceChain, onChainChange, oApp, onOAppCha
         </div>
       </div>
       <div>
-        <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">OApp</div>
+        <div className="text-xs uppercase tracking-wider text-on-surface-variant mb-2">OApp</div>
         <div className="inline-flex items-center bg-white/5 border border-white/10 p-1.5 rounded-xl">
           {ALL_OAPPS.map((o) => (
             <Pill

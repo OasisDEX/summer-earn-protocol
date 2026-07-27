@@ -7,6 +7,8 @@ import {ISuperstateArkEvents} from "../../events/arks/ISuperstateArkEvents.sol";
 import {ISuperstateStandardArkErrors} from "../../errors/arks/ISuperstateStandardArkErrors.sol";
 import {ISuperstateStandardArkEvents} from "../../events/arks/ISuperstateStandardArkEvents.sol";
 
+/// @title ISuperstateStandardArk
+/// @notice Aggregates the Ark interface with Superstate standard-Ark events and errors
 interface ISuperstateStandardArk is
     IArk,
     ISuperstateArkErrors,

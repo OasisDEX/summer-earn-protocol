@@ -8,6 +8,7 @@ import { AdmiralsWhitelistToggle } from '@/components/AdmiralsWhitelistToggle'
 import { ChainSelector } from '@/components/ChainSelector'
 import { InstitutionRolesPanel } from '@/components/InstitutionRolesPanel'
 import { InstitutionSelector } from '@/components/InstitutionSelector'
+import { AddressDisplay, EmptyState, PageHeader, RetiredDataNotice } from '@/components/ui'
 import { WhitelistManager } from '@/components/WhitelistManager'
 import { useInstitutionRoles, useInstitutions, useInstitutionVaults } from '@/hooks/useInstitutions'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -21,14 +22,16 @@ export default function InstitutionsPage() {
   const { address: connected, isConnected } = useAccount()
   const { data: institutions = [] } = useInstitutions(selectedChain)
 
-  const { data: roles = [], isLoading: rolesLoading } = useInstitutionRoles(
-    selectedChain,
-    institutionId,
-  )
-  const { data: vaults = [], isLoading: vaultsLoading } = useInstitutionVaults(
-    selectedChain,
-    institutionId,
-  )
+  const {
+    data: roles = [],
+    isLoading: rolesLoading,
+    error: rolesError,
+  } = useInstitutionRoles(selectedChain, institutionId)
+  const {
+    data: vaults = [],
+    isLoading: vaultsLoading,
+    error: vaultsError,
+  } = useInstitutionVaults(selectedChain, institutionId)
 
   const selectedInstitution = useMemo(
     () => institutions.find((i) => i.id === institutionId),
@@ -54,14 +57,14 @@ export default function InstitutionsPage() {
   }, [roles])
 
   return (
-    <main className="min-h-screen bg-charcoal-900 p-8">
+    <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Institutions</h1>
-          <p className="text-gray-300">Manage institutional roles and vault whitelist access</p>
-        </div>
+        <PageHeader
+          title="Institutions"
+          description="Manage institutional roles and vault whitelist access"
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-charcoal-800/70 p-6 rounded-xl border border-white/10 shadow-card backdrop-blur">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 glass p-6 rounded-xl">
           <ChainSelector
             selectedChain={selectedChain}
             onChange={(c) => {
@@ -79,12 +82,17 @@ export default function InstitutionsPage() {
         {institutionId && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <section className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10">
-                <h2 className="text-xl font-semibold text-white mb-4">Vaults</h2>
-                {vaultsLoading ? (
-                  <p className="text-gray-400">Loading vaults...</p>
+              <section className="glass p-6 rounded-xl">
+                <h2 className="text-lg font-headline font-semibold text-on-surface mb-4">Vaults</h2>
+                {vaultsError ? (
+                  <RetiredDataNotice what="The institutions subgraph" />
+                ) : vaultsLoading ? (
+                  <p className="text-on-surface-variant">Loading vaults…</p>
                 ) : vaults.length === 0 ? (
-                  <p className="text-gray-400">No vaults found for this institution.</p>
+                  <EmptyState
+                    title="No vaults"
+                    description="No vaults found for this institution."
+                  />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {vaults.map((vault) => {
@@ -97,19 +105,21 @@ export default function InstitutionsPage() {
                       return (
                         <div
                           key={id}
-                          className="p-4 bg-gray-900 rounded-lg border border-white/10 space-y-3"
+                          className="p-4 bg-surface-container-high rounded-lg border border-white/10 space-y-3"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="text-white font-semibold">{name ?? 'Vault'}</h3>
-                              <p className="text-sm text-blue-300 font-mono break-all">{address}</p>
+                              <h3 className="text-base font-headline font-semibold text-on-surface">
+                                {name ?? 'Vault'}
+                              </h3>
+                              <AddressDisplay value={address} full className="text-info text-sm" />
                             </div>
                           </div>
                           {isAddress && (
                             <div className="flex items-center justify-between gap-3">
                               <Link
                                 href={`/fleet/${selectedChain}/${address}`}
-                                className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+                                className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
                               >
                                 View Vault →
                               </Link>
@@ -126,42 +136,52 @@ export default function InstitutionsPage() {
                 )}
               </section>
 
-              <section className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10">
-                <h2 className="text-xl font-semibold text-white mb-4">Roles</h2>
-                {rolesLoading ? (
-                  <p className="text-gray-400">Loading roles...</p>
+              <section className="glass p-6 rounded-xl">
+                <h2 className="text-lg font-headline font-semibold text-on-surface mb-4">Roles</h2>
+                {rolesError ? (
+                  <RetiredDataNotice what="The institutions subgraph" />
+                ) : rolesLoading ? (
+                  <p className="text-on-surface-variant">Loading roles…</p>
                 ) : (
                   <div className="space-y-6">
                     {Object.values(groupedRoles).length === 0 && (
-                      <p className="text-gray-400">No roles found in subgraph.</p>
+                      <EmptyState title="No roles" description="No roles found in subgraph." />
                     )}
                     {Object.values(groupedRoles).map((group) => (
                       <div
                         key={group.name}
-                        className="bg-gray-900 p-4 rounded-lg border border-white/10"
+                        className="bg-surface-container-high p-4 rounded-lg border border-white/10"
                       >
-                        <h3 className="text-white font-semibold mb-3">{group.name}</h3>
+                        <h3 className="text-base font-headline font-semibold text-on-surface mb-3">
+                          {group.name}
+                        </h3>
                         <div className="space-y-2">
                           {group.items.map((r) => (
                             <div
                               key={r.id}
-                              className="text-sm text-gray-300 grid grid-cols-1 md:grid-cols-3 gap-2"
+                              className="text-sm text-on-surface-variant grid grid-cols-1 md:grid-cols-3 gap-2"
                             >
                               <div>
-                                <span className="text-gray-400">Owner:</span>{' '}
-                                <span className="font-mono text-blue-300 break-all">{r.owner}</span>
+                                <span className="text-on-surface-variant/80">Owner:</span>{' '}
+                                <AddressDisplay value={r.owner} full className="text-info" />
                               </div>
                               <div>
-                                <span className="text-gray-400">Target:</span>{' '}
-                                <span className="font-mono text-blue-300 break-all">
-                                  {r.targetContract}
-                                </span>
+                                <span className="text-on-surface-variant/80">Target:</span>{' '}
+                                <AddressDisplay
+                                  value={r.targetContract}
+                                  full
+                                  className="text-info"
+                                />
                               </div>
                               <div>
-                                <span className="text-gray-400">AccessController:</span>{' '}
-                                <span className="font-mono text-blue-300 break-all">
-                                  {r.accessController}
-                                </span>
+                                <span className="text-on-surface-variant/80">
+                                  AccessController:
+                                </span>{' '}
+                                <AddressDisplay
+                                  value={r.accessController}
+                                  full
+                                  className="text-info"
+                                />
                               </div>
                             </div>
                           ))}
@@ -173,9 +193,9 @@ export default function InstitutionsPage() {
               </section>
             </div>
             <aside className="space-y-6">
-              <div className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10">
-                <h2 className="text-xl font-semibold text-white mb-4">Notes</h2>
-                <ul className="list-disc list-inside text-gray-300 text-sm space-y-2">
+              <div className="glass p-6 rounded-xl">
+                <h2 className="text-lg font-headline font-semibold text-on-surface mb-4">Notes</h2>
+                <ul className="list-disc list-inside text-on-surface-variant text-sm space-y-2">
                   <li>
                     {isConnected
                       ? isAdmin
@@ -188,8 +208,10 @@ export default function InstitutionsPage() {
                 </ul>
               </div>
               {selectedInstitution && isAdmin && (
-                <div className="bg-charcoal-800/70 p-6 rounded-xl border border-white/10 space-y-4">
-                  <h2 className="text-xl font-semibold text-white">Institution Admin</h2>
+                <div className="glass p-6 rounded-xl space-y-4">
+                  <h2 className="text-lg font-headline font-semibold text-on-surface">
+                    Institution Admin
+                  </h2>
                   {selectedInstitution.admiralsQuarters && (
                     <AdmiralsWhitelistToggle
                       admiralsQuarters={selectedInstitution.admiralsQuarters as `0x${string}`}

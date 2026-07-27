@@ -38,7 +38,9 @@ contract SiUSDArk is Ark {
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when the supplied InfiniFi Gateway address is the zero address
     error InvalidGatewayAddress();
+    /// @notice Thrown when the supplied siUSD vault address is the zero address
     error InvalidSiUSDAddress();
 
     /*//////////////////////////////////////////////////////////////

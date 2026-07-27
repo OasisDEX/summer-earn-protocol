@@ -1,4 +1,5 @@
 [profile.default]
+extra_output = ["devdoc", "userdoc"]
 src = "src"
 out = "out"
 libs = [
@@ -55,3 +56,9 @@ sepolia = { key = "7KB7N6WAQJFFC2F5UP98RBTESZ11EK8X8W}" }
 base = { key = "8M4JVVERCDQURGWJ6UIVQU23YNAQU9Y5PK"  }
 #                   Paste TENDERLY_ACCESS_TOKEN            Chain ID         Verifier URL: RPC_URL/verify/etherscan
 unknown_chain = { key = "${TENDERLY_ACCESS_KEY}", chain = 84537357, url = "${TENDERLY_VIRTUAL_TESTNET_RPC_URL}/verify/etherscan" }
+
+[doc]
+out = "docs/generated"
+title = "Summer Governance Contracts"
+repository = "https://github.com/OasisDEX/summer-earn-protocol"
+ignore = ["**/mocks/**", "**/test/**"]

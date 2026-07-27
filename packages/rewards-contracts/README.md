@@ -1,103 +1,67 @@
-# Summer Rewards Distribution System
+# rewards-contracts
 
-This package contains the smart contracts for managing Summer's token reward distributions using Merkle trees.
+Solidity package (`@summerfi/rewards-contracts`) providing the staking rewards and Merkle-based
+reward redemption contracts used across the Summer protocol.
 
-## Overview
+## Key contracts
 
-The system uses `SummerRewardsRedeemer.sol` - a smart contract for managing and claiming rewards through a Merkle-based distribution system.
+- **`StakingRewardsManagerBase`** (`src/contracts/StakingRewardsManagerBase.sol`) — abstract base
+  for staking reward logic; `FleetCommanderRewardsManager` (core-contracts) and
+  `GovernanceRewardsManager` (gov-contracts) both inherit from it.
+- **`SummerRewardsRedeemer`** (`src/contracts/SummerRewardsRedeemer.sol`) — Merkle-tree reward
+  distributor gated by `ProtocolAccessManaged` (`@summerfi/access-contracts`).
+- **`SummerRewardsRedeemerOwnable`** (`src/contracts/SummerRewardsRedeemerOwnable.sol`) — same
+  Merkle distribution logic, gated by `Ownable` instead of the protocol access manager.
 
-## Directory Structure
+Interfaces live in `src/interfaces/`: `IStakingRewardsManagerBase`,
+`IStakingRewardsManagerBaseErrors`, `ISummerRewardsRedeemer`.
 
-```
-packages/rewards-contracts/
-└── src/contracts/
-    └── SummerRewardsRedeemer.sol
-```
+## Build and test
 
-## Contract Features
-
-### Governance Functions
-- `addRoot(uint256 index, bytes32 root)`: Add a new distribution
-- `removeRoot(uint256 index)`: Remove a distribution
-- `emergencyWithdraw(address token, address to, uint256 amount)`: Emergency withdrawal
-
-### User Functions
-- `claim`: Claim rewards for a single distribution
-- `claimMultiple`: Claim rewards from multiple distributions at once
-- `canClaim`: Check if a claim is possible
-- `hasClaimed`: Check if rewards were already claimed
-
-### Security Features
-- Double-hashed leaves to prevent second preimage attacks
-- Safe ERC20 transfers
-- Governance-controlled root management
-- Bitmap-based claim tracking
-- Protection against duplicate claims
-
-## Usage
-
-### 1. Deploy Contract
-
-Deploy `SummerRewardsRedeemer` with:
-- `_rewardsToken`: Address of the token to distribute
-- `_accessManager`: Address of Summer's access manager
-
-### 2. Add Merkle Root
-
-Using the governance system, call `addRoot(uint256 index, bytes32 root)` with:
-- `index`: Distribution number (e.g., 1 for first distribution)
-- `root`: Merkle root from the generated JSON file
-
-### 3. Users Claim Rewards
-
-Users can claim their rewards in several ways:
-
-```solidity
-// Single claim
-function claim(
-    uint256 index,
-    uint256 amount,
-    bytes32[] calldata proof
-) external;
-
-// Multiple claims at once
-function claimMultiple(
-    uint256[] calldata indices,
-    uint256[] calldata amounts,
-    bytes32[][] calldata proofs
-) external;
-```
-
-Users can check their claim status:
-```solidity
-function canClaim(
-    uint256 index,
-    uint256 amount,
-    bytes32[] memory proof
-) external view returns (bool);
-
-function hasClaimed(
-    address user,
-    uint256 index
-) public view returns (bool);
-```
-
-## Development
-
-### Prerequisites
-- Node.js 16+
-- pnpm
-- Foundry (for contract testing)
-
-### Setup
 ```bash
-pnpm install
-```
-
-### Testing
-```bash
+# Run Foundry tests
 pnpm test
+
+# Coverage (IR pipeline)
+pnpm coverage
+
+# Generate NatSpec docs
+pnpm docs:gen
+
+# Format Solidity sources
+pnpm format:fix
 ```
+
+## Cross-package connections
+
+**Consumes:**
+
+- `@summerfi/access-contracts` — `ProtocolAccessManaged` base used by `StakingRewardsManagerBase`
+  and `SummerRewardsRedeemer`.
+- `@summerfi/constants` — shared numeric constants.
+- `@summerfi/voting-decay` — referenced as a workspace dependency.
+- `@summerfi/dependencies` — shared Foundry/remapping setup.
+
+**Consumed by:**
+
+- `@summerfi/core-contracts` — `FleetCommanderRewardsManager` inherits `StakingRewardsManagerBase`;
+  `AdmiralsQuarters` imports the `IStakingRewardsManagerBase` and `ISummerRewardsRedeemer`
+  interfaces.
+- `@summerfi/gov-contracts` — `GovernanceRewardsManager` imports `StakingRewardsManagerBase`.
+- `@summerfi/intent-system` and `@summerfi/deployment` — list this package as a dependency.
+
+**Gotchas:**
+
+- Any new reward token or root-management role added here must be reflected in the inheriting
+  contracts in `core-contracts` and `gov-contracts`; there is no runtime registry — callers are
+  hard-linked.
+
+## Documentation
+
+GitBook reference:
+[contracts/rewards/reference/README.md](../../gitbook/contracts/rewards/reference/README.md)
+(SUMMARY.md line 347).
 
 ## License
+
 BUSL-1.1

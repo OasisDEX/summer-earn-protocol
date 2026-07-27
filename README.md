@@ -1,69 +1,128 @@
-
 [![](https://canada1.discourse-cdn.com/flex009/uploads/summer/original/1X/41245886b684401dfcfbc8db7642973e9f3f74e1.png)](https://summer.fi)
 
 # Summerfi Earn Protocol
 
-## TLDR;
+pnpm + Turborepo monorepo containing the Summer.fi Earn Protocol: Solidity contracts (Foundry),
+deployment tooling (Hardhat Ignition), Goldsky subgraphs, and TypeScript/Next.js apps and services.
 
-### Initialize the repository
+- Full documentation lives in [`gitbook/`](gitbook/) (built with `pnpm docs:build`).
+- Cross-package change checklists (new ark, new chain, new institution, governance redeploys, oracle
+  deploys) live in [`AGENTS.md`](AGENTS.md).
+
+## Setup
 
 ```bash
-$ pnpm i
+# Node deps (postinstall also runs `git submodule update --init`)
+pnpm i
+
+# Foundry (forge/cast/anvil)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 ```
 
-### Install Foundry
-
-```bash
-$ curl -L https://foundry.paradigm.xyz | bash
-$ foundryup
-```
-
-Restart your terminal after running the above commands.
-
-## Structure
-
-### Packages
-
-- `contracts-protocol`: Core contracts for the Summer Earn Protocol
-- `gov-contracts`: Governance contracts for the Summer Earn Protocol
-- `voting-decay`: Voting Decay library
-- `access-control`: Access control contracts for the Summer Earn Protocol
-- `rewards-contracts`: Rewards contracts for the Summer Earn Protocol
-- `dutch-auction`: Dutch Auction contracts for the Summer Earn Protocol
-- `external-dependencies`: External dependencies for the Summer Earn Protocol
-- `eslint-config`: Base `eslint` configurations
-- `jest-config`: Base `jest` configurations
-- `tenderly-utils`: Utility functions for interacting with Tenderly API
-- `typescript-config`: Base `tsconfig.json` configurations
+Restart your terminal after installing Foundry. RPC URLs (`MAINNET_RPC_URL`, `BASE_RPC_URL`, …) go
+in a repo-root `.env`; the list of recognized vars is in `turbo.json` `globalEnv`.
 
 ## Commands
 
-### Build
-
-To build all apps and packages, run the following command:
-
-```shell
-pnpm build
+```bash
+pnpm build      # build all packages (turbo; excludes the Next.js apps — build those with pnpm -F <pkg> build)
+pnpm dev        # run dev tasks across packages
+pnpm test       # run all tests
+pnpm lint       # lint
+pnpm format:fix # format
+pnpm cicheck    # CI check suite + total coverage
+pnpm docs:build # regenerate gitbook/ reference docs (forge doc + TypeDoc + assemble)
 ```
 
-### Develop
+## Deployed apps
 
-To develop all apps and packages, run the following command:
+The Next.js apps are hosted on AWS Amplify (Terraform in [`infrastructure/`](infrastructure/)); the
+`main` branch of each app auto-deploys on merge. Live per-commit status is on the repo's
+[Deployments page](https://github.com/OasisDEX/summer-earn-protocol/deployments), recorded by
+`.github/workflows/amplify-prod-deploys.yaml`. PR previews are label-gated: add the `preview` label
+to a same-repo PR and `.github/workflows/amplify-previews.yaml` deploys previews for the apps the PR
+touches.
 
-```shell
-pnpm dev
-```
+| App                             | Production URL                             |
+| ------------------------------- | ------------------------------------------ |
+| `summer-earn-interface`         | https://test.summer.fi                     |
+| `summer-earn-gov-validator`     | https://gov-test.summer.fi                 |
+| `summer-earn-auctions-frontend` | https://auctions.summer.fi                 |
+| `summer-earn-rwa-app`           | https://main.d3f4hwyptmmvf0.amplifyapp.com |
+| `summer-earn-dca-app`           | https://main.d22o2u30xqvh5.amplifyapp.com  |
+| `institution-inspector`         | https://main.dwmxy1o36bkcv.amplifyapp.com  |
 
-## Useful Links
+URLs are the Amplify custom domains where configured, otherwise the app's default
+`main.<appId>.amplifyapp.com` domain — both keep working if a custom domain is added later.
 
-Learn more about the power of Turborepo:
+## Package directory
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+Contracts (Foundry):
+
+| Package                 | Purpose                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `core-contracts`        | Core Earn Protocol contracts: FleetCommander, ~40 Ark adapters, HarborCommand, AdmiralsQuarters, Raft |
+| `gov-contracts`         | Governance: SUMR token, SummerGovernor v1/v2, timelocks, staking, vesting, rewards                    |
+| `access-contracts`      | ProtocolAccessManager (V1) and V2 (per-context whitelist + OPERATOR_ROLE for institutional fleets)    |
+| `config-contracts`      | ConfigurationManager protocol-wide address registry                                                   |
+| `rewards-contracts`     | Staking rewards and Merkle-based reward redemption                                                    |
+| `dutch-auction`         | Dutch auction library (linear and exponential decay) used by Raft                                     |
+| `rwa-oracles`           | Chainlink-compatible RwaOracle / OracleRegistry contracts for RWA price feeds                         |
+| `voting-decay`          | Voting-power decay library for governance                                                             |
+| `percentage`            | Fixed-point `Percentage` / `BPS` Solidity math types                                                  |
+| `price-utils`           | Base/quote price math library                                                                         |
+| `math-utils`            | Fixed-point exponentiation library                                                                    |
+| `constants`             | Shared Solidity constants                                                                             |
+| `external-dependencies` | Vendored third-party Solidity libraries (single workspace package)                                    |
+| `legacy-dependencies`   | Pinned `@layerzerolabs/*` / `solidity-bytes-utils` versions matching deployed gov contracts           |
+| `intent-system`         | Intent-based bond system contracts (**not deployed**)                                                 |
+| `chain-bridge`          | Cross-chain bridge contracts (**not deployed**)                                                       |
+
+Deployment and ops:
+
+| Package            | Purpose                                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `deployment`       | Hardhat Ignition deploy scripts and per-chain config; `config/index.json` is the source of truth for all on-chain addresses |
+| `oracle-cli`       | CLI for deploying/operating RWA oracles; records addresses in `src/deployments.json` / `src/yield-deployments.json`         |
+| `oracle-dashboard` | Next.js monitoring UI for the RWA oracle system (hand-copied deployments from oracle-cli)                                   |
+| `ark-rebalancer`   | Proof-of-concept Python bot that rebalances a fleet toward the highest-rate ark                                             |
+| `tenderly-utils`   | Tenderly REST API / CLI wrappers for fork-based testing                                                                     |
+
+Subgraphs (Goldsky; each has per-chain `config/<network>.json` + `deploy:<network>` scripts):
+
+| Package                                | Purpose                                                                                  |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `summer-earn-protocol-subgraph`        | Core protocol indexing: HarborCommand, fleets, arks, staking (dynamic templates)         |
+| `summer-earn-rates-subgraph`           | APR/APY and TVL for underlying DeFi protocols (hand-configured Products per chain)       |
+| `summer-earn-protocol-gov-subgraph`    | Governor v1/v2 proposals, votes, roles, timelocks                                        |
+| `summer-earn-institutions-subgraph`    | InstitutionalVaultRegistry v1 and institutional vault activity                           |
+| `summer-earn-institutions-v2-subgraph` | Registry v2 + RoundsVaultRegistry (separate prod and `-staging` configs/slugs per chain) |
+| `summer-earn-auctions-subgraph`        | Raft dutch auction indexing                                                              |
+| `summer-earn-dca-subgraph`             | DCAStrategyManager + Chainlink feed indexing (base, mainnet)                             |
+
+Apps and services:
+
+| Package                         | Purpose                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `summer-earn-interface`         | Main Next.js app: fleet browsing, deposits/withdrawals, vesting, staking, rewards          |
+| `summer-earn-rwa-app`           | Next.js app for the institutional/RWA whitelist stack (hand-maintained institution config) |
+| `institution-inspector`         | Next.js graph viewer for institutions, fleets, arks, and roles (static export on Amplify)  |
+| `summer-earn-dca-app`           | Next.js frontend for DCA strategies (Base)                                                 |
+| `summer-earn-auctions-frontend` | Next.js app showing and buying Raft dutch auctions                                         |
+| `summer-earn-gov-validator`     | Next.js app for decoding, validating, and executing governance proposals                   |
+| `summer-earn-gov-alert-bot`     | Node.js service polling governance events and alerting                                     |
+
+Shared tooling:
+
+| Package                                               | Purpose                                          |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| `eslint-config` / `jest-config` / `typescript-config` | Base lint/test/tsconfig presets                  |
+| `skills`                                              | Agent skill guides (ark development, deployment) |
+
+You may also see empty placeholder directories locally (e.g. `configuration-manager-contracts`,
+`referral-validator`, `scripts`, `subgraph`, `summer-earn-shareseconds-subgraph`) — they are not
+part of the repository.
 
 [![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/h/maple-institutional/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)
 
@@ -94,7 +153,8 @@ pnpm --version | cat
 
 ### Package under audit: @summerfi/earn-gov-contracts
 
-Scope includes `SummerStaking.sol`, `SummerVestingWalletsEscrow.sol`, `SummerGovernorV2.sol`, `StakedSummerToken.sol`.
+Scope includes `SummerStaking.sol`, `SummerVestingWalletsEscrow.sol`, `SummerGovernorV2.sol`,
+`StakedSummerToken.sol`.
 
 Run build, tests, and coverage:
 
@@ -114,8 +174,11 @@ pnpm -F @summerfi/earn-gov-contracts coverage:report
 ```
 
 Notes:
-- Coverage excludes common non-source files via `--no-match-coverage '(script|test|TestBase|Mock|Test)'`.
-- Every test must include failure paths (e.g., `vm.expectRevert(...)`), otherwise it is not considered valid.
+
+- Coverage excludes common non-source files via
+  `--no-match-coverage '(script|test|TestBase|Mock|Test)'`.
+- Every test must include failure paths (e.g., `vm.expectRevert(...)`), otherwise it is not
+  considered valid.
 
 ### Foundry tips
 

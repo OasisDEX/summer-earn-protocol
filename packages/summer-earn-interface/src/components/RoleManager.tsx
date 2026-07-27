@@ -5,6 +5,7 @@ import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteCont
 
 import { useRoleConstants } from '../hooks/useRoleConstants'
 import type { ArkRole, FleetRole, GlobalRole } from '../types'
+import { AddressDisplay, Badge, inputBase, labelBase, selectBase } from './ui'
 // Inline minimal ABI for ProtocolAccessManager to avoid external import coupling
 const protocolAccessManagerAbi = [
   {
@@ -405,23 +406,23 @@ export function RoleManager({ contractAddress, selectedRole, targetContract }: R
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-white">
+      <h3 className="text-lg font-headline font-semibold text-on-surface">
         Manage Role: {selectedRole.replace('_', ' ')}
       </h3>
 
       {!isConnected && (
-        <div className="p-4 bg-yellow-900 border border-yellow-600 rounded-lg">
-          <p className="text-yellow-200">Please connect your wallet to manage roles.</p>
+        <div className="p-4 bg-warning/15 border border-warning/30 rounded-lg">
+          <p className="text-warning">Please connect your wallet to manage roles.</p>
         </div>
       )}
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Action</label>
+          <label className={labelBase}>Action</label>
           <select
             value={action}
             onChange={(e) => setAction(e.target.value as 'grant' | 'revoke')}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`${selectBase} w-full`}
           >
             <option value="grant">Grant Role</option>
             <option value="revoke">Revoke Role</option>
@@ -429,32 +430,32 @@ export function RoleManager({ contractAddress, selectedRole, targetContract }: R
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">User Address</label>
+          <label className={labelBase}>User Address</label>
           <input
             type="text"
-            placeholder="0x..."
+            placeholder="0x…"
             value={userAddress}
             onChange={(e) => setUserAddress(e.target.value)}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+            className={`${inputBase} font-mono`}
           />
         </div>
 
         {requiresTargetContract && targetContract && (
-          <div className="p-4 bg-gray-800 rounded-lg">
-            <p className="text-sm text-gray-300">
+          <div className="p-4 bg-surface-container-high border border-white/10 rounded-lg">
+            <p className="text-sm text-on-surface-variant">
               <strong>Target Contract:</strong>{' '}
-              <span className="font-mono text-blue-300">{targetContract}</span>
+              <AddressDisplay value={targetContract} full className="text-info" />
             </p>
           </div>
         )}
 
         {normalizedUserAddress && hasRole !== undefined && (
-          <div className="p-4 bg-gray-800 rounded-lg">
-            <p className="text-sm text-gray-300">
+          <div className="p-4 bg-surface-container-high border border-white/10 rounded-lg">
+            <p className="text-sm text-on-surface-variant flex items-center gap-2">
               <strong>Current Status:</strong>{' '}
-              <span className={`font-semibold ${hasRole ? 'text-green-400' : 'text-red-400'}`}>
+              <Badge tone={hasRole ? 'success' : 'danger'} size="sm">
                 {hasRole ? 'Has Role' : 'Does Not Have Role'}
-              </span>
+              </Badge>
             </p>
           </div>
         )}
@@ -465,39 +466,39 @@ export function RoleManager({ contractAddress, selectedRole, targetContract }: R
           className={`w-full p-3 rounded-lg font-semibold transition-colors ${
             canSubmit && !isWriting && !isConfirming
               ? action === 'grant'
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-red-600 hover:bg-red-700 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                ? 'bg-secondary/15 border border-secondary/30 text-secondary hover:bg-secondary/25'
+                : 'bg-error/15 border border-error/30 text-error hover:bg-error/25'
+              : 'bg-white/5 border border-white/10 text-on-surface-variant/50 cursor-not-allowed'
           }`}
         >
           {isWriting
-            ? 'Sending Transaction...'
+            ? 'Sending Transaction…'
             : isConfirming
-              ? 'Confirming...'
+              ? 'Confirming…'
               : `${action === 'grant' ? 'Grant' : 'Revoke'} ${selectedRole.replace('_', ' ')}`}
         </button>
 
         {writeError && (
-          <div className="p-4 bg-red-900 border border-red-600 rounded-lg">
-            <p className="text-red-200 text-sm">
+          <div className="p-4 bg-error/15 border border-error/30 rounded-lg">
+            <p className="text-error text-sm">
               <strong>Error:</strong> {writeError.message}
             </p>
           </div>
         )}
 
         {isConfirmed && (
-          <div className="p-4 bg-green-900 border border-green-600 rounded-lg">
-            <p className="text-green-200 text-sm">
+          <div className="p-4 bg-success/15 border border-success/30 rounded-lg">
+            <p className="text-success text-sm">
               <strong>Success!</strong> Transaction confirmed.
             </p>
           </div>
         )}
 
         {txHash && (
-          <div className="p-4 bg-gray-800 rounded-lg">
-            <p className="text-sm text-gray-300">
+          <div className="p-4 bg-surface-container-high border border-white/10 rounded-lg">
+            <p className="text-sm text-on-surface-variant">
               <strong>Transaction Hash:</strong>{' '}
-              <span className="font-mono text-blue-300 break-all">{txHash}</span>
+              <AddressDisplay value={txHash} full className="text-info" />
             </p>
           </div>
         )}

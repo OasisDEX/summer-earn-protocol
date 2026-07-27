@@ -10,32 +10,58 @@ interface IIntentHandler {
                                         EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new intent is created
+    /// @param orderId Unique identifier of the intent order
+    /// @param intent Struct containing all parameters of the created intent
     event IntentCreated(bytes32 orderId, Intent intent);
 
+    /// @notice Emitted when an intent is successfully solved by a solver
+    /// @param ark The address of the Ark that created the intent
+    /// @param solver The address of the solver that solved the intent
+    /// @param escrowedYield The amount of yield escrowed by the solver
     event IntentSolved(
         address indexed ark,
         address indexed solver,
         uint256 escrowedYield
     );
 
+    /// @notice Reserved for a future activation step; not currently emitted
+    /// @dev The IntentState.Active state and this event are declared but never
+    ///      assigned/emitted by the current IntentHandler implementation.
+    /// @param ark The address of the Ark
+    /// @param solver The address of the solver
+    /// @param startTime The block timestamp when the intent was activated
     event IntentActivated(
         address indexed ark,
         address indexed solver,
         uint256 startTime
     );
 
+    /// @notice Emitted when an intent is settled
+    /// @param ark The address of the Ark
+    /// @param solver The address of the solver
+    /// @param escrowedYield The escrowed yield amount returned to solver/ark
     event IntentSettled(
         address indexed ark,
         address indexed solver,
         uint256 escrowedYield
     );
 
+    /// @notice Emitted when an intent is resigned on behalf of the user
+    /// @param ark The address of the Ark
+    /// @param solver Always address(0) for this event (not populated on user resignation)
+    /// @param escrowedYield Always 0 for this event (the escrow refund is not reported here)
     event IntentResignedByArk(
         address indexed ark,
         address indexed solver,
         uint256 escrowedYield
     );
 
+    /// @notice Emitted when an intent is resigned by the solver, causing a bond penalty
+    /// @param ark The address of the Ark
+    /// @param solver The address of the solver
+    /// @param slashedAmount The amount of solver's bond slashed
+    /// @param escrowedYield The intent's target yield (intent.targetYield), which is the upper bound on the escrowed amount
     event IntentResignedBySolver(
         address indexed ark,
         address indexed solver,
@@ -47,15 +73,35 @@ interface IIntentHandler {
                                         ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when attempting to create an intent that already exists
     error IntentHandler__IntentAlreadyExists();
+
+    /// @notice Thrown when the specified intent does not exist
     error IntentHandler__IntentNotFound();
+
+    /// @notice Thrown when attempting to interact with an expired intent
     error IntentHandler__IntentExpired();
+
+    /// @notice Thrown when attempting to settle/activate an intent that has not been solved
     error IntentHandler__IntentNotSolved();
+
+    /// @notice Thrown when the solver has an insufficient bond balance to solve the intent
     error IntentHandler__InsufficientBond();
+
+    /// @notice Thrown when the price oracle address is invalid
     error IntentHandler__InvalidOracle();
+
+    /// @notice Thrown when the intent is in an invalid state for the requested operation
     error IntentHandler__InvalidState();
+
+    /// @notice Thrown when the caller is not authorized to perform the operation
     error IntentHandler__UnauthorizedCaller();
+
+    /// @notice Thrown when constructor parameters are invalid
+    /// @param reason String detailing the validation failure
     error IntentHandler__ConstructorParamsInvalid(string reason);
+
+    /// @notice Thrown when the yield amount escrowed is less than the required amount
     error IntentHandler__TooLittleEscrowed();
 
     /*//////////////////////////////////////////////////////////////
@@ -73,6 +119,7 @@ interface IIntentHandler {
         uint256 expiry;
     }
 
+    /// @notice Enum representing the lifecycle states of an intent
     enum IntentState {
         None,
         Created,
@@ -101,13 +148,17 @@ interface IIntentHandler {
     function solveIntent(Intent memory intent, uint256 escrowedYield) external;
 
     /**
-     * @notice Settles an intent (can only be called by the solver)
+     * @notice Settles an intent once it has reached its expiry
+     * @dev Permissionless: callable by anyone; gated on block.timestamp >= intent.expiry
+     *      and on the intent being in the Solved state.
      * @param intent Intent struct containing intent information
      */
     function settleIntent(Intent memory intent) external;
 
     /**
-     * @notice Resigns an intent by the Ark (can only be called before solving)
+     * @notice Resigns an intent on behalf of the user
+     * @dev Callable by a keeper (onlyKeeper) while the intent is in the Created or
+     *      Solved state; in the Solved state the escrow is returned to the solver.
      * @param intent Intent struct containing intent information
      */
     function resignByUser(Intent memory intent) external;

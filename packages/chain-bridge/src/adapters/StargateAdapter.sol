@@ -623,6 +623,8 @@ contract StargateAdapter is
 
     /**
      * @notice Get the LayerZero Endpoint ID for a given chain
+     * @param chainId The chain ID to query
+     * @return The LayerZero Endpoint ID for the chain
      */
     function getEndpointId(uint16 chainId) external view returns (uint32) {
         return chainToExternalId[chainId];

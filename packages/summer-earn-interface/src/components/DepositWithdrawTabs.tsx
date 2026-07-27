@@ -56,7 +56,7 @@ export function DepositWithdrawTabs({
 
   return (
     <div className="glass rounded-2xl p-6">
-      <h3 className="font-bold text-lg text-white mb-6">Deposit & Withdraw</h3>
+      <h3 className="font-headline font-bold text-lg text-on-surface mb-6">Deposit & Withdraw</h3>
 
       {/* Tab Navigation */}
       <div className="flex gap-1 mb-6 bg-white/5 p-1 rounded-xl border border-white/5">
@@ -64,8 +64,8 @@ export function DepositWithdrawTabs({
           onClick={() => setActiveTab('deposit')}
           className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'deposit'
-              ? 'bg-primary text-white shadow-lg shadow-primary/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              ? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
           }`}
         >
           Deposit {assetSymbol}
@@ -74,8 +74,8 @@ export function DepositWithdrawTabs({
           onClick={() => setActiveTab('withdraw')}
           className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === 'withdraw'
-              ? 'bg-primary text-white shadow-lg shadow-primary/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              ? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
           }`}
         >
           Withdraw {assetSymbol}
@@ -86,8 +86,10 @@ export function DepositWithdrawTabs({
       {activeTab === 'deposit' && (
         <div className="space-y-4">
           <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
-            <p className="text-xs text-slate-400 uppercase font-bold mb-2">Deposit Process</p>
-            <p className="text-sm text-slate-300">
+            <p className="text-xs text-on-surface-variant uppercase font-bold mb-2">
+              Deposit Process
+            </p>
+            <p className="text-sm text-on-surface/90">
               1. Deposit {assetSymbol} → Get {fleetSymbol} shares
               <br />
               2. {fleetSymbol} shares earn yield from fleet strategies
@@ -117,8 +119,8 @@ export function DepositWithdrawTabs({
                 disabled={isApproveLoading || parsedDepositAmount === BigInt(0)}
                 className={`w-full py-3 rounded-xl font-bold transition-all ${
                   isApproveLoading || parsedDepositAmount === BigInt(0)
-                    ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
-                    : 'bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30'
+                    ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+                    : 'bg-warning/15 border border-warning/30 text-warning hover:bg-warning/25'
                 }`}
               >
                 {isApproveLoading ? 'Approving...' : `Approve ${assetSymbol}`}
@@ -132,8 +134,8 @@ export function DepositWithdrawTabs({
               }
               className={`w-full py-3 rounded-xl font-bold transition-all ${
                 isDepositLoading || parsedDepositAmount === BigInt(0) || depositNeedsApproval
-                  ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
+                  ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+                  : 'bg-primary hover:bg-primary-dim border border-primary/50 text-on-primary'
               }`}
             >
               {isDepositLoading ? 'Depositing...' : `Deposit ${assetSymbol}`}
@@ -144,9 +146,11 @@ export function DepositWithdrawTabs({
 
       {activeTab === 'withdraw' && (
         <div className="space-y-4">
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-            <p className="text-xs text-slate-400 uppercase font-bold mb-2">Withdraw Process</p>
-            <p className="text-sm text-slate-300">
+          <div className="p-4 bg-secondary/10 border border-secondary/20 rounded-xl">
+            <p className="text-xs text-on-surface-variant uppercase font-bold mb-2">
+              Withdraw Process
+            </p>
+            <p className="text-sm text-on-surface/90">
               1. Burn {fleetSymbol} shares → Get {assetSymbol}
               <br />
               2. You&apos;ll receive your share of fleet performance
@@ -175,8 +179,8 @@ export function DepositWithdrawTabs({
             disabled={isWithdrawLoading || parsedWithdrawAmount === BigInt(0)}
             className={`w-full py-3 rounded-xl font-bold transition-all ${
               isWithdrawLoading || parsedWithdrawAmount === BigInt(0)
-                ? 'bg-charcoal-700 text-slate-500 cursor-not-allowed'
-                : 'bg-primary hover:shadow-neon-glow border border-primary/50 text-white'
+                ? 'bg-white/5 text-on-surface-variant/60 cursor-not-allowed'
+                : 'bg-primary hover:bg-primary-dim border border-primary/50 text-on-primary'
             }`}
           >
             {isWithdrawLoading ? 'Withdrawing...' : `Withdraw to ${assetSymbol}`}

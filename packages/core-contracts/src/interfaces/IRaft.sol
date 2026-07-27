@@ -14,7 +14,7 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.s
  */
 interface IRaft is IRaftEvents, IRaftErrors {
     /**
-     * @dev Harvests rewards from the specified Ark and starts an auction for the harvested tokens
+     * @notice Harvests rewards from the specified Ark and starts an auction for the harvested tokens
      * @param ark The address of the Ark contract to harvest rewards from
      * @param rewardData Additional data required by a protocol to harvest
      * @custom:internal-logic
@@ -33,7 +33,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external;
 
     /**
-     * @dev Harvests rewards from the specified Ark without auctioning or reinvesting
+     * @notice Harvests rewards from the specified Ark without auctioning or reinvesting
      * @param ark The address of the Ark contract to harvest rewards from
      * @param rewardData Additional data required by a protocol to harvest
      * @custom:internal-logic
@@ -48,7 +48,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     function harvest(address ark, bytes calldata rewardData) external;
 
     /**
-     * @dev Socializes losses from the specified Ark and reward token
+     * @notice Socializes losses from the specified Ark and reward token
      * @param ark The address of the Ark contract to socialize losses from
      * @param tokens The addresses of the tokens to socialize losses from ( e.g. receipt tokens)
      * @param receiver The address of the receiver who will receive the tokens (e.g. treasury)
@@ -69,7 +69,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external;
 
     /**
-     * @dev Sweeps tokens from the specified Ark and returns them to the caller
+     * @notice Sweeps tokens from the specified Ark and returns them to the caller
      * @param ark The address of the Ark contract to sweep tokens from
      * @param tokens The addresses of the tokens to sweep
      * @return sweptTokens The addresses of the tokens that were swept
@@ -91,7 +91,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
 
     /**
-     * @dev Sweeps tokens from the specified Ark and starts an auction for them
+     * @notice Sweeps tokens from the specified Ark and starts an auction for them
      * @param ark The address of the Ark contract to sweep tokens from
      * @param tokens The addresses of the tokens to sweep
      * @custom:internal-logic
@@ -109,7 +109,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external;
 
     /**
-     * @dev Starts a Dutch auction for the harvested rewards of a specific Ark and reward token
+     * @notice Starts a Dutch auction for the harvested rewards of a specific Ark and reward token
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token to be auctioned
      * @custom:internal-logic
@@ -125,7 +125,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     function startAuction(address ark, address rewardToken) external;
 
     /**
-     * @dev Allows users to buy tokens from an active auction
+     * @notice Allows users to buy tokens from an active auction
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token being auctioned
      * @param amount The amount of tokens to purchase
@@ -150,7 +150,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external returns (uint256 paymentAmount);
 
     /**
-     * @dev Finalizes an auction after its end time has been reached
+     * @notice Finalizes an auction after its end time has been reached
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token that was auctioned
      * @custom:internal-logic
@@ -169,7 +169,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     function finalizeAuction(address ark, address rewardToken) external;
 
     /**
-     * @dev Gets the current price of tokens in an ongoing auction
+     * @notice Gets the current price of tokens in an ongoing auction
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token
      * @return The current price of the auction
@@ -187,7 +187,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external view returns (uint256);
 
     /**
-     * @dev Boards the auctioned token to an Ark
+     * @notice Boards the auctioned token to an Ark
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token to board the rewards to
      * @param data Additional data required by the Ark to board rewards
@@ -247,7 +247,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external;
 
     /**
-     * @dev Sets the auction parameters for a specific Ark and reward token
+     * @notice Sets the auction parameters for a specific Ark and reward token
      * @param ark The address of the Ark
      * @param rewardToken The address of the reward token
      * @param parameters The auction parameters to set

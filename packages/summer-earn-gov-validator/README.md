@@ -1,104 +1,92 @@
 # Summer Earn Governance Validator
 
-A Next.js application for validating governance proposals for the Summer Earn Protocol with integrated wallet connectivity and cross-chain execution capabilities.
+A Next.js 16 application for decoding, validating, and executing governance proposals for the Summer
+Earn Protocol. It reads proposal calldata from the governance subgraph, decodes on-chain actions,
+and lets a connected wallet execute pending cross-chain proposals by calling `executeBatch` on the
+per-chain `SummerTimelockController`.
 
-## Features
+## Key routes
 
-- **Wallet Integration**: Connect your wallet using RainbowKit with support for multiple chains (Mainnet, Base, Arbitrum, Sonic)
-- **Proposal Validation**: Validate governance proposals with calldata decoding
-- **Cross-Chain Proposals**: View and execute cross-chain governance proposals
-- **Real Execution**: Execute pending cross-chain proposals using timelock controller contracts
-- **Modern UI**: Beautiful and responsive interface with Tailwind CSS
+- **`/`** — main governance proposal validator (calldata decoding / simulation)
+- **`/proposals`** — browse on-chain proposals
+- **`/cross-chain`** — cross-chain governance proposals with execution support
+- **`/create-proposal`**, **`/delegates`**, **`/treasury`** — additional governance views
 
-## Getting Started
+## Key source files
 
-1. Install dependencies:
+| File                           | Purpose                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/config/constants.ts`      | `CHAIN_CONFIG` — hand-maintained timelock + SUMR token addresses per chain ID                                                         |
+| `src/config/chains.ts`         | `CHAINS` array (id, name, key, LayerZero eID, tenderlyId) and `CHAIN_THEMES`                                                          |
+| `src/config/rpc.ts`            | `CHAIN_RPC_URLS` — hand-curated public RPC fallback lists                                                                             |
+| `src/config/index.json`        | Deployment config synced from `packages/deployment`                                                                                   |
+| `src/config/deployed/*.json`   | Per-chain deployed addresses synced from `packages/deployment`                                                                        |
+| `src/services/subgraph.ts`     | GraphQL client; defaults to `subgraph.staging.oasisapp.dev/summer-protocol-gov-*`, overridable via `NEXT_PUBLIC_<CHAIN>_SUBGRAPH_URL` |
+| `src/components/Providers.tsx` | Wallet connection via `@reown/appkit` (not RainbowKit); reads `NEXT_PUBLIC_WALLETCONNECT_ID`                                          |
+
+## Supported chains
+
+| Chain       | ID    | LayerZero eID | tenderlyId |
+| ----------- | ----- | ------------- | ---------- |
+| Ethereum    | 1     | 30101         | 1          |
+| Base        | 8453  | 30184         | 8453       |
+| Arbitrum    | 42161 | 30110         | 42161      |
+| Sonic       | 146   | 30332         | 146        |
+| HyperLiquid | 999   | 30367         | `null`     |
+
+## Commands
+
 ```bash
+# Install (from repo root)
 pnpm install
-```
 
-2. Set up environment variables (optional):
-```bash
-# Create .env.local file with:
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
-```
-
-3. Start the development server:
-```bash
+# Development server (loads ../../.env via dotenv)
 pnpm dev
-```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Pages
-
-- **/** - Main governance proposal validator
-- **/cross-chain** - Cross-chain governance proposals with execution capabilities
-
-## Wallet Connection
-
-The app uses RainbowKit for wallet connectivity. Users can connect their wallets to:
-- View their account information
-- Execute pending cross-chain proposals
-- Interact with governance contracts across multiple chains
-
-## Cross-Chain Execution
-
-For pending cross-chain proposals, an "Execute" button is available that:
-- Automatically switches to the correct chain
-- Calls the timelock controller's `executeBatch` method
-- Uses the proposal's targets, values, calldatas, and salt from the subgraph
-- Shows loading states and handles errors gracefully
-
-### Supported Chains
-
-- **Mainnet** (Chain ID: 1)
-- **Base** (Chain ID: 8453) 
-- **Arbitrum** (Chain ID: 42161)
-- **Sonic** (Chain ID: 146)
-
-## Configuration
-
-- Update `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in your environment variables with your WalletConnect Cloud project ID
-- Timelock controller addresses are automatically loaded from `src/config/index.json`
-- Chain configurations include LayerZero endpoints and other protocol-specific settings
-
-## Build
-
-```bash
+# Production build
 pnpm build
+
+# Sync deployment addresses from packages/deployment into src/config/
+pnpm sync-config
+
+# Tests
+pnpm test
+
+# Format
+pnpm format:fix
 ```
 
-## Technologies Used
+`pnpm dev` reads environment variables from the root `../../.env` file (via `dotenv`). The only
+required variable for wallet connectivity is `NEXT_PUBLIC_WALLETCONNECT_ID`; it defaults to `'demo'`
+if unset.
 
-- Next.js 14
-- RainbowKit
-- Wagmi
-- Viem
-- TanStack Query
-- Tailwind CSS
-- TypeScript
+## Cross-package connections
 
-## Architecture
+**Consumes:**
 
-The application consists of:
-- **Frontend**: React components with wallet integration
-- **Config**: Chain-specific contract addresses and settings
-- **Services**: Subgraph integration for proposal data
-- **Execution**: Direct timelock controller interaction for proposal execution
+- `packages/deployment` — `sync-config.js` copies `deployment/config/index.json` and
+  `deployment/ignition/deployments/chain-*/deployed_addresses.json` into `src/config/`. Chains not
+  present in `scripts/sync-config.js:CHAIN_NAMES` are silently skipped.
+- `packages/summer-earn-protocol-gov-subgraph` — provides the governance subgraph that
+  `src/services/subgraph.ts` queries for proposal data and cross-chain execution arguments.
+- `@summerfi/jest-config` (workspace devDependency) — shared Jest configuration.
 
-## Form Fields
+**Not consumed by other packages** — this is a standalone Next.js app (`private: true`).
 
-The form accepts the following inputs:
+**Agent gotchas (hand-maintained lists that must be updated together when adding a chain):**
 
-- **Targets**: Array of Ethereum addresses
-- **Values**: Array of integer values (in wei)
-- **Calldatas**: Array of bytes data
-- **Description**: String description of the proposal
+1. `scripts/sync-config.js` `CHAIN_NAMES` map — chains missing here are silently skipped during
+   `pnpm sync-config`.
+2. `src/config/constants.ts` `CHAIN_CONFIG` — timelock and SUMR token addresses.
+3. `src/config/chains.ts` `CHAINS` array and `CHAIN_THEMES` record — LayerZero eIDs are hand-copied
+   here (not derived from deployment).
+4. `src/config/rpc.ts` `CHAIN_RPC_URLS` / `VIEM_CHAIN_ENTITIES` — public RPC fallback lists.
+5. `src/config/tokenLists.ts`, `src/config/treasuryWallets.ts`, `src/services/subgraph.ts` —
+   per-chain token lists, treasury wallets, and subgraph URL defaults.
+6. HyperLiquid has `tenderlyId: null`; any code path that builds a Tenderly simulation URL must
+   handle this explicitly.
 
-## Development
+## GitBook reference
 
-- Built with Next.js 14
-- Uses TypeScript for type safety
-- Styled with SCSS modules
-- Form validation and state management with React hooks 
+Documented under [Operations: Keepers & Bots](../../gitbook/internal/operations.md) in the internal
+section of the GitBook (`gitbook/internal/operations.md`).

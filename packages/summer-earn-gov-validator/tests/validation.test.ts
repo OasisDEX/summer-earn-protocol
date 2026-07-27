@@ -544,3 +544,47 @@ describe('isCrossChainExecution', () => {
     expect(isCrossChainExecution(BASE_GOVERNOR_V2, '0x')).toBe(false)
   })
 })
+
+describe('decodeCalldata for Raft, PAM, and Merkl Distributor', () => {
+  it('decodes Raft setSweepableToken and socializeLosses', () => {
+    const sweepableCalldata = encodeFunctionData({
+      abi: COMBINED_ABI,
+      functionName: 'setSweepableToken',
+      args: [UNKNOWN_ADDR, BASE_USDC, true],
+    })
+    const decodedSweepable = decodeCalldata(sweepableCalldata)
+    expect(decodedSweepable).not.toBeNull()
+    expect(decodedSweepable?.functionName).toBe('setSweepableToken')
+
+    const socializeCalldata = encodeFunctionData({
+      abi: COMBINED_ABI,
+      functionName: 'socializeLosses',
+      args: [UNKNOWN_ADDR, [BASE_USDC], UNKNOWN_ADDR],
+    })
+    const decodedSocialize = decodeCalldata(socializeCalldata)
+    expect(decodedSocialize).not.toBeNull()
+    expect(decodedSocialize?.functionName).toBe('socializeLosses')
+  })
+
+  it('decodes ProtocolAccessManager revokeCuratorRole', () => {
+    const revokeCuratorCalldata = encodeFunctionData({
+      abi: COMBINED_ABI,
+      functionName: 'revokeCuratorRole',
+      args: [UNKNOWN_ADDR, UNKNOWN_ADDR],
+    })
+    const decodedRevoke = decodeCalldata(revokeCuratorCalldata)
+    expect(decodedRevoke).not.toBeNull()
+    expect(decodedRevoke?.functionName).toBe('revokeCuratorRole')
+  })
+
+  it('decodes Merkl Distributor acceptConditions', () => {
+    const acceptConditionsCalldata = encodeFunctionData({
+      abi: COMBINED_ABI,
+      functionName: 'acceptConditions',
+      args: [],
+    })
+    const decodedAccept = decodeCalldata(acceptConditionsCalldata)
+    expect(decodedAccept).not.toBeNull()
+    expect(decodedAccept?.functionName).toBe('acceptConditions')
+  })
+})

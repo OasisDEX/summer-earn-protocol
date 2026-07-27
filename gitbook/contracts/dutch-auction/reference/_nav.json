@@ -1,0 +1,44 @@
+{
+  "package": "dutch-auction",
+  "out": "contracts/dutch-auction/reference",
+  "tree": [
+    {
+      "dir": "",
+      "pages": [
+        {
+          "title": "DecayFunctions",
+          "file": "contracts/dutch-auction/reference/decay-functions.md"
+        },
+        {
+          "title": "DutchAuctionErrors",
+          "file": "contracts/dutch-auction/reference/dutch-auction-errors.md"
+        },
+        {
+          "title": "DutchAuctionEvents",
+          "file": "contracts/dutch-auction/reference/dutch-auction-events.md"
+        },
+        {
+          "title": "DutchAuctionLibrary",
+          "file": "contracts/dutch-auction/reference/dutch-auction-library.md"
+        },
+        {
+          "title": "DutchAuctionManager",
+          "file": "contracts/dutch-auction/reference/dutch-auction-manager.md"
+        },
+        {
+          "title": "DutchAuctionMath",
+          "file": "contracts/dutch-auction/reference/dutch-auction-math.md"
+        }
+      ]
+    },
+    {
+      "dir": "lib",
+      "pages": [
+        {
+          "title": "TokenLibrary",
+          "file": "contracts/dutch-auction/reference/lib/token-library.md"
+        }
+      ]
+    }
+  ]
+}

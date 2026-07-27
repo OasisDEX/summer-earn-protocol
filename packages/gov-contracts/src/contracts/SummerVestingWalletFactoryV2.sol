@@ -26,10 +26,10 @@ contract SummerVestingWalletFactoryV2 is
     /** @notice The ERC20 token that will be vested */
     address public immutable token;
 
-    /** @notice Mapping from beneficiary address to their vesting wallet address */
+    /// @inheritdoc ISummerVestingWalletFactoryV2
     mapping(address beneficiary => address vestingWallet) public vestingWallets;
 
-    /** @notice Mapping from vesting wallet address to its beneficiary address */
+    /// @inheritdoc ISummerVestingWalletFactoryV2
     mapping(address vestingWallet => address beneficiary)
         public vestingWalletOwners;
 

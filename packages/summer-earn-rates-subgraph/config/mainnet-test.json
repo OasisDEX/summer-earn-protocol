@@ -1,0 +1,12 @@
+{
+  "network": "mainnet",
+  "enable-grafting": false,
+  "entry_point_address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+  "entry_point_start_block": 25420943,
+  "interval-handler-block-interval": 50,
+  "franklin-data-sources": true,
+  "benji-transfer-agent-address": "0x8C8Bfc3151C2161a4baD77268e246A08e5D9c666",
+  "benji-transfer-agent-start-block": 25420943,
+  "ibenji-transfer-agent-address": "0xaB266e4fa5D088cC440433C3EA1e066fD710a0a5",
+  "ibenji-transfer-agent-start-block": 25420943
+}

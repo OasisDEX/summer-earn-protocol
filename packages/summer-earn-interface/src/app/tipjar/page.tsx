@@ -4,7 +4,7 @@ import { TipJarDashboard } from './components/TipJarDashboard'
 
 export default function TipJarPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-400">Loading TipJar…</div>}>
+    <Suspense fallback={<div className="p-8 text-on-surface-variant">Loading TipJar…</div>}>
       <TipJarDashboard />
     </Suspense>
   )

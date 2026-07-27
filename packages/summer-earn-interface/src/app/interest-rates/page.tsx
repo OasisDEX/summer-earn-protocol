@@ -15,6 +15,7 @@ import {
   RangeOption,
   RangeSelector,
 } from '../../components/RangeSelector'
+import { PageHeader } from '../../components/ui'
 import { CHAIN_NAMES } from '../../config/chains'
 import { useProducts } from '../../hooks/useInterestRates'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
@@ -78,11 +79,11 @@ export default function InterestRatesPage() {
 
   if (!chain) {
     return (
-      <div className="min-h-screen bg-[#0d0e10] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#1e2022] flex items-center justify-center border border-white/[0.06]">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-surface-container-high flex items-center justify-center border border-white/[0.06]">
             <svg
-              className="w-8 h-8 text-[#89acff]"
+              className="w-8 h-8 text-primary"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -95,105 +96,94 @@ export default function InterestRatesPage() {
               />
             </svg>
           </div>
-          <p className="text-[#fdfbfe] font-bold font-headline text-lg">Connect your wallet</p>
-          <p className="text-[#757578] text-sm">
-            Please connect your wallet to view interest rates
-          </p>
+          <p className="text-on-surface font-bold font-headline text-lg">Connect your wallet</p>
+          <p className="text-outline text-sm">Please connect your wallet to view interest rates</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0e10] text-[#fdfbfe] selection:bg-[#89acff] selection:text-[#002b6a]">
-      {/* Background decorations */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 opacity-20">
-        <div className="absolute top-[10%] right-[5%] w-[500px] h-[500px] bg-[#89acff]/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] bg-[#68fadd]/10 blur-[100px] rounded-full" />
-      </div>
-
+    <div className="min-h-screen text-on-surface selection:bg-primary selection:text-on-primary">
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
         {/* Header & Controls */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold font-headline tracking-tight">Yield Analysis</h1>
-            <p className="text-[#ababad] text-sm max-w-md">
-              Compare historical and real-time interest rates across DeFi protocols.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-end gap-4">
-            {/* Chain Selector */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider font-bold text-[#ababad] px-1">
-                Network
-              </label>
-              <select
-                className="px-4 py-2.5 rounded-lg bg-[#1e2022] border border-white/[0.06]
-                  text-sm font-medium text-[#fdfbfe] hover:bg-[#2b2c2f] transition-colors
+        <PageHeader
+          title="Yield Analysis"
+          description="Compare historical and real-time interest rates across DeFi protocols."
+          actions={
+            <div className="flex flex-wrap items-end gap-4">
+              {/* Chain Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant px-1">
+                  Network
+                </label>
+                <select
+                  className="px-4 py-2.5 rounded-lg bg-surface-container-high border border-white/[0.06]
+                  text-sm font-medium text-on-surface hover:bg-surface-bright transition-colors
                   cursor-pointer appearance-none pr-8
-                  focus:outline-none focus:ring-1 focus:ring-[#89acff]/40"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ababad' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 0.5rem center',
-                  backgroundSize: '1rem',
-                }}
-                value={currentChainId}
-                onChange={(e) => handleChainChange(e.target.value as ChainId)}
-              >
-                {Object.entries(CHAIN_NAMES).map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ababad' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundSize: '1rem',
+                  }}
+                  value={currentChainId}
+                  onChange={(e) => handleChainChange(e.target.value as ChainId)}
+                >
+                  {Object.entries(CHAIN_NAMES).map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Interval Selector */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider font-bold text-[#ababad] px-1">
-                Interval
-              </label>
-              <select
-                className="px-4 py-2.5 rounded-lg bg-[#1e2022] border border-white/[0.06]
-                  text-sm font-medium text-[#fdfbfe] hover:bg-[#2b2c2f] transition-colors
+              {/* Interval Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant px-1">
+                  Interval
+                </label>
+                <select
+                  className="px-4 py-2.5 rounded-lg bg-surface-container-high border border-white/[0.06]
+                  text-sm font-medium text-on-surface hover:bg-surface-bright transition-colors
                   cursor-pointer appearance-none pr-8
-                  focus:outline-none focus:ring-1 focus:ring-[#89acff]/40"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ababad' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 0.5rem center',
-                  backgroundSize: '1rem',
-                }}
-                value={selectedInterval}
-                onChange={(e) => setSelectedInterval(e.target.value as TimeInterval)}
-              >
-                <option value="10min">10 min</option>
-                <option value="hourly">Hourly</option>
-                <option value="daily">Daily</option>
-              </select>
-            </div>
+                  focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ababad' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundSize: '1rem',
+                  }}
+                  value={selectedInterval}
+                  onChange={(e) => setSelectedInterval(e.target.value as TimeInterval)}
+                >
+                  <option value="10min">10 min</option>
+                  <option value="hourly">Hourly</option>
+                  <option value="daily">Daily</option>
+                </select>
+              </div>
 
-            {/* Period Selector */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider font-bold text-[#ababad] px-1">
-                Period
-              </label>
-              <RangeSelector value={range} onChange={setRange} />
+              {/* Period Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant px-1">
+                  Period
+                </label>
+                <RangeSelector value={range} onChange={setRange} />
+              </div>
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* Product Multi-Select + MA toggles row */}
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Product Multi-Select */}
           <div className="flex flex-col gap-1.5 flex-1 max-w-xl">
-            <label className="text-[10px] uppercase tracking-wider font-bold text-[#ababad] px-1">
+            <label className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant px-1">
               Protocols
             </label>
             {isLoadingProducts ? (
-              <div className="h-[42px] rounded-lg bg-[#1e2022] border border-white/[0.06] animate-pulse" />
+              <div className="h-[42px] rounded-lg bg-surface-container-high border border-white/[0.06] animate-pulse" />
             ) : (
               <MultiSelectDropdown
                 options={productOptions}
@@ -206,13 +196,13 @@ export default function InterestRatesPage() {
 
           {/* SMA Toggles */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-wider font-bold text-[#ababad] px-1">
+            <label className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant px-1">
               SMA
-              <span className="ml-1 normal-case tracking-normal font-normal text-[#757578]">
+              <span className="ml-1 normal-case tracking-normal font-normal text-outline">
                 (dashed)
               </span>
             </label>
-            <div className="flex bg-[#121316] p-1 rounded-lg border border-white/[0.06]">
+            <div className="flex bg-surface-container-low p-1 rounded-lg border border-white/[0.06]">
               {MA_PERIODS.map((p) => (
                 <button
                   key={`sma-${p}`}
@@ -220,8 +210,8 @@ export default function InterestRatesPage() {
                   onClick={() => toggleSma(p)}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     smaPeriods.includes(p)
-                      ? 'bg-[#68fadd] text-[#005d4f] shadow-lg shadow-[#68fadd]/20'
-                      : 'text-[#ababad] hover:text-[#fdfbfe] hover:bg-white/[0.04]'
+                      ? 'bg-secondary text-on-secondary shadow-lg shadow-secondary/20'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]'
                   }`}
                 >
                   {p}
@@ -232,13 +222,13 @@ export default function InterestRatesPage() {
 
           {/* EMA Toggles */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-wider font-bold text-[#ababad] px-1">
+            <label className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant px-1">
               EMA
-              <span className="ml-1 normal-case tracking-normal font-normal text-[#757578]">
+              <span className="ml-1 normal-case tracking-normal font-normal text-outline">
                 (dotted)
               </span>
             </label>
-            <div className="flex bg-[#121316] p-1 rounded-lg border border-white/[0.06]">
+            <div className="flex bg-surface-container-low p-1 rounded-lg border border-white/[0.06]">
               {MA_PERIODS.map((p) => (
                 <button
                   key={`ema-${p}`}
@@ -246,8 +236,8 @@ export default function InterestRatesPage() {
                   onClick={() => toggleEma(p)}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     emaPeriods.includes(p)
-                      ? 'bg-[#c084fc] text-[#2e1065] shadow-lg shadow-[#c084fc]/20'
-                      : 'text-[#ababad] hover:text-[#fdfbfe] hover:bg-white/[0.04]'
+                      ? 'bg-accent text-on-primary shadow-lg shadow-accent/20'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]'
                   }`}
                 >
                   {p}
@@ -258,11 +248,11 @@ export default function InterestRatesPage() {
         </div>
 
         {/* Main Chart */}
-        <div className="bg-[#121316] rounded-xl p-6 border border-white/[0.04] shadow-sm overflow-hidden">
+        <div className="bg-surface-container-low rounded-xl p-6 border border-white/[0.04] shadow-sm overflow-hidden">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="font-headline font-bold text-lg">Interest Rate Trend</h3>
-              <p className="text-xs text-[#ababad]">
+              <p className="text-xs text-on-surface-variant">
                 {selectedProductIds.length > 0
                   ? `Comparing ${selectedProductIds.length} protocol${selectedProductIds.length > 1 ? 's' : ''}` +
                     (smaPeriods.length > 0 || emaPeriods.length > 0

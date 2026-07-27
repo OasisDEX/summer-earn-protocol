@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+/// @title IRoundsVaultBaseEnums
+/// @notice Enum definitions shared by the RoundsVaultBase family of contracts
 interface IRoundsVaultBaseEnums {
     /// @notice Flavor of a `RoundsVaultBase` instance. Determines the deposit and exchange assets.
     enum BaseVaultType {
