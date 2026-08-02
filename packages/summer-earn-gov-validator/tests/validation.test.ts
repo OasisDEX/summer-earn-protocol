@@ -290,6 +290,9 @@ describe('decodeCalldata', () => {
     // base.common.foundation → returns "foundation" (line 161 branch)
     const FOUNDATION = cfg.base.common.foundation as string
     expect(addresToContractName(FOUNDATION, SupportedNetworks.BASE)).toBe('foundation')
+
+    const GUARDIAN_MULTISIG = cfg.base.common.guardianMultisig as string
+    expect(addresToContractName(GUARDIAN_MULTISIG, SupportedNetworks.BASE)).toBe('guardianmultisig')
   })
 
   it('resolves a deployed-only address (not in deployedContracts or tokens)', () => {

@@ -109,6 +109,7 @@
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
@@ -473,6 +474,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "eID": "30110",
@@ -838,6 +840,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
@@ -1380,6 +1383,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
@@ -1531,6 +1535,7 @@
       "initialSupply": "0",
       "swapProvider": "0x1111111254760F7ab3F16433eea9304126DCd199",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "eID": "30111",
@@ -1618,6 +1623,7 @@
       "initialSupply": "0",
       "swapProvider": "0x1111111254760F7ab3F16433eea9304126DCd199",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "eID": "30130",
@@ -1719,6 +1725,7 @@
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
@@ -1845,6 +1852,7 @@
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x3A73033C0b1407574C76BdBAc67f126f6b4a9AA9",
@@ -1931,6 +1939,7 @@
       "ensoRouter": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
       "tipRate": "100",
       "foundation": "0x0002eEE2424996CCA61F5E5F7b39d3Cf7305DA17",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x0000000000000000000000000000000000000000",
       "layerZero": {
         "lzEndpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",

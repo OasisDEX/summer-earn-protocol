@@ -111,6 +111,7 @@
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "ensoRouter": "0xf75584ef6673ad213a685a1b58cc0330b8ea22cf",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
@@ -400,6 +401,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
@@ -683,6 +685,7 @@
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "ensoRouter": "0xf75584ef6673ad213a685a1b58cc0330b8ea22cf",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
@@ -1147,6 +1150,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
@@ -1330,6 +1334,7 @@
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
@@ -1461,6 +1466,7 @@
       "initialSupply": "0",
       "swapProvider": "0x6131b5fae19ea4f9d964eac0408e4408b66337b5",
       "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "guardianMultisig": "0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4",
       "merklDistributor": "0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd",
       "tipRate": "100",
       "layerZero": {
