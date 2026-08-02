@@ -587,4 +587,41 @@ describe('decodeCalldata for Raft, PAM, and Merkl Distributor', () => {
     expect(decodedAccept).not.toBeNull()
     expect(decodedAccept?.functionName).toBe('acceptConditions')
   })
+
+  it('decodes Merkl Distributor toggleOperator and operator claim functions', () => {
+    const user = '0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796'
+    const operator = '0x91E4482CF58aC14d8DC25290d828b2A4D9492BA4'
+
+    const toggleCalldata = encodeFunctionData({
+      abi: COMBINED_ABI,
+      functionName: 'toggleOperator',
+      args: [user, operator],
+    })
+    const decodedToggle = decodeCalldata(toggleCalldata)
+    expect(decodedToggle).not.toBeNull()
+    expect(decodedToggle?.functionName).toBe('toggleOperator')
+    expect(decodedToggle?.paramNames).toEqual(['user', 'operator'])
+
+    // Test exact proposal calldata 0xbdac7ca3...
+    const exactProposalCalldata =
+      '0xbdac7ca3000000000000000000000000447bf9d1485abdc4c1778025dfdfbe8b894c379600000000000000000000000091e4482cf58ac14d8dc25290d828b2a4d9492ba4'
+    const decodedExact = decodeCalldata(exactProposalCalldata)
+    expect(decodedExact).not.toBeNull()
+    expect(decodedExact?.functionName).toBe('toggleOperator')
+    expect(validateCalldatas([exactProposalCalldata]).isValid).toBe(true)
+
+    const claimCalldata = encodeFunctionData({
+      abi: COMBINED_ABI,
+      functionName: 'claim',
+      args: [
+        [user],
+        [BASE_USDC],
+        [1000n],
+        [['0x0000000000000000000000000000000000000000000000000000000000000000']],
+      ],
+    })
+    const decodedClaim = decodeCalldata(claimCalldata)
+    expect(decodedClaim).not.toBeNull()
+    expect(decodedClaim?.functionName).toBe('claim')
+  })
 })

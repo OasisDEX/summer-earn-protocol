@@ -90,6 +90,10 @@ const KNOWN_STRING_ABIS = [
   'function cancelCampaign(bytes32 campaignId) external',
   'function toggleCampaign(bytes32 campaignId) external',
   'function updateCampaign(bytes32 campaignId, uint32 duration, uint256 amount) external',
+  'function toggleOperator(address user, address operator) external',
+  'function claim(address[] users, address[] tokens, uint256[] amounts, bytes32[][] proofs) external',
+  'function operators(address user, address operator) external view returns (uint256)',
+  'function claimFromMerklDistributor(address[] users, address[] tokens, uint256[] amounts, bytes32[][] proofs) external',
 ]
 
 const KNOWN_OBJECT_ABIS = [
