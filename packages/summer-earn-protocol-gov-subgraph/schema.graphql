@@ -1,4 +1,4 @@
-type Proposal @entity {
+type Proposal @entity(immutable: false) {
     id: ID!
     targets: [String!]!
     values: [BigInt!]!
@@ -20,7 +20,7 @@ type Proposal @entity {
     votes: [Vote!]! @derivedFrom(field: "proposal")
 }
 
-type Vote @entity {
+type Vote @entity(immutable: true) {
     id: ID! # hash + logIndex
     proposal: Proposal!
     voter: String!
@@ -32,7 +32,7 @@ type Vote @entity {
     timestamp: BigInt!
 }
 
-type CrossChainProposal @entity {
+type CrossChainProposal @entity(immutable: false) {
   id: ID!
   proposalId: String!
   chainId: String!
@@ -44,13 +44,13 @@ type CrossChainProposal @entity {
   eta: BigInt!
 }
 
-type CrossChainProposalByCallId @entity {
+type CrossChainProposalByCallId @entity(immutable: true) {
   id: ID!
   callId: String!
   proposal: CrossChainProposal!
 }
 
-type Role @entity {
+type Role @entity(immutable: false) {
   id: ID!
   name: String!
   owner: String!
@@ -62,7 +62,7 @@ type Role @entity {
   events: [RoleEvent!]! @derivedFrom(field: "role")
 }
 
-type RoleEvent @entity @transaction {
+type RoleEvent @entity  (immutable: true) @transaction{
   id: ID!
   hash: String!
   logIndex: Int!
@@ -73,12 +73,12 @@ type RoleEvent @entity @transaction {
   role: Role!
 }
 
-enum RoleAction {
+enum RoleAction  {
   GRANT_ROLE
   REVOKE_ROLE
 }
 
-type Delegate @entity {
+type Delegate @entity(immutable: false) {
   id: ID! # address
   votingPower: BigInt!
   delegationsCount: Int!

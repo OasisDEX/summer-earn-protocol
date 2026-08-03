@@ -10,7 +10,7 @@ export const subgraphNetworkToChainIdMap = new Map<string, string>()
 subgraphNetworkToChainIdMap.set('mainnet', '1')
 subgraphNetworkToChainIdMap.set('arbitrum-one', '42161')
 subgraphNetworkToChainIdMap.set('base', '8453')
-subgraphNetworkToChainIdMap.set('sonic-mainnet', '146')
+subgraphNetworkToChainIdMap.set('sonic', '146')
 subgraphNetworkToChainIdMap.set('hyperevm', '999')
 
 export function isHub(network: string): boolean {

@@ -1,19 +1,14 @@
 specVersion: 0.0.8
 schema:
   file: ./schema.graphql 
-features:
-  - grafting
-graft:
-  base: QmQkgpiYtZRZnCRw6eMKnVSa8Syv8Z8dQckGb3FofHnqQu
-  block: 37386000
 dataSources:
   - kind: ethereum/contract
     name: SummerGovernor
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: SummerGovernor
-      address: "0x0000000000000000000000000000000000000000"
-      startBlock: 20752308
+      address: "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
+      startBlock: 300183921
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -48,11 +43,11 @@ dataSources:
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: SummerGovernorV2
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: SummerGovernor
-      address: "0x0398DA19EBb8F5DEcdc2E78465c2ef4F2412233b"
-      startBlock: 20752308
+      address: "0x94F29e66fE35Ee2BC03EC9D8C3fb6d9E183f3572"
+      startBlock: 300183921
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -93,11 +88,11 @@ dataSources:
       file: ./src/mappings/governance.ts
   - kind: ethereum/contract
     name: ProtocolAccessManager
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: ProtocolAccessManager
-      address: "0x38fB5a7fa70103dCd9e8A969f3975A77E0fE755f"
-      startBlock: 20752308
+      address: "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
+      startBlock: 300183860
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -119,11 +114,11 @@ dataSources:
       file: ./src/mappings/accessManagement.ts  
   - kind: ethereum/contract
     name: SummerGovernanceToken
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: Votes
       address: "0x0000000000000000000000000000000000000000"
-      startBlock: 20752000
+      startBlock: 300180000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -141,11 +136,11 @@ dataSources:
       file: ./src/mappings/votes.ts
   - kind: ethereum/contract
     name: TimelockController
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: SummerTimelockController
-      address: "0x244c6EFC140b9cC4D69d3bf4d9137Dc4195Be86c"
-      startBlock: 20752000
+      address: "0x447bf9d1485abdc4c1778025dfdfbe8b894c3796"
+      startBlock: 300180000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -175,7 +170,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: TimelockControllerTemplate
-    network: hyperevm
+    network: arbitrum-one
     source:
       abi: SummerTimelockController
     mapping:

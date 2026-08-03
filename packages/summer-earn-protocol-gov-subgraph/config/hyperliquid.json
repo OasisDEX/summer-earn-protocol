@@ -11,7 +11,7 @@
   "harbor-command-address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
   "summer-governance-token-address": "0x0000000000000000000000000000000000000000",
   "summer-governance-token-start-block": 20752000,
-  "enable-grafting": true,
+  "enable-grafting": false,
   "grafting-base": "QmQkgpiYtZRZnCRw6eMKnVSa8Syv8Z8dQckGb3FofHnqQu",
   "grafting-block": "37386000"
 }
