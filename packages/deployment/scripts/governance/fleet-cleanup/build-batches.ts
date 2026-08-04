@@ -294,13 +294,13 @@ function buildFleetActions(
     })
   }
 
-  // 8. zero out the tip rate — unconditional, not config-driven, applies to every cleaned-up fleet.
-  actions.push({
-    target: fleet,
-    fragment: writeAbis.setTipRate,
-    args: [0n],
-    summary: `FleetCommander(${fc.fleetName}).setTipRate(0) — cleanup default`,
-  })
+  // 8. zero out the tip rate — skipped as tip rate is already zeroed
+  // actions.push({
+  //   target: fleet,
+  //   fragment: writeAbis.setTipRate,
+  //   args: [0n],
+  //   summary: `FleetCommander(${fc.fleetName}).setTipRate(0) — cleanup default`,
+  // })
 
   // 9. re-pause
   if (willRepause) {
@@ -395,7 +395,7 @@ async function main() {
 
   const files = fs
     .readdirSync(dir)
-    .filter((f) => f.endsWith('.json'))
+    .filter((f) => f.endsWith('.json') && f !== 'distributions.json')
     .map((f) => path.join(dir, f))
 
   const expectedConfigType = useBummerConfig ? 'test' : 'prod'
@@ -582,16 +582,10 @@ async function main() {
         entry.action === 'socializeLossesAndRemove' || entry.action === 'removeArk'
 
       if (wantsSweep) {
-        if (liveTotalAssets === 0n) {
-          fail(
-            `${entry.name} (${arkAddress}) has live totalAssets == 0 — nothing to socialize. ` +
-              `Config is stale; use action "removeArk" instead if removal is intended.`,
-          )
-        }
         const { pool } = parseDetailsJson(liveDetailsJson)
         if (!pool) {
           fail(
-            `${entry.name} (${arkAddress}) has assets but details() has no usable "pool" address ` +
+            `${entry.name} (${arkAddress}) details() has no usable "pool" address ` +
               `(${liveDetailsJson}) — handle manually.`,
           )
         }
@@ -603,8 +597,19 @@ async function main() {
         })
         if (poolBalance === 0n) {
           fail(
-            `${entry.name} (${arkAddress}) reports totalAssets ${liveTotalAssets} but holds no balance ` +
-              `of details().pool token ${pool}. Sweeping would not zero totalAssets — handle manually.`,
+            `${entry.name} (${arkAddress}) holds no balance of details().pool token ${pool} ` +
+              `(live totalAssets ${liveTotalAssets}) — nothing to sweep. ` +
+              `Use action "removeArk" instead if removal is intended.`,
+          )
+        }
+        if (liveTotalAssets === 0n) {
+          // Accounting already values the position at 0 (written off), but the pool tokens are
+          // still physically held — sweeping them out is exactly the loss-socialization step.
+          console.log(
+            kleur.yellow(
+              `  ⚠ ${entry.name} (${arkAddress}) has live totalAssets == 0 but still holds ` +
+                `${poolBalance} of pool token ${pool} — sweeping the written-off position.`,
+            ),
           )
         }
         let poolSymbol = '???'
@@ -641,10 +646,23 @@ async function main() {
 
       if (wantsRemoval) {
         if (entry.action === 'removeArk' && liveTotalAssets > 0n) {
-          fail(
-            `${entry.name} (${arkAddress}) has live totalAssets ${liveTotalAssets} — plain "removeArk" ` +
-              `would revert (FleetCommanderArkAssetsNotZero). Use "socializeLossesAndRemove" or "requestWithdrawal".`,
-          )
+          // SKIP_REMOVE_ASSET_CHECK=1: allow generating the proposal now and executing later,
+          // once the ark has emptied — on-chain removeArk still reverts
+          // (FleetCommanderArkAssetsNotZero) if assets remain at execution time.
+          if (process.env.SKIP_REMOVE_ASSET_CHECK === '1') {
+            console.log(
+              kleur.yellow(
+                `  ⚠ ${entry.name} (${arkAddress}) has live totalAssets ${liveTotalAssets} — ` +
+                  `"removeArk" will revert unless the ark is empty by execution time (SKIP_REMOVE_ASSET_CHECK=1).`,
+              ),
+            )
+          } else {
+            fail(
+              `${entry.name} (${arkAddress}) has live totalAssets ${liveTotalAssets} — plain "removeArk" ` +
+                `would revert (FleetCommanderArkAssetsNotZero). Use "socializeLossesAndRemove" or "requestWithdrawal", ` +
+                `or SKIP_REMOVE_ASSET_CHECK=1 to generate anyway for later execution.`,
+            )
+          }
         }
         plan.removals.push(item)
       }
