@@ -26,9 +26,12 @@ const CHAIN_ID_TO_NAME: Record<ChainId, string> = {
   '11155111': 'sepolia', // no TipJar deployment — getCore() returns null, which callers handle
 }
 
-const configData: any = configJson
+const configData = configJson as unknown as Record<
+  string,
+  { deployedContracts?: { core?: Record<string, { address?: string }> } }
+>
 
-function getCore(chainId: ChainId): any | null {
+function getCore(chainId: ChainId): Record<string, { address?: string }> | null {
   const chainName = CHAIN_ID_TO_NAME[chainId]
   return configData?.[chainName]?.deployedContracts?.core ?? null
 }

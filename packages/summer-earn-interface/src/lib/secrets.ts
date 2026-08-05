@@ -30,7 +30,7 @@ export async function getSecret(name: string): Promise<string> {
   const branchPath = `/amplify/${appId}/${branch}/${name}`
   const mainPath = `/amplify/${appId}/main/${name}`
 
-  let lastError: any = null
+  let lastError: unknown = null
 
   try {
     // Try the branch-specific secret first
@@ -45,10 +45,11 @@ export async function getSecret(name: string): Promise<string> {
       secretCache[name] = value
       return value
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     lastError = error
     // If branch secret not found, fallback to main
-    if (error.name === 'ParameterNotFound' && branch !== 'main') {
+    const err = error as { name?: string }
+    if (err.name === 'ParameterNotFound' && branch !== 'main') {
       try {
         const fallbackCommand = new GetParameterCommand({
           Name: mainPath,
@@ -60,16 +61,17 @@ export async function getSecret(name: string): Promise<string> {
           secretCache[name] = fallbackValue
           return fallbackValue
         }
-      } catch (fallbackError: any) {
+      } catch (fallbackError: unknown) {
         lastError = fallbackError
       }
     }
   }
 
   // If we reach here, both attempts failed or errored out
+  const err = lastError as { message?: string; name?: string } | null
   const errorMessage =
-    lastError?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
-  const errorName = lastError?.name || 'SecretNotFound'
+    err?.message || `Secret ${name} not found in SSM at ${branchPath} or ${mainPath}`
+  const errorName = err?.name || 'SecretNotFound'
 
   const finalError = new Error(errorMessage)
   finalError.name = errorName

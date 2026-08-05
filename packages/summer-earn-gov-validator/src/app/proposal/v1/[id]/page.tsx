@@ -27,17 +27,7 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
-export default function V1ProposalDetailPage({ params }: PageProps) {
-  return (
-    <DashboardLayout activeTab="proposals">
-      <Suspense fallback={<ProposalsListSkeleton />}>
-        <V1ProposalDetailServer params={params} />
-      </Suspense>
-    </DashboardLayout>
-  )
-}
-
-async function V1ProposalDetailServer({ params }: PageProps) {
+export default async function V1ProposalDetailPage({ params }: PageProps) {
   await connection()
 
   const { id } = await params
@@ -108,8 +98,9 @@ async function V1ProposalDetailServer({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* Main Content */}
+    <DashboardLayout activeTab="proposals">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Content */}
       <div className="lg:col-span-8 space-y-8">
         <section className="glass-panel p-8 rounded-xl relative overflow-hidden">
           <div className="mb-6">
@@ -272,5 +263,6 @@ async function V1ProposalDetailServer({ params }: PageProps) {
         </div>
       </div>
     </div>
+    </DashboardLayout>
   )
 }

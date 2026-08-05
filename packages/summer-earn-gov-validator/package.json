@@ -14,7 +14,9 @@
     "sync-config": "node scripts/sync-config.mjs",
     "cache:seed": "npx tsx src/scripts/seed-cache.ts",
     "test": "jest --passWithNoTests",
-    "test:coverage": "jest --coverage --passWithNoTests"
+    "test:coverage": "jest --coverage --passWithNoTests",
+    "sst:dev": "AWS_PROFILE=gov-validator-aws sst dev",
+    "sst:deploy": "AWS_PROFILE=gov-validator-aws sst deploy"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1030.0",
@@ -55,6 +57,7 @@
     "glob": "^13.0.6",
     "jest": "29.7.0",
     "postcss": "8.5.18",
+    "sst": "^4.17.1",
     "tailwindcss": "3.4.1",
     "ts-jest": "29.1.2",
     "typescript": "^5.3.0"

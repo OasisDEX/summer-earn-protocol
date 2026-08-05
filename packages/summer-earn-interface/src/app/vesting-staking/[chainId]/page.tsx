@@ -312,9 +312,10 @@ export default function VestingStakingPage() {
         account: address,
         chain,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { shortMessage?: string; message?: string }
       setCurrentAction(null)
-      toast.error(error?.shortMessage || error?.message || 'Failed to transfer ownership')
+      toast.error(err?.shortMessage || err?.message || 'Failed to transfer ownership')
     }
   }
 
@@ -330,9 +331,10 @@ export default function VestingStakingPage() {
         account: address,
         chain,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { shortMessage?: string; message?: string }
       setCurrentAction(null)
-      toast.error(error?.shortMessage || error?.message || 'Failed to stake vesting wallet')
+      toast.error(err?.shortMessage || err?.message || 'Failed to stake vesting wallet')
     }
   }
 
@@ -348,9 +350,10 @@ export default function VestingStakingPage() {
         account: address,
         chain,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { shortMessage?: string; message?: string }
       setCurrentAction(null)
-      toast.error(error?.shortMessage || error?.message || 'Failed to unstake vesting wallet')
+      toast.error(err?.shortMessage || err?.message || 'Failed to unstake vesting wallet')
     }
   }
 
@@ -366,9 +369,10 @@ export default function VestingStakingPage() {
         account: address,
         chain,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { shortMessage?: string; message?: string }
       setCurrentAction(null)
-      toast.error(error?.shortMessage || error?.message || 'Failed to approve xSUMR')
+      toast.error(err?.shortMessage || err?.message || 'Failed to approve xSUMR')
     }
   }
 

@@ -15,13 +15,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ chai
   const cached = cache.get(key)
   if (cached && cached.expiry > now) return NextResponse.json(cached.data)
 
-  const endpoint = CHAIN_GOVERNANCE_SUBGRAPH_URLS[chainId]
+  const endpoint =
+    CHAIN_GOVERNANCE_SUBGRAPH_URLS[chainId as keyof typeof CHAIN_GOVERNANCE_SUBGRAPH_URLS]
   if (!endpoint) return NextResponse.json({ error: 'Unsupported chainId' }, { status: 400 })
 
   const query = activeOnly
     ? `
         query {
-          roles(where: { active: true }, orderBy: createdTimestamp, orderDirection: desc, first:1000) {
+          roles(where: { active: true }, orderBy: createdTimestamp, orderDirection: desc, first: 1000) {
             id
             name
             owner
@@ -44,7 +45,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ chai
       `
     : `
         query {
-          roles(orderBy: createdTimestamp, orderDirection: desc, first:1000) {
+          roles(orderBy: createdTimestamp, orderDirection: desc, first: 1000) {
             id
             name
             owner
@@ -69,9 +70,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ chai
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      query,
-    }),
+    body: JSON.stringify({ query }),
     cache: 'no-store',
   })
   const json = await response.json()
@@ -79,14 +78,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ chai
 
   // Resolve role names and filter out unresolved roles
   const roles = allRoles
-    .map((role: { name: string; [key: string]: unknown }) => {
-      const resolved = resolveRole(role)
+    .map((role: { name: string; targetContract?: string; [key: string]: unknown }) => {
+      const resolved = resolveRole(role, chainId)
       if (resolved.resolved) {
-        return { ...role, name: resolved.name }
+        return {
+          ...role,
+          name: resolved.name,
+          targetContract: resolved.targetContract || role.targetContract,
+        }
       }
       return null
     })
     .filter((role: { name: string } | null) => role !== null)
+
   roles.sort((a, b) => b.name.localeCompare(a.name))
   const payload = { chainId, roles }
   cache.set(key, { data: payload, expiry: now + TTL_MS })

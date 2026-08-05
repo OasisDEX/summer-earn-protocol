@@ -5,7 +5,7 @@ import type { Environment } from '@/config/environments'
 import { fetchVestingData, replacer } from '@/lib/vesting-logic'
 
 // Helper to serialize BigInts before caching
-const serializeBigInts = (data: any): any => {
+const serializeBigInts = (data: unknown): unknown => {
   return JSON.parse(JSON.stringify(data, replacer))
 }
 
@@ -35,7 +35,8 @@ export async function GET(request: Request) {
     return NextResponse.json(data, {
       headers: { 'Content-Type': 'application/json' },
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

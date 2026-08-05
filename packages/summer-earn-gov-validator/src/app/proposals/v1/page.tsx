@@ -1,14 +1,22 @@
-import { Suspense } from 'react'
 import { connection } from 'next/server'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalsList } from '@/components/ProposalsList'
-import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { getProposalsCached } from '@/services/subgraph-cached'
 import { TransformedProposal } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
 
-export default function V1ProposalsPage() {
+export default async function V1ProposalsPage() {
+  await connection()
+
+  let proposals: TransformedProposal[] = []
+  try {
+    const raw = await getProposalsCached({ isV1: true })
+    proposals = raw.map((p) => transformProposal(p))
+  } catch (error) {
+    console.error('Error fetching V1 proposals:', error)
+  }
+
   return (
     <DashboardLayout activeTab="proposals">
       <div className="mb-6">
@@ -17,25 +25,7 @@ export default function V1ProposalsPage() {
           V1 Archive
         </div>
       </div>
-      <Suspense fallback={<ProposalsListSkeleton />}>
-        <V1ProposalsListServer />
-      </Suspense>
+      <ProposalsList initialProposals={proposals} detailPrefix="/proposal/v1" />
     </DashboardLayout>
   )
-}
-
-async function V1ProposalsListServer() {
-  await connection()
-
-  let proposals: TransformedProposal[]
-  try {
-    const raw = await getProposalsCached({ isV1: true })
-    // Wrap in an arrow so Array.map's index isn't passed as the `now` arg.
-    proposals = raw.map((p) => transformProposal(p))
-  } catch (error) {
-    console.error('Error fetching V1 proposals:', error)
-    proposals = []
-  }
-
-  return <ProposalsList initialProposals={proposals} detailPrefix="/proposal/v1" />
 }

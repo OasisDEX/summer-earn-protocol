@@ -9,6 +9,9 @@ const nextConfig = {
   reactStrictMode: true,
   cacheComponents: true,
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  images: {
+    unoptimized: true,
+  },
 }
 
-export default nextConfig;
+export default nextConfig

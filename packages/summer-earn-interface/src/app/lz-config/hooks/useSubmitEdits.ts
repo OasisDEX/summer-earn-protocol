@@ -88,8 +88,9 @@ export function useSubmitEdits({ edits, skipIndices }: UseSubmitEditsOptions) {
           await client.waitForTransactionReceipt({ hash })
           updateResult(i, { status: 'success' })
           toast.success(`Tx ${i + 1}/${edits.length} confirmed`)
-        } catch (err: any) {
-          const msg = err?.shortMessage ?? err?.message ?? String(err)
+        } catch (err: unknown) {
+          const errorObj = err as { shortMessage?: string; message?: string }
+          const msg = errorObj?.shortMessage ?? errorObj?.message ?? String(err)
           updateResult(i, { status: 'error', error: msg })
           toast.error(`Tx ${i + 1} failed: ${msg}`)
           // Stop the loop on first error so the user can decide what to do.

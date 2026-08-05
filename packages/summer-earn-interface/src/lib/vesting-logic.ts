@@ -20,7 +20,7 @@ import {
 import type { ChainId } from '@/types'
 
 // Helper to serialize BigInt for JSON
-export const replacer = (key: string, value: any) =>
+export const replacer = (key: string, value: unknown) =>
   typeof value === 'bigint' ? value.toString() : value
 
 const recipientsRaw: { codename: string; address: Address }[] = [
@@ -137,7 +137,7 @@ const parseBigIntFromOutput = (value: unknown): bigint => {
   if (typeof value === 'bigint') return value
   if (Array.isArray(value) && value.length > 0) return toBigInt(value[0])
   if (typeof value === 'object') {
-    const record = value as any
+    const record = value as Record<string, unknown>
     if (record.amount) return toBigInt(record.amount)
     if (record[0]) return toBigInt(record[0])
   }
@@ -185,7 +185,7 @@ export async function fetchVestingData(
   // ---------------------------------------------------------
   // MEGA CALL 1: DISCOVERY (Owners)
   // ---------------------------------------------------------
-  const discoveryCalls: any[] = []
+  const discoveryCalls: unknown[] = []
 
   recipients.forEach((r) => {
     discoveryCalls.push(
@@ -240,11 +240,11 @@ export async function fetchVestingData(
       },
     )
   })
-  // @ts-expect-error - outdated wagmi types
-  const discoveryResults = await publicClient.multicall({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const discoveryResults = (await (publicClient.multicall as any)({
     contracts: discoveryCalls,
     allowFailure: true,
-  })
+  })) as any[]
 
   const tempSnapshots: WalletSnapshot[] = []
   const stride = 7
@@ -300,7 +300,7 @@ export async function fetchVestingData(
   // ---------------------------------------------------------
   // MEGA CALL 2: EVERYTHING ELSE
   // ---------------------------------------------------------
-  const combinedCalls: any[] = []
+  const combinedCalls: unknown[] = []
   const resultMap = new Map<
     number,
     {
@@ -313,7 +313,11 @@ export async function fetchVestingData(
   let cursor = 0
 
   tempSnapshots.forEach((snap, idx) => {
-    const tracker: any = { stakeCount: snap.stakeCount }
+    const tracker: {
+      stakeCount: number
+      walletStartIdx?: number
+      stakesStartIdx?: number
+    } = { stakeCount: snap.stakeCount }
 
     if (snap.vestingWallet) {
       tracker.walletStartIdx = cursor
@@ -382,8 +386,11 @@ export async function fetchVestingData(
 
   const combinedResults =
     combinedCalls.length > 0
-      ? // @ts-expect-error - outdated wagmi types
-        await publicClient.multicall({ contracts: combinedCalls, allowFailure: true })
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((await (publicClient.multicall as any)({
+          contracts: combinedCalls,
+          allowFailure: true,
+        })) as any[])
       : []
 
   // ---------------------------------------------------------
@@ -414,7 +421,7 @@ export async function fetchVestingData(
 
       let baseAmount = 0n
       if (snap.version === 'V2') {
-        const params = paramRes.result as any
+        const params = paramRes.result as unknown[]
         if (params && Array.isArray(params)) baseAmount = toBigInt(params[3])
       } else {
         baseAmount = toBigInt(paramRes.result)

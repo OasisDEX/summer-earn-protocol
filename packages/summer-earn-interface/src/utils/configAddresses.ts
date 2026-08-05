@@ -28,8 +28,18 @@ function getChainName(chainId: ChainId): string {
   return chainIdMap[chainId] || chainId
 }
 
+type ConfigObject = {
+  address?: string
+}
+
 // Config data loaded from synced deployment config
-const configData: any = configJson
+const configData = configJson as unknown as Record<
+  string,
+  {
+    common?: { foundation?: string }
+    deployedContracts?: Record<string, Record<string, ConfigObject>>
+  }
+>
 
 function loadConfigForChain(chainId: ChainId): ConfigAddresses {
   if (configCache && configCache[chainId]) {

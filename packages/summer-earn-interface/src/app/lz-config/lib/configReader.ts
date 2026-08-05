@@ -3,15 +3,22 @@ import type { Address } from 'viem'
 import configJson from '../../../config/deployment/index.json'
 import type { ChainName, DesiredRouteConfig, ExecutorConfig, OAppKind, UlnConfig } from './types'
 
-// Loose typing: the JSON is treated as `any` (matches existing pattern in src/utils/configAddresses.ts)
-const configData: any = configJson
+type ConfigChainData = {
+  common?: Record<string, Record<string, unknown>>
+  deployedContracts?: Record<string, Record<string, { address?: string }>>
+  bridge?: Record<string, unknown>
+  tokens?: Record<string, unknown>
+  protocolSpecific?: Record<string, unknown>
+}
+
+const configData = configJson as unknown as Record<string, ConfigChainData>
 
 const DEFAULT_CONFIRMATIONS = 15n
 const DEFAULT_MAX_MESSAGE_SIZE = 10000
 
 export function getConfirmations(chain: ChainName): bigint {
   const v = configData[chain]?.common?.layerZero?.confirmations
-  return v != null ? BigInt(v) : DEFAULT_CONFIRMATIONS
+  return v != null ? BigInt(v as string | number | bigint) : DEFAULT_CONFIRMATIONS
 }
 
 export function getEid(chain: ChainName): number {
@@ -54,7 +61,9 @@ export function getDesiredUln(
   remoteChain: ChainName,
   confirmations: bigint,
 ): UlnConfig | null {
-  const dvns = configData[sourceChain]?.common?.layerZero?.dvns?.[remoteChain]
+  const lz = configData[sourceChain]?.common?.layerZero as Record<string, unknown> | undefined
+  const dvnsObj = lz?.dvns as Record<string, Record<string, Address>> | undefined
+  const dvns = dvnsObj?.[remoteChain]
   if (!dvns || !dvns.lzLabs || !dvns.secondDvn) return null
 
   // Three-tier model:

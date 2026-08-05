@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { Abi } from 'viem'
 import { erc20Abi, formatUnits, parseUnits } from 'viem'
 import {
   useConnection,
@@ -76,7 +77,7 @@ interface VaultInteractionFormProps {
   title: string
   description: string
   vaultAddress: `0x${string}`
-  vaultAbi: any
+  vaultAbi: Abi | readonly unknown[]
   accessManagerAddress?: `0x${string}`
   showFleetURL?: boolean
 }
@@ -254,7 +255,7 @@ export function VaultInteractionForm({
   }, [address, roundCount, vaultAddress, vaultAbi])
 
   const { data: allReceiptResults } = useReadContracts({
-    contracts: receiptCalls as any,
+    contracts: receiptCalls as unknown as Parameters<typeof useReadContracts>[0]['contracts'],
     query: { enabled: receiptCalls.length > 0 },
   })
 
@@ -262,7 +263,7 @@ export function VaultInteractionForm({
   const receiptsWithBalance = useMemo(() => {
     if (!allReceiptResults) return []
     return allReceiptResults
-      .map((res: any, i: number) => ({
+      .map((res: { status?: string; result?: unknown }, i: number) => ({
         round: i,
         balance: res.status === 'success' ? (res.result as bigint) : 0n,
       }))

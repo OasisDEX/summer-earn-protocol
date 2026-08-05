@@ -29,17 +29,7 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
-export default function ProposalDetailPage({ params }: PageProps) {
-  return (
-    <DashboardLayout activeTab="proposals">
-      <Suspense fallback={<ProposalsListSkeleton />}>
-        <ProposalDetailServer params={params} />
-      </Suspense>
-    </DashboardLayout>
-  )
-}
-
-async function ProposalDetailServer({ params }: PageProps) {
+export default async function ProposalDetailPage({ params }: PageProps) {
   await connection()
 
   const { id } = await params
@@ -54,6 +44,7 @@ async function ProposalDetailServer({ params }: PageProps) {
   const voterAddresses = proposal.votes.map((v) => v.voter)
   // Normalize (dedupe + sort) so the ENS cache key is independent of voter order.
   const ensMap = await getEnsNamesCached([...new Set(voterAddresses)].sort())
+
   const voterMetadata: Record<
     string,
     { name: string; picture: string | null; twitter: string | null }
@@ -110,7 +101,8 @@ async function ProposalDetailServer({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <DashboardLayout activeTab="proposals">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Main Content */}
       <div className="lg:col-span-8 space-y-8">
         <section className="glass-panel p-8 rounded-xl relative overflow-hidden">
@@ -275,5 +267,6 @@ async function ProposalDetailServer({ params }: PageProps) {
         </div>
       </div>
     </div>
+    </DashboardLayout>
   )
 }

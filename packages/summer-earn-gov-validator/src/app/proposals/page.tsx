@@ -1,35 +1,25 @@
-import { Suspense } from 'react'
 import { connection } from 'next/server'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalsList } from '@/components/ProposalsList'
-import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { getProposalsCached } from '@/services/subgraph-cached'
 import { TransformedProposal } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
 
-export default function ProposalsPage() {
-  return (
-    <DashboardLayout activeTab="proposals">
-      <Suspense fallback={<ProposalsListSkeleton />}>
-        <ProposalsListServer />
-      </Suspense>
-    </DashboardLayout>
-  )
-}
-
-async function ProposalsListServer() {
+export default async function ProposalsPage() {
   await connection()
 
-  let proposals: TransformedProposal[]
+  let proposals: TransformedProposal[] = []
   try {
     const raw = await getProposalsCached()
-    // Wrap in an arrow so Array.map's index isn't passed as the `now` arg.
     proposals = raw.map((p) => transformProposal(p))
   } catch (error) {
     console.error('Error fetching proposals:', error)
-    proposals = []
   }
 
-  return <ProposalsList initialProposals={proposals} />
+  return (
+    <DashboardLayout activeTab="proposals">
+      <ProposalsList initialProposals={proposals} />
+    </DashboardLayout>
+  )
 }

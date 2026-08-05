@@ -1,10 +1,8 @@
-import { Suspense } from 'react'
 import { formatUnits } from 'ethers'
 import { connection } from 'next/server'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DelegatesList } from '@/components/DelegatesList'
-import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { resolveEnsNames } from '@/services/ens'
 import { getDelegatesCached } from '@/services/subgraph-cached'
 import { Delegate } from '@/types/governance'
@@ -16,20 +14,10 @@ function resolveDelegateInfo(address: string) {
   return nodes.find((node) => node.account.address.toLowerCase() === address.toLowerCase())?.account
 }
 
-export default function DelegatesPage() {
-  return (
-    <DashboardLayout activeTab="delegates">
-      <Suspense fallback={<ProposalsListSkeleton />}>
-        <DelegatesListServer />
-      </Suspense>
-    </DashboardLayout>
-  )
-}
-
-async function DelegatesListServer() {
+export default async function DelegatesPage() {
   await connection()
 
-  let delegates: Delegate[]
+  let delegates: Delegate[] = []
   try {
     const subgraphDelegates = await getDelegatesCached()
     const addresses = subgraphDelegates.map((d) => d.id)
@@ -54,8 +42,11 @@ async function DelegatesListServer() {
     })
   } catch (error) {
     console.error('Error fetching delegates for UI:', error)
-    delegates = []
   }
 
-  return <DelegatesList initialDelegates={delegates} />
+  return (
+    <DashboardLayout activeTab="delegates">
+      <DelegatesList initialDelegates={delegates} />
+    </DashboardLayout>
+  )
 }

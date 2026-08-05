@@ -64,22 +64,25 @@ export default function VestingBatchTable({
   initialSnapshots,
   chainId,
 }: {
-  initialSnapshots: any[]
+  initialSnapshots: Record<string, unknown>[]
   chainId?: string
 }) {
   // Convert stringified BigInts back to BigInt for sorting/math
   const snapshots = useMemo(() => {
     return initialSnapshots.map((s) => ({
       ...s,
-      totalPlanned: BigInt(s.totalPlanned || 0),
-      vested: BigInt(s.vested || 0),
-      releasable: BigInt(s.releasable || 0),
-      unvested: BigInt(s.unvested || 0),
-      summerBalance: BigInt(s.summerBalance || 0),
-      xSummerBalance: BigInt(s.xSummerBalance || 0),
-      stakingBalance: BigInt(s.stakingBalance || 0),
-      governanceRewardsBalance: BigInt(s.governanceRewardsBalance || 0),
-      stakes: (s.stakes || []).map((k: any) => ({ ...k, amount: BigInt(k.amount || 0) })),
+      totalPlanned: BigInt((s.totalPlanned as string | number) || 0),
+      vested: BigInt((s.vested as string | number) || 0),
+      releasable: BigInt((s.releasable as string | number) || 0),
+      unvested: BigInt((s.unvested as string | number) || 0),
+      summerBalance: BigInt((s.summerBalance as string | number) || 0),
+      xSummerBalance: BigInt((s.xSummerBalance as string | number) || 0),
+      stakingBalance: BigInt((s.stakingBalance as string | number) || 0),
+      governanceRewardsBalance: BigInt((s.governanceRewardsBalance as string | number) || 0),
+      stakes: ((s.stakes as Record<string, unknown>[]) || []).map((k: Record<string, unknown>) => ({
+        ...k,
+        amount: BigInt((k.amount as string | number) || 0),
+      })),
     })) as WalletSnapshot[]
   }, [initialSnapshots])
 

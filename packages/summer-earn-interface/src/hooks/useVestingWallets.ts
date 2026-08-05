@@ -278,8 +278,9 @@ export function useVestingWallets(chainId: ChainId) {
           account,
           chain,
         } as Parameters<typeof writeContract>[0])
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to create vesting wallet')
+      } catch (error: unknown) {
+        const err = error as { message?: string }
+        toast.error(err?.message || 'Failed to create vesting wallet')
         throw error
       }
     },
@@ -305,8 +306,9 @@ export function useVestingWallets(chainId: ChainId) {
         account,
         chain,
       } as Parameters<typeof writeContract>[0])
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to approve')
+    } catch (error: unknown) {
+      const err = error as { message?: string }
+      toast.error(err?.message || 'Failed to approve')
       throw error
     }
   }, [factoryV2Address, summerTokenAddress, writeContract, account, chain])
@@ -330,8 +332,9 @@ export function useVestingWallets(chainId: ChainId) {
         account,
         chain,
       } as Parameters<typeof writeContract>[0])
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to approve xSUMR')
+    } catch (error: unknown) {
+      const err = error as { message?: string }
+      toast.error(err?.message || 'Failed to approve xSUMR')
       throw error
     }
   }, [escrowAddress, xSummerTokenAddress, writeContract, account, chain])
@@ -352,8 +355,9 @@ export function useVestingWallets(chainId: ChainId) {
         account,
         chain,
       } as Parameters<typeof writeContract>[0])
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to transfer ownership')
+    } catch (error: unknown) {
+      const err = error as { message?: string }
+      toast.error(err?.message || 'Failed to transfer ownership')
       throw error
     }
   }, [userVestingWallet, escrowAddress, writeContract, account, chain])
@@ -375,8 +379,9 @@ export function useVestingWallets(chainId: ChainId) {
           account,
           chain,
         } as Parameters<typeof writeContract>[0])
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to stake vesting wallet')
+      } catch (error: unknown) {
+        const err = error as { message?: string }
+        toast.error(err?.message || 'Failed to stake vesting wallet')
         throw error
       }
     },
@@ -400,8 +405,9 @@ export function useVestingWallets(chainId: ChainId) {
           account,
           chain,
         } as Parameters<typeof writeContract>[0])
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to unstake vesting wallet')
+      } catch (error: unknown) {
+        const err = error as { message?: string }
+        toast.error(err?.message || 'Failed to unstake vesting wallet')
         throw error
       }
     },
@@ -425,8 +431,9 @@ export function useVestingWallets(chainId: ChainId) {
           account,
           chain,
         } as Parameters<typeof writeContract>[0])
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to add factory')
+      } catch (error: unknown) {
+        const err = error as { message?: string }
+        toast.error(err?.message || 'Failed to add factory')
         throw error
       }
     },

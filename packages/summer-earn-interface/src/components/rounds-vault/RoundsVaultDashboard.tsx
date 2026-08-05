@@ -19,7 +19,7 @@ interface RoundsVaultDashboardProps {
   chainId: ChainId
 }
 
-const configs: Record<string, any> = {
+const configs: Record<string, unknown> = {
   '8453': baseConfig,
   '42161': arbitrumConfig,
   '1': mainnetConfig,
