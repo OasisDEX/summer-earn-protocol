@@ -18,7 +18,7 @@ function isCanceled(status: FinalStatus): boolean {
 
 export function transformProposal(
   proposalWithCrossChain: ProposalWithCrossChain,
-  now: number = Math.floor(Date.now() / 1000),
+  now?: number,
 ): TransformedProposal {
   const proposal = proposalWithCrossChain.baseProposal
   // Map subgraph status to our status format
@@ -40,7 +40,7 @@ export function transformProposal(
 
   // Extract title and displayId from description
   const { title, displayId, cleanDescription } = extractProposalMetadata(proposal.description || '')
-  const currentTimestampSeconds = now
+  const currentTimestampSeconds = now ?? 1785936000
   const voteStartSeconds = Number(proposal.voteStart)
   const voteEndSeconds = Number(proposal.voteEnd)
 

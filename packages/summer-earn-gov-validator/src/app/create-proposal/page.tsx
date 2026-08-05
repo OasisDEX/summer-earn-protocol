@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
   AlertCircle,
@@ -26,7 +26,7 @@ import {
   Type,
   Upload,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import remarkGfm from 'remark-gfm'
 import {
   Abi,
@@ -203,8 +203,11 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
 
 // --- Main Component ---
 
-export default function CreateProposalPage() {
+function CreateProposalPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const skipSimulation = searchParams.get('skipSimulation') === 'true'
+
   const { address: userAddress, isConnected } = useConnection()
   const { mutateAsync: writeContractAsync } = useWriteContract()
 
@@ -215,7 +218,7 @@ export default function CreateProposalPage() {
   const { results, isSimulating, triggerSimulation, setResults } = useSimulation()
   const [actions, setActions] = useState<ProposalAction[]>([
     {
-      id: Math.random().toString(36).substr(2, 9),
+      id: 'action-1',
       chainId: HUB_CHAIN_ID,
       target: '',
       abi: [],
@@ -304,8 +307,9 @@ export default function CreateProposalPage() {
   }, [expectedChainIds])
 
   const simulationPassed =
-    lastSimSignatureRef.current === actionsSignature &&
-    requiredSimChainIds.every((cid) => results[cid]?.status === 'success')
+    skipSimulation ||
+    (lastSimSignatureRef.current === actionsSignature &&
+      requiredSimChainIds.every((cid) => results[cid]?.status === 'success'))
 
   interface GasInsight {
     chainId: string
@@ -848,6 +852,12 @@ export default function CreateProposalPage() {
                 <Download size={16} />
                 Export
               </button>
+              {skipSimulation && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-medium">
+                  <AlertCircle size={14} />
+                  Bypass Active (?skipSimulation=true)
+                </div>
+              )}
               <div className="w-px h-6 bg-outline-variant mx-1" />
               <button
                 onClick={handleSimulate}
@@ -863,17 +873,19 @@ export default function CreateProposalPage() {
                   !isEligible || !title || isSubmitting || isSimulating || !simulationPassed
                 }
                 title={
-                  isSimulating
-                    ? 'Simulation running…'
-                    : !simulationPassed
-                      ? lastSimSignatureRef.current !== actionsSignature
-                        ? 'Run simulation against the current actions before submitting'
-                        : 'Simulation has reverts or errors — fix and re-simulate before submitting'
-                      : worstGasSeverity === 'critical'
-                        ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
-                        : worstGasSeverity === 'warning'
-                          ? `Warning: less than ${LZ_GAS_HEADROOM_PERCENT}% gas headroom on at least one chain`
-                          : undefined
+                  skipSimulation
+                    ? 'Simulation blockade bypassed via ?skipSimulation=true'
+                    : isSimulating
+                      ? 'Simulation running…'
+                      : !simulationPassed
+                        ? lastSimSignatureRef.current !== actionsSignature
+                          ? 'Run simulation against the current actions before submitting'
+                          : 'Simulation has reverts or errors — fix and re-simulate before submitting'
+                        : worstGasSeverity === 'critical'
+                          ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
+                          : worstGasSeverity === 'warning'
+                            ? `Warning: less than ${LZ_GAS_HEADROOM_PERCENT}% gas headroom on at least one chain`
+                            : undefined
                 }
                 className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
                   isEligible && title && simulationPassed && !isSimulating
@@ -1467,5 +1479,13 @@ export default function CreateProposalPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function CreateProposalPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateProposalPageContent />
+    </Suspense>
   )
 }

@@ -1,5 +1,4 @@
 import { formatUnits } from 'ethers'
-import { connection } from 'next/server'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DelegatesList } from '@/components/DelegatesList'
@@ -15,7 +14,6 @@ function resolveDelegateInfo(address: string) {
 }
 
 export default async function DelegatesPage() {
-  await connection()
 
   let delegates: Delegate[] = []
   try {
