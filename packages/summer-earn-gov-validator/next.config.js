@@ -6,6 +6,7 @@ const __dirname = path.dirname(__filename)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   cacheComponents: true,
   outputFileTracingRoot: path.join(__dirname, '../../'),
