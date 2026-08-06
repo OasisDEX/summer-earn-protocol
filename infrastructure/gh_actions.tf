@@ -5,11 +5,7 @@ locals {
   # (.github/workflows/amplify-previews.yaml / amplify-prod-deploys.yaml).
   amplify_app_arns = [
     module.gov_validator.arn,
-    module.auctions_frontend.arn,
     module.interface.arn,
-    module.dca_app.arn,
-    module.rwa_app.arn,
-    module.institution_inspector.arn,
   ]
 }
 

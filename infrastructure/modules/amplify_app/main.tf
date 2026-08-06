@@ -127,7 +127,7 @@ resource "aws_iam_role_policy_attachment" "deployment_ssm" {
 }
 
 resource "aws_iam_policy" "dynamodb_access" {
-  count = var.dynamodb_arn != null ? 1 : 0
+  count = var.enable_dynamodb_access ? 1 : 0
 
   name        = "${var.app_name}-dynamodb-access"
   description = "Allow Amplify compute to access DynamoDB cache"
@@ -151,7 +151,7 @@ resource "aws_iam_policy" "dynamodb_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "compute_dynamodb" {
-  count      = var.dynamodb_arn != null && local.is_compute ? 1 : 0
+  count      = var.enable_dynamodb_access && local.is_compute ? 1 : 0
   role       = aws_iam_role.compute[0].name
   policy_arn = aws_iam_policy.dynamodb_access[0].arn
 }
@@ -252,6 +252,20 @@ resource "aws_amplify_branch" "this" {
 
   environment_variables = {
     _HARDENED_SECRETS_ACTIVE = "true"
+  }
+}
+
+resource "aws_amplify_domain_association" "this" {
+  count       = var.custom_domain != "" ? 1 : 0
+  app_id      = aws_amplify_app.this.id
+  domain_name = var.custom_domain
+  
+  # Prevent Terraform from failing if it can't verify the domain immediately
+  wait_for_verification = false
+
+  sub_domain {
+    branch_name = aws_amplify_branch.this.branch_name
+    prefix      = ""
   }
 }
 

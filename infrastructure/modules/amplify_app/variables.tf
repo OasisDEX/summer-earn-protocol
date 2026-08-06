@@ -92,8 +92,20 @@ variable "dynamodb_arn" {
   default     = null
 }
 
+variable "enable_dynamodb_access" {
+  type        = bool
+  description = "Set to true to create the DynamoDB access policy"
+  default     = false
+}
+
 variable "secrets" {
   description = "Sensitive secrets to store in SSM for the Amplify app"
   type        = map(string)
   default     = {}
+}
+
+variable "custom_domain" {
+  description = "Optional custom domain name to associate with the Amplify app"
+  type        = string
+  default     = ""
 }
