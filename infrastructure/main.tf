@@ -57,7 +57,8 @@ module "gov_validator" {
   dynamodb_arn          = aws_dynamodb_table.governance_cache.arn
   enable_dynamodb_access= true
   tags                  = local.common_tags
-  custom_domain         = "vog.summer.fi"
+  custom_domain         = "vote.summer.fi"
+  additional_domains    = ["dao.summer.fi"]
 }
 
 module "interface" {

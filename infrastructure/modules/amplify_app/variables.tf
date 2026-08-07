@@ -109,3 +109,9 @@ variable "custom_domain" {
   type        = string
   default     = ""
 }
+
+variable "additional_domains" {
+  description = "Optional list of additional custom domain names to associate with the Amplify app"
+  type        = list(string)
+  default     = []
+}

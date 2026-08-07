@@ -269,6 +269,19 @@ resource "aws_amplify_domain_association" "this" {
   }
 }
 
+resource "aws_amplify_domain_association" "additional" {
+  for_each    = toset(var.additional_domains)
+  app_id      = aws_amplify_app.this.id
+  domain_name = each.value
+  
+  wait_for_verification = false
+
+  sub_domain {
+    branch_name = aws_amplify_branch.this.branch_name
+    prefix      = ""
+  }
+}
+
 resource "aws_ssm_parameter" "secrets" {
   for_each = var.secrets
 

@@ -10,9 +10,32 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' })
 
-export const metadata = {
-  title: 'Summer Earn Protocol Interface',
-  description: 'A simple interface for Summer Earn Protocol',
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Summer.fi | Earn Protocol',
+  description: 'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
+  openGraph: {
+    title: 'Summer.fi | Earn Protocol',
+    description: 'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
+    url: 'https://app.summer.fi',
+    siteName: 'Summer.fi Earn',
+    images: [
+      {
+        url: 'https://summer.fi/img/branding/dot-dark.svg',
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Summer.fi | Earn Protocol',
+    description: 'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
+    creator: '@summerfinance_',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
