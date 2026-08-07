@@ -3,14 +3,14 @@
 import { CHAIN_NAMES } from '@/config/chains'
 import type { ChainId } from '@/types'
 
-const CHAIN_ORDER: ChainId[] = ['1', '42161', '8453', '146', '11155111']
+const CHAIN_ORDER: ChainId[] = ['1', '42161', '8453', '146', '999', '11155111']
 
 const CHAIN_INITIALS: Record<ChainId, string> = {
   '1': 'E',
   '42161': 'A',
   '8453': 'B',
   '146': 'S',
-  '999': 'T',
+  '999': 'H',
   '11155111': 'Se',
 }
 

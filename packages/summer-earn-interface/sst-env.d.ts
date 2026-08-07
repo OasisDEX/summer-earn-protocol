@@ -6,10 +6,6 @@
 
 declare module "sst" {
   export interface Resource {
-    "SummerEarnInterfaceApp": {
-      "type": "sst.aws.Nextjs"
-      "url": string
-    }
   }
 }
 

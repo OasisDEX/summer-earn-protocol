@@ -6,14 +6,6 @@
 
 declare module "sst" {
   export interface Resource {
-    "GovValidatorApp": {
-      "type": "sst.aws.Nextjs"
-      "url": string
-    }
-    "GovernanceCache": {
-      "name": string
-      "type": "sst.aws.Dynamo"
-    }
   }
 }
 

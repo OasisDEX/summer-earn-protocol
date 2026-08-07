@@ -14,6 +14,7 @@ const SYMBOL_TO_ID: Record<string, string> = {
   LDO: 'lido-dao',
   LINK: 'chainlink',
   USDS: 'usds',
+  SUMR: 'summer-fi',
 }
 
 export interface PriceResponse {
