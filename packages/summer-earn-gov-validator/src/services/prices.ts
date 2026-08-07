@@ -1,7 +1,7 @@
 import { getSecret } from '@/lib/secrets'
 
 const SYMBOL_TO_ID: Record<string, string> = {
-  SUM: 'summer-fi',
+  SUM: 'summer-2',
   ETH: 'ethereum',
   WETH: 'weth',
   USDC: 'usd-coin',
@@ -14,7 +14,7 @@ const SYMBOL_TO_ID: Record<string, string> = {
   LDO: 'lido-dao',
   LINK: 'chainlink',
   USDS: 'usds',
-  SUMR: 'summer-fi',
+  SUMR: 'summer-2',
 }
 
 export interface PriceResponse {
