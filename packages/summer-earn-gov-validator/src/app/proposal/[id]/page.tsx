@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import Link from 'next/link'
 import Markdown from 'react-markdown'
 import { notFound } from 'next/navigation'
 import rehypeRaw from 'rehype-raw'
@@ -6,12 +6,12 @@ import remarkGfm from 'remark-gfm'
 
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ProposalExecutionDetails } from '@/components/ProposalExecutionDetails'
-import { ProposalsListSkeleton } from '@/components/ProposalsListSkeleton'
 import { ProposalVotingInfo } from '@/components/ProposalVotingInfo'
 import { RecentVotes } from '@/components/RecentVotes'
 import { getEnsNamesCached } from '@/services/ens-cached'
 import { getProposalByIdCached } from '@/services/subgraph-cached'
 import { SupportedNetworks } from '@/services/validation'
+import { FinalStatus } from '@/types/governance'
 import { transformProposal } from '@/utils/proposal-transformer'
 import { convertRawUrlsToMarkdown } from '@/utils/text'
 import { formatTimestamp } from '@/utils/timing'
@@ -24,12 +24,92 @@ function resolveDelegateInfo(address: string) {
   return nodes.find((node) => node.account.address.toLowerCase() === address.toLowerCase())?.account
 }
 
+// Same status -> color mapping used in ProposalsList.tsx.
+function getStatusStyle(status: string) {
+  switch (status) {
+    case 'Active':
+    case 'Executed':
+      return { bg: 'var(--okBg)', fg: 'var(--ok)' }
+    case 'Executed on Hub':
+    case 'Queued':
+      return { bg: 'var(--warnBg)', fg: 'var(--warn)' }
+    case 'Defeated':
+      return { bg: 'var(--critBg)', fg: 'var(--crit)' }
+    case 'Pending':
+      return { bg: 'var(--infoBg)', fg: 'var(--info)' }
+    case 'Canceled':
+    default:
+      return { bg: 'var(--surface3)', fg: 'var(--fg3)' }
+  }
+}
+
+const PHASES: { label: string }[] = [
+  { label: 'Pending' },
+  { label: 'Active' },
+  { label: 'Succeeded' },
+  { label: 'Queued' },
+  { label: 'Executed' },
+]
+
+function getPhaseIndex(status: FinalStatus): number {
+  switch (status) {
+    case 'Pending':
+      return 0
+    case 'Active':
+      return 1
+    case 'Succeeded':
+      return 2
+    case 'Queued':
+      return 3
+    case 'Executed':
+    case 'Executed on Hub':
+      return 4
+    default:
+      // Defeated / Canceled are terminal, non-progressing states.
+      return -1
+  }
+}
+
+function PhaseTimeline({ status }: { status: FinalStatus }) {
+  const currentIndex = getPhaseIndex(status)
+
+  return (
+    <div className="flex items-start gap-0 px-5 py-4 border-t border-line overflow-x-auto">
+      {PHASES.map((phase, i) => {
+        const state = i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'future'
+        const nodeClass =
+          state === 'future'
+            ? 'bg-surface3 text-fg3'
+            : state === 'current'
+              ? 'bg-brand-pink text-white'
+              : 'bg-ok text-white'
+        const barClass =
+          i < currentIndex ? 'bg-ok' : state === 'current' ? 'bg-brand-pink' : 'bg-line2'
+        const labelClass = state === 'future' ? 'text-fg3' : 'text-fg'
+
+        return (
+          <div key={phase.label} className="flex-1 min-w-[96px] flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className={`shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center font-mono text-[11px] font-semibold ${nodeClass}`}
+              >
+                {i + 1}
+              </span>
+              <span className={`flex-1 h-0.5 rounded-full ${barClass}`} />
+            </div>
+            <span className={`text-[11px] font-semibold ${labelClass}`}>{phase.label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
 export default async function ProposalDetailPage({ params }: PageProps) {
-
   const { id } = await params
   const fullProposal = await getProposalByIdCached(id)
 
@@ -77,194 +157,176 @@ export default async function ProposalDetailPage({ params }: PageProps) {
   }
 
   const network = getNetwork(proposal.chain)
-  const getBarColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-primary shadow-[0_0_15px_rgba(125,211,252,0.4)]'
-      case 'Executed':
-      case 'Succeeded':
-        return 'bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.4)]'
-      case 'Executed on Hub':
-        return 'bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)]'
-      case 'Queued':
-        return 'bg-tertiary shadow-[0_0_15px_rgba(200,160,240,0.4)]'
-      case 'Pending queue':
-        return 'bg-tertiary shadow-[0_0_15px_rgba(200,160,240,0.4)]'
-      case 'Defeated':
-      case 'Canceled':
-        return 'bg-error shadow-[0_0_15px_rgba(255,107,107,0.4)]'
-      default:
-        return 'bg-slate-500 shadow-[0_0_15px_rgba(100,116,139,0.4)]'
-    }
-  }
+  const statusStyle = getStatusStyle(proposal.status)
+  const displayId = proposal.displayId || proposal.id.slice(0, 8)
 
   return (
     <DashboardLayout activeTab="proposals">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* Main Content */}
-      <div className="lg:col-span-8 space-y-8">
-        <section className="glass-panel p-8 rounded-xl relative overflow-hidden">
-          {/* Partial Frame / Status Bar */}
-          <div
-            className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[40%] rounded-r-full ${getBarColor(
-              proposal.status,
-            )}`}
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-2.5 text-xs text-fg3 mb-3.5">
+          <Link href="/proposals" className="text-fg2 hover:text-fg transition-colors">
+            Proposals
+          </Link>
+          <span>/</span>
+          <span className="font-mono text-fg">{displayId}</span>
+        </div>
+
+        <div className="relative border border-line rounded-xl bg-console-surface overflow-hidden mb-4">
+          <span
+            className="absolute left-0 top-7 w-[3px] h-14 rounded-r-full"
+            style={{ background: statusStyle.fg }}
           />
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-on-surface-variant text-sm font-bold tracking-widest uppercase">
-              {proposal.displayId || proposal.id.slice(0, 8)}
-            </span>
-            <span
-              className={`px-2 py-1 rounded border text-xs font-bold ${
-                proposal.status === 'Active'
-                  ? 'bg-primary/10 text-primary border-primary/20'
-                  : proposal.status === 'Executed'
-                    ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
-                    : proposal.status === 'Executed on Hub'
-                      ? 'bg-amber-400/10 text-amber-500 border-amber-400/20'
-                      : 'bg-tertiary/10 text-tertiary border-tertiary/20'
-              }`}
-            >
-              {proposal.status.toUpperCase()}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-on-surface-variant">
-              <span className="material-symbols-outlined text-sm">hub</span>
-              {proposal.chain}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-on-surface-variant">
-              <span className="material-symbols-outlined text-sm">schedule</span>
-              Created {formatTimestamp(proposal.createdAt)}
-            </span>
-            <div className="ml-auto">
+          <div className="px-5 py-4.5 sm:px-5 sm:py-[18px]">
+            <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
+              <span className="font-mono text-xs font-semibold text-brand-pink">{displayId}</span>
+              <span
+                className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider uppercase"
+                style={{ background: statusStyle.bg, color: statusStyle.fg }}
+              >
+                {proposal.status}
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider bg-surface3 text-fg2">
+                {proposal.chain}
+              </span>
+              <span className="ml-auto font-mono text-[11px] text-fg3">
+                Created {formatTimestamp(proposal.createdAt)}
+              </span>
               <SimulateProposalButton fullProposal={fullProposal} status={proposal.status} />
             </div>
+            <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg text-pretty">
+              {proposal.title}
+            </h1>
           </div>
-          <h1 className="text-4xl font-extrabold text-on-surface tracking-tighter mb-6">
-            {proposal.title}
-          </h1>
-          <div className="text-on-surface-variant leading-relaxed space-y-4">
-            <Markdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              components={{
-                h1: ({ children }) => (
-                  <h1 className="text-2xl font-bold text-on-surface mb-4 mt-6">{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-xl font-semibold text-on-surface mb-3 mt-5">{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-lg font-medium text-on-surface mb-2 mt-4">{children}</h3>
-                ),
-                p: ({ children }) => <p className="mb-3">{children}</p>,
-                ul: ({ children }) => (
-                  <ul className="list-disc list-inside mb-3 space-y-2">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal list-inside mb-3 space-y-2">{children}</ol>
-                ),
-                li: ({ children }) => <li className="text-on-surface-variant">{children}</li>,
-                img: ({ ...props }) => (
-                  <span className="block my-6 overflow-hidden rounded-xl border border-outline/10 shadow-lg">
-                    <img
-                      {...(props as any)}
-                      className="max-w-full h-auto mx-auto"
-                      alt={props.alt || 'Proposal Image'}
-                    />
-                  </span>
-                ),
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    className="text-primary hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {children}
-                  </a>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-semibold text-on-surface">{children}</strong>
-                ),
-                em: ({ children }) => <em className="italic">{children}</em>,
-                code: ({ children }) => (
-                  <code className="bg-surface-container-low px-1 py-0.5 rounded text-sm font-mono">
-                    {children}
-                  </code>
-                ),
-                pre: ({ children }) => (
-                  <pre className="bg-surface-container-low p-4 rounded-lg overflow-x-auto mb-3">
-                    {children}
-                  </pre>
-                ),
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-primary pl-4 italic text-on-surface-variant mb-3">
-                    {children}
-                  </blockquote>
-                ),
-                table: ({ children }) => (
-                  <div className="overflow-x-auto mb-4 border border-outline/10 rounded-xl">
-                    <table className="min-w-full divide-y divide-outline/10">{children}</table>
-                  </div>
-                ),
-                thead: ({ children }) => (
-                  <thead className="bg-surface-container-low">{children}</thead>
-                ),
-                tbody: ({ children }) => (
-                  <tbody className="divide-y divide-outline/10">{children}</tbody>
-                ),
-                tr: ({ children }) => (
-                  <tr className="hover:bg-surface-container-low transition-colors">{children}</tr>
-                ),
-                th: ({ children }) => (
-                  <th className="px-4 py-3 text-left text-xs font-bold text-on-surface uppercase tracking-wider">
-                    {children}
-                  </th>
-                ),
-                td: ({ children }) => (
-                  <td className="px-4 py-3 text-sm text-on-surface-variant whitespace-nowrap">
-                    {children}
-                  </td>
-                ),
-              }}
-            >
-              {convertRawUrlsToMarkdown(proposal.description)}
-            </Markdown>
+
+          <PhaseTimeline status={proposal.status} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Main Content */}
+          <div className="lg:col-span-7 flex flex-col gap-3.5 min-w-0">
+            <section className="border border-line rounded-xl bg-console-surface p-5">
+              <div className="text-fg2 text-[13px] leading-[1.75] space-y-2.5">
+                <Markdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-xl font-semibold tracking-[-0.02em] text-fg mb-2 mt-5">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-lg font-semibold tracking-[-0.02em] text-fg mb-2 mt-4">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-base font-semibold text-fg mb-2 mt-3">{children}</h3>
+                    ),
+                    p: ({ children }) => <p className="mb-2.5">{children}</p>,
+                    ul: ({ children }) => (
+                      <ul className="list-disc list-inside mb-2.5 space-y-1.5">{children}</ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal list-inside mb-2.5 space-y-1.5">{children}</ol>
+                    ),
+                    li: ({ children }) => <li className="text-fg2">{children}</li>,
+                    img: ({ ...props }) => (
+                      <span className="block my-4 overflow-hidden rounded-lg border border-line">
+                        <img
+                          {...(props as any)}
+                          className="max-w-full h-auto mx-auto"
+                          alt={props.alt || 'Proposal Image'}
+                        />
+                      </span>
+                    ),
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        className="text-brand-pink hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-fg">{children}</strong>
+                    ),
+                    em: ({ children }) => <em className="italic">{children}</em>,
+                    code: ({ children }) => (
+                      <code className="bg-field px-1 py-0.5 rounded text-xs font-mono text-fg2">
+                        {children}
+                      </code>
+                    ),
+                    pre: ({ children }) => (
+                      <pre className="bg-field border border-line p-3.5 rounded-lg overflow-x-auto mb-2.5 text-xs">
+                        {children}
+                      </pre>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-2 border-brand-pink bg-surface2 rounded-r-lg pl-3.5 py-2 italic text-fg2 mb-2.5">
+                        {children}
+                      </blockquote>
+                    ),
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto mb-3 border border-line rounded-lg">
+                        <table className="min-w-full divide-y divide-line">{children}</table>
+                      </div>
+                    ),
+                    thead: ({ children }) => <thead className="bg-surface2">{children}</thead>,
+                    tbody: ({ children }) => (
+                      <tbody className="divide-y divide-line">{children}</tbody>
+                    ),
+                    tr: ({ children }) => (
+                      <tr className="hover:bg-surface2 transition-colors">{children}</tr>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-3.5 py-2.5 text-left text-[10px] font-semibold text-fg3 uppercase tracking-[0.07em]">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-3.5 py-2.5 text-xs font-mono text-fg2 whitespace-nowrap">
+                        {children}
+                      </td>
+                    ),
+                  }}
+                >
+                  {convertRawUrlsToMarkdown(proposal.description)}
+                </Markdown>
+              </div>
+            </section>
+
+            {/* Actions Section with Decoded Calldata */}
+            <section className="border border-line rounded-xl bg-console-surface overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-line text-[13px] font-semibold text-fg">
+                Proposed actions
+              </div>
+              <div className="p-4">
+                <ProposalExecutionDetails
+                  baseProposal={fullProposal.baseProposal}
+                  crossChainProposals={fullProposal.crossChainProposals}
+                  network={network}
+                />
+              </div>
+            </section>
           </div>
-        </section>
 
-        {/* Actions Section with Decoded Calldata */}
-        <section className="glass-panel p-8 rounded-xl">
-          <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">description</span>
-            Proposal Actions
-          </h3>
+          {/* Sidebar */}
+          <div className="lg:col-span-5 min-w-0">
+            <div className="sticky top-28 flex flex-col gap-3.5 min-w-0">
+              <section className="border border-line rounded-xl bg-console-surface p-[18px]">
+                <div className="text-[13px] font-semibold text-fg mb-3.5">Current results</div>
+                <ProposalVotingInfo proposal={proposal} displayId={displayId} />
+              </section>
 
-          <ProposalExecutionDetails
-            baseProposal={fullProposal.baseProposal}
-            crossChainProposals={fullProposal.crossChainProposals}
-            network={network}
-          />
-        </section>
-      </div>
-
-      {/* Sidebar */}
-      <div className="lg:col-span-4 space-y-6">
-        <div className="sticky top-28 space-y-6">
-          <section className="glass-panel-elevated p-6 rounded-xl shadow-[0_0_30px_rgba(125,211,252,0.05)]">
-            <h3 className="text-lg font-semibold mb-6">Current Results</h3>
-
-            <ProposalVotingInfo
-              proposal={proposal}
-              displayId={proposal.displayId || proposal.id.slice(0, 8)}
-            />
-          </section>
-
-          {/* Recent Votes Section */}
-          <RecentVotes votes={proposal.votes} voterMetadata={voterMetadata} />
+              {/* Recent Votes Section */}
+              <RecentVotes votes={proposal.votes} voterMetadata={voterMetadata} />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
     </DashboardLayout>
   )
 }

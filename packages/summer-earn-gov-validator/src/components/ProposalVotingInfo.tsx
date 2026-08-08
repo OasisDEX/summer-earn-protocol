@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useAccount, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
+import { ArrowRight, Clock } from 'lucide-react'
 
-import { VoteBar } from '@/components/VoteBar'
 import { GOVERNOR_ABI } from '@/hooks/useProposalVoting'
 import { TransformedProposal } from '@/types/governance'
 import { formatTimeRemaining } from '@/utils/timing'
@@ -72,14 +72,12 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
       <button
         onClick={handleCancelProposal}
         disabled={!isConnected || !isProposer || isCancelling || isPending}
-        className="w-full text-center py-3 bg-error/10 text-error border border-error/20 rounded-xl font-bold hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full text-center py-2.5 border border-crit bg-crit-bg text-crit rounded-lg text-xs font-semibold hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isCancelling ? 'Cancelling...' : 'Cancel Proposal'}
+        {isCancelling ? 'Cancelling...' : 'Cancel proposal'}
       </button>
       {isConnected && !isProposer && (
-        <p className="text-[10px] text-center text-on-surface-variant opacity-70">
-          Only the proposer can cancel
-        </p>
+        <p className="text-[10px] text-center text-fg3">Only the proposer can cancel</p>
       )}
     </div>
   ) : null
@@ -141,26 +139,22 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
 
   if (proposal.status === 'Pending') {
     return (
-      <div className="text-center py-10 glass-panel-elevated rounded-2xl border border-sky-400/20 shadow-[0_0_50px_rgba(125,211,252,0.1)] relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <span className="material-symbols-outlined text-5xl mb-3 text-sky-300 animate-pulse block">
-          schedule
-        </span>
-        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-on-surface-variant mb-2 opacity-60">
-          Voting Starts In
+      <div className="text-center py-6">
+        <Clock className="w-8 h-8 mx-auto mb-3 text-fg3" />
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-fg3 mb-2">
+          Voting starts in
         </h3>
-        <p className="text-3xl font-mono font-black text-on-surface tracking-tighter">
+        <p className="text-2xl font-mono font-semibold text-fg tracking-tight">
           {formatTimeRemaining(proposal.timeRemaining)}
         </p>
-        {cancelButton && <div className="mt-6 px-6 relative">{cancelButton}</div>}
+        {cancelButton && <div className="mt-5">{cancelButton}</div>}
       </div>
     )
   }
 
   if (!proposal.forVotes && proposal.status !== 'Active') {
     return (
-      <div className="text-center py-4 text-on-surface-variant">
-        <span className="material-symbols-outlined text-2xl mb-1">info</span>
+      <div className="text-center py-4 text-fg3 text-xs">
         <p>Vote data unavailable</p>
       </div>
     )
@@ -179,79 +173,77 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
   const currentTimestamp = Math.floor(Date.now() / 1000)
   const isBaseReady = proposal.status === 'Queued' && baseEta > 0 && currentTimestamp >= baseEta
 
+  const tally: { label: string; value: number; percent: number; barClass: string }[] = [
+    { label: 'For', value: forVotes, percent: proposal.forPercent, barClass: 'bg-ok' },
+    {
+      label: 'Against',
+      value: againstVotes,
+      percent: proposal.againstPercent,
+      barClass: 'bg-crit',
+    },
+    { label: 'Abstain', value: abstainVotes, percent: proposal.abstainPercent, barClass: 'bg-fg3' },
+  ]
+
   return (
     <div className="space-y-4">
-      <VoteBar
-        for={proposal.forPercent}
-        against={proposal.againstPercent}
-        abstain={proposal.abstainPercent}
-      />
+      {QUORUM_THRESHOLD > 0 && (
+        <div>
+          <div className="flex items-baseline justify-between gap-2.5 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.07em] text-fg3">
+              Quorum {quorumReached ? 'reached' : 'not reached'}
+            </span>
+            <span className="font-mono text-xs text-fg3">
+              {proposal.quorumProgress.toFixed(1)}%
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-surface3 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-brand-gradient transition-all duration-700"
+              style={{ width: `${Math.min(proposal.quorumProgress, 100)}%` }}
+            />
+          </div>
+          <div className="font-mono text-[11px] text-fg3 mt-1.5">
+            Threshold {QUORUM_THRESHOLD.toLocaleString(undefined, { maximumFractionDigits: 0 })}{' '}
+            SUMR
+          </div>
+        </div>
+      )}
 
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between items-center">
-          <span className="text-on-surface-variant">For</span>
-          <span className="font-medium text-primary">{forVotes.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-on-surface-variant">Against</span>
-          <span className="font-medium text-tertiary">{againstVotes.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-on-surface-variant">Abstain</span>
-          <span className="font-medium text-on-surface-variant">
-            {abstainVotes.toLocaleString()}
-          </span>
-        </div>
-        {QUORUM_THRESHOLD > 0 && (
-          <div className="pt-2 mt-2 border-t border-outline/10">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-on-surface-variant text-xs font-bold uppercase tracking-wider">
-                Quorum Progress
-              </span>
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                  quorumReached
-                    ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 shadow-[0_0_10px_rgba(52,211,153,0.3)]'
-                    : 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_8px_rgba(125,211,252,0.4)]'
-                }`}
-              >
-                {quorumReached ? 'REACHED' : 'NOT REACHED'}
+      <div className="space-y-2.5">
+        {tally.map((row) => (
+          <div key={row.label}>
+            <div className="flex justify-between gap-2.5 text-[11px] mb-1">
+              <span className="text-fg2">{row.label}</span>
+              <span className="font-mono text-fg3">
+                {row.value.toLocaleString()} · {Math.round(row.percent)}%
               </span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden shadow-inner">
+            <div className="h-1 rounded-full bg-surface3 overflow-hidden">
               <div
-                className={`h-full transition-all duration-700 rounded-full ${
-                  quorumReached
-                    ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]'
-                    : 'bg-primary shadow-[0_0_12px_rgba(125,211,252,0.4)]'
-                }`}
-                style={{ width: `${proposal.quorumProgress}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between items-center mt-1 text-[10px]">
-              <span className="text-on-surface-variant">
-                Threshold:{' '}
-                {QUORUM_THRESHOLD.toLocaleString(undefined, { maximumFractionDigits: 0 })} SUMR
-              </span>
-              <span className="text-on-surface font-medium">
-                {proposal.quorumProgress.toFixed(1)}%
-              </span>
+                className={`h-full rounded-full ${row.barClass}`}
+                style={{ width: `${row.percent}%` }}
+              />
             </div>
           </div>
+        ))}
+      </div>
+
+      <div className="flex justify-between gap-2.5 flex-wrap font-mono text-[11px] text-fg3 pt-2.5 border-t border-line">
+        <span>{(forVotes + againstVotes + abstainVotes).toLocaleString()} votes</span>
+        {proposal.status === 'Active' && (
+          <span>{formatTimeRemaining(proposal.timeRemaining)} left</span>
         )}
       </div>
 
-      <div className="space-y-3 mt-4">
+      <div className="space-y-2 pt-1">
         {proposal.status === 'Active' ? (
           <>
             <button
               onClick={() => setShowVotingModal(true)}
-              className="w-full text-center py-4 bg-primary text-on-primary rounded-xl font-bold text-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(125,211,252,0.2)] flex items-center justify-center gap-2 group"
+              className="w-full text-center py-3 bg-brand-gradient text-white rounded-lg font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
             >
               <span>Vote on {displayId || proposal.id.slice(0, 8)}</span>
-              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
-                arrow_forward
-              </span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
 
             <VotingModal
@@ -266,24 +258,22 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
           <button
             onClick={handleQueueBaseProposal}
             disabled={isExecuting || isPending}
-            className="w-full text-center py-4 bg-primary text-on-primary rounded-xl font-bold text-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full text-center py-3 bg-brand-gradient text-white rounded-lg font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
           >
-            {isExecuting ? 'Queueing...' : 'Queue Proposal'}
+            {isExecuting ? 'Queueing...' : 'Queue proposal'}
           </button>
         ) : proposal.status === 'Queued' ? (
           <button
             onClick={handleExecuteBaseProposal}
             disabled={!isBaseReady || isExecuting || isPending}
-            className="w-full text-center py-4 bg-primary text-on-primary rounded-xl font-bold text-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full text-center py-3 bg-brand-gradient text-white rounded-lg font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
           >
-            {!isBaseReady ? 'In Timelock' : isExecuting ? 'Executing...' : 'Execute'}
+            {!isBaseReady ? 'In timelock' : isExecuting ? 'Executing...' : 'Execute'}
           </button>
         ) : proposal.status === 'Executed' || proposal.status === 'Executed on Hub' ? (
           <div
-            className={`w-full text-center py-4 rounded-xl font-bold border ${
-              proposal.status === 'Executed on Hub'
-                ? 'bg-amber-400/10 text-amber-500 border-amber-400/20'
-                : 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+            className={`w-full text-center py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider ${
+              proposal.status === 'Executed on Hub' ? 'bg-warn-bg text-warn' : 'bg-ok-bg text-ok'
             }`}
           >
             {proposal.status}

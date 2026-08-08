@@ -35,66 +35,49 @@ export function RecentVotes({ votes, voterMetadata }: RecentVotesProps) {
   if (votes.length === 0) return null
 
   return (
-    <section className="glass-panel-elevated rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 transition-all duration-300">
-      <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface opacity-80">
-          Recent Votes
-        </h3>
-        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">
+    <section className="border border-line rounded-xl bg-console-surface overflow-hidden">
+      <div className="px-4 py-3.5 border-b border-line flex justify-between items-center">
+        <h3 className="text-[13px] font-semibold text-fg">Recent votes</h3>
+        <span className="text-[10px] font-semibold text-fg3 uppercase tracking-[0.07em]">
           Total: {votes.length}
         </span>
       </div>
 
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-line">
         {displayedVotes.map((vote) => {
           const metadata = voterMetadata[vote.voter.toLowerCase()]
           const isFor = vote.support === 1
           const isAgainst = vote.support === 0
 
           return (
-            <div
-              key={vote.id}
-              className="px-5 py-4 hover:bg-white/[0.02] transition-colors group relative animate-fade-in"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="relative isolate">
-                    {metadata?.picture ? (
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                        <img
-                          src={metadata.picture}
-                          alt={metadata.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-white/10 shadow-inner group-hover:scale-105 transition-transform duration-300 ${
-                          isFor
-                            ? 'bg-gradient-to-tr from-emerald-500/40 to-emerald-400/10'
-                            : isAgainst
-                              ? 'bg-gradient-to-tr from-error/40 to-error/10'
-                              : 'bg-gradient-to-tr from-slate-500/40 to-slate-400/10'
-                        }`}
-                      >
-                        {metadata?.name?.slice(0, 2).toUpperCase() || '??'}
-                      </div>
-                    )}
-                    {/* Tiny support dot */}
+            <div key={vote.id} className="px-4 py-3 hover:bg-surface2 transition-colors">
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {metadata?.picture ? (
+                    <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-line">
+                      <img
+                        src={metadata.picture}
+                        alt={metadata.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
                     <div
-                      className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-950 shadow-sm flex items-center justify-center ${
-                        isFor ? 'bg-emerald-400' : isAgainst ? 'bg-error' : 'bg-slate-400'
+                      className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[10px] font-semibold border border-line ${
+                        isFor
+                          ? 'bg-ok-bg text-ok'
+                          : isAgainst
+                            ? 'bg-crit-bg text-crit'
+                            : 'bg-surface3 text-fg3'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[10px] text-black font-bold">
-                        {isFor ? 'check' : isAgainst ? 'close' : 'remove'}
-                      </span>
+                      {metadata?.name?.slice(0, 2).toUpperCase() || '??'}
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-on-surface text-sm truncate max-w-[120px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[12px] font-semibold text-fg truncate max-w-[120px]">
                         {metadata?.name || `${vote.voter.slice(0, 6)}...${vote.voter.slice(-4)}`}
                       </span>
                       {metadata?.twitter && (
@@ -102,30 +85,26 @@ export function RecentVotes({ votes, voterMetadata }: RecentVotesProps) {
                           href={`https://twitter.com/${metadata.twitter}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-white/20 hover:text-sky-400 transition-colors"
+                          className="text-fg3 hover:text-brand-pink transition-colors shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Bird className="w-3 h-3" />
                         </a>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span
-                        className={`text-[9px] font-black uppercase tracking-[0.2em] ${
-                          isFor ? 'text-emerald-400' : isAgainst ? 'text-error' : 'text-slate-400'
-                        }`}
-                      >
-                        {isFor ? 'FOR' : isAgainst ? 'AGAINST' : 'ABSTAIN'}
-                      </span>
-                    </div>
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                        isFor ? 'text-ok' : isAgainst ? 'text-crit' : 'text-fg3'
+                      }`}
+                    >
+                      {isFor ? 'For' : isAgainst ? 'Against' : 'Abstain'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="text-right flex flex-col items-end">
-                  <span className="text-sm font-mono font-bold text-on-surface">
-                    {formatVotes(vote.votes)}
-                  </span>
-                  <span className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-tighter">
+                <div className="text-right shrink-0">
+                  <span className="block font-mono text-xs text-fg">{formatVotes(vote.votes)}</span>
+                  <span className="block font-mono text-[10px] text-fg3">
                     {getTimeAgo(vote.timestamp)}
                   </span>
                 </div>
@@ -136,14 +115,12 @@ export function RecentVotes({ votes, voterMetadata }: RecentVotesProps) {
       </div>
 
       {votes.length > 5 && (
-        <div className="p-4 bg-white/5 border-t border-white/5">
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="w-full py-2.5 rounded-lg border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] text-on-surface-variant hover:bg-white/5 hover:text-on-surface transition-all active:scale-[0.98]"
-          >
-            {showAll ? 'Collapse' : `View All ${votes.length} Votes`}
-          </button>
-        </div>
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full py-2.5 border-t border-line text-brand-pink text-xs font-semibold hover:bg-surface2 transition-colors"
+        >
+          {showAll ? 'Collapse' : `View all ${votes.length} votes`}
+        </button>
       )}
     </section>
   )

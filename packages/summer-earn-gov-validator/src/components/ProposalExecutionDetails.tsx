@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
+import { AlertTriangle, Clock, Gauge, Layers, Network, Repeat, Terminal, Zap } from 'lucide-react'
 
 import { CrossChainProposal, Proposal } from '@/types/governance'
 
@@ -28,6 +29,23 @@ const getExplorerUrl = (address: string, chainId: string) => {
   const networkName = CHAIN_ID_TO_NETWORK[chainId] || 'base'
   const baseUrl = EXPLORER_URLS[networkName as string] || EXPLORER_URLS.base
   return `${baseUrl}${address}`
+}
+
+// Chain theme `icon` values map to material-symbol names; translate to lucide icons here.
+const CHAIN_ICON: Record<
+  string,
+  React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+> = {
+  hub: Network,
+  layers: Layers,
+  swap_calls: Repeat,
+  bolt: Zap,
+  speed: Gauge,
+}
+
+const ChainIcon = ({ theme, className }: { theme: ChainTheme; className?: string }) => {
+  const Icon = CHAIN_ICON[theme.icon] || Network
+  return <Icon className={className} style={{ color: theme.color }} />
 }
 
 // Timelock Controller ABI for executeBatch
@@ -146,8 +164,6 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
     return proposal.status
   }
 
-  // truncateAddress removed
-
   const formatArgDisplay = (arg: any, theme: ChainTheme): React.ReactNode => {
     if (arg === null || arg === undefined)
       return <span className="text-fg2 italic opacity-50">null</span>
@@ -157,7 +173,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
       const [raw, percent] = arg.split(' (')
       return (
         <div className="flex items-baseline gap-2">
-          <span className={`font-mono`} style={{ color: theme.color }}>
+          <span className="font-mono" style={{ color: theme.color }}>
             {raw}
           </span>
           <span
@@ -181,23 +197,19 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
         return (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className={`font-medium`} style={{ color: theme.color }}>
+              <span className="font-medium" style={{ color: theme.color }}>
                 {formatted}
               </span>
               {isFallback && (
                 <div className="group relative">
-                  <span className="material-symbols-outlined text-warn text-xs cursor-help">
-                    warning
-                  </span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  <AlertTriangle className="w-3 h-3 text-warn cursor-help" />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-surface3 text-fg text-[10px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-line">
                     Decimals could not be resolved. Defaulted to 18.
                   </div>
                 </div>
               )}
             </div>
-            <span className="text-[10px] text-fg2 font-mono opacity-40">
-              Raw: {raw}
-            </span>
+            <span className="text-[10px] text-fg2 font-mono opacity-40">Raw: {raw}</span>
           </div>
         )
       }
@@ -213,13 +225,11 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
 
         return (
           <div className="flex flex-col gap-0.5">
-            <span className={`font-semibold truncate max-w-[300px]`} style={{ color: theme.color }}>
+            <span className="font-semibold truncate max-w-[300px]" style={{ color: theme.color }}>
               {networkAndContract}#{role}
             </span>
             {addressResolved && (
-              <span
-                className={`text-[10px] text-fg2 font-mono select-all truncate uppercase opacity-60`}
-              >
+              <span className="text-[10px] text-fg2 font-mono select-all truncate uppercase opacity-60">
                 {addressResolved}
               </span>
             )}
@@ -248,7 +258,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
             </span>
           ) : (
             <div className="flex items-center gap-1 text-[10px] text-warn font-bold uppercase tracking-tighter">
-              <span className="material-symbols-outlined text-xs">warning</span>
+              <AlertTriangle className="w-3 h-3" />
               <span>Unrecognized</span>
             </div>
           )}
@@ -269,7 +279,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
     if (typeof arg === 'string' && arg.startsWith('0x') && arg.length === 42) {
       return (
         <span
-          className={`font-mono text-xs select-all cursor-help`}
+          className="font-mono text-xs select-all cursor-help"
           style={{ color: theme.color }}
           title={arg}
         >
@@ -283,7 +293,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
       (typeof arg === 'string' && /^\d+$/.test(arg) && arg.length > 15)
     ) {
       return (
-        <span className={`font-mono`} style={{ color: theme.color }}>
+        <span className="font-mono" style={{ color: theme.color }}>
           {arg.toString()}
         </span>
       )
@@ -295,9 +305,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
         <div className="space-y-1.5 pl-2 border-l mt-1" style={{ borderColor: `${theme.color}20` }}>
           {arg.map((item, i) => (
             <div key={i} className="flex gap-2">
-              <span
-                className={`text-[9px] text-fg2 font-mono uppercase tracking-tighter`}
-              >
+              <span className="text-[9px] text-fg2 font-mono uppercase tracking-tighter">
                 [{i}]:
               </span>
               {formatArgDisplay(item, theme)}
@@ -315,9 +323,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
         >
           {Object.entries(arg).map(([key, value]) => (
             <div key={key} className="text-[10px]">
-              <span
-                className={`text-fg2 uppercase tracking-tighter block mb-0.5 opacity-60 font-bold`}
-              >
+              <span className="text-fg2 uppercase tracking-tighter block mb-0.5 opacity-60 font-bold">
                 {key} :
               </span>
               {formatArgDisplay(value, theme)}
@@ -392,54 +398,42 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
   }, [baseProposal, network])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-3.5">
       {/* HUB CHAIN CONTAINER */}
       {hubActions.length > 0 &&
         (() => {
           const theme = getChainTheme(network)
           return (
-            <div
-              className={`bg-console-surface border rounded-xl overflow-hidden`}
-              style={{ borderColor: `${theme.color}20` }}
-            >
-              <div
-                className={`px-5 py-4 flex items-center justify-between border-b ${theme.bg}`}
-                style={{ borderColor: `${theme.color}30` }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${theme.text} text-xl font-bold`}>
-                    {theme.icon}
-                  </span>
-                  <span className={`text-xs font-bold uppercase tracking-widest ${theme.text}`}>
-                    Hub Chain Execution
-                  </span>
-                </div>
-                <span
-                  className={`text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase border`}
-                  style={{ borderColor: `${theme.color}50` }}
-                >
-                  {theme.name.toUpperCase()}
+            <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
+              <div className="px-4 py-3.5 flex items-center gap-2.5 border-b border-line flex-wrap">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-pink-bg text-brand-pink">
+                  Hub
                 </span>
+                <ChainIcon theme={theme} className="w-4 h-4" />
+                <span className="text-[13px] font-semibold text-fg">{theme.name}</span>
               </div>
 
-              <div className="p-5 space-y-8">
+              <div className="divide-y divide-line">
                 {hubActions.map((action: any, i: number) => {
                   const isValidated = validatedActions.has(action.validationId)
                   return (
                     <div
                       key={i}
-                      className={`space-y-4 transition-all duration-300 ${isValidated ? 'opacity-40 grayscale-[0.5]' : ''}`}
+                      className={`flex gap-3 p-4 transition-all duration-300 ${
+                        isValidated ? 'opacity-40 grayscale-[0.5]' : ''
+                      }`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isValidated}
-                            onChange={() => toggleValidation(action.validationId)}
-                            className="w-4 h-4 mt-1 rounded border-line2 text-brand-pink bg-field focus:ring-brand-pink/20 cursor-pointer"
-                          />
-                          <div>
-                            <p className="text-[10px] text-fg2 uppercase tracking-widest font-bold mb-1">
+                      <input
+                        type="checkbox"
+                        checked={isValidated}
+                        onChange={() => toggleValidation(action.validationId)}
+                        className="w-4 h-4 mt-1 rounded border-line2 text-brand-pink bg-field focus:ring-brand-pink/20 cursor-pointer shrink-0"
+                      />
+
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div className="flex justify-between items-start gap-3 flex-wrap">
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-fg3 uppercase tracking-[0.07em] font-semibold mb-1">
                               Target
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -450,98 +444,81 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
                                 )}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`text-sm font-mono select-all hover:underline`}
+                                className="text-xs font-mono select-all hover:underline"
                                 style={{ color: theme.color }}
                               >
                                 {action.target}
                               </a>
-                              {action.contractName !== 'unknown' ? (
+                              {action.contractName !== 'unknown' && (
                                 <span
-                                  className={`inline-block text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
+                                  className={`text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
                                   style={{ borderColor: `${theme.color}30` }}
                                 >
                                   {action.contractName}
                                 </span>
-                              ) : (
-                                <div className="bg-warn-bg border border-warn/20 p-4 rounded-xl flex items-center gap-3 mt-4 w-full">
-                                  <span className="material-symbols-outlined text-warn text-xl">
-                                    warning
-                                  </span>
-                                  <p className="text-[11px] text-warn font-medium">
-                                    Target address{' '}
-                                    <span className="font-mono text-warn">
-                                      {action.target}
-                                    </span>{' '}
-                                    not found in known contract registry. Manual verification
-                                    recommended.
-                                  </p>
-                                </div>
                               )}
                             </div>
                           </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] text-fg3 uppercase tracking-[0.07em] font-semibold mb-1">
+                              Value
+                            </p>
+                            <p className="text-xs font-mono font-semibold text-fg">
+                              {action.value === '0' ? '0 ETH' : `${action.value} wei`}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-fg2 uppercase tracking-widest font-bold mb-1">
-                            Value
-                          </p>
-                          <p className="text-sm font-mono font-bold text-fg">
-                            {action.value === '0' ? '0 ETH' : `${action.value} wei`}
-                          </p>
-                        </div>
-                      </div>
 
-                      {action.isInitiator ? (
-                        <div
-                          className={`flex items-center gap-2 ${theme.bg} p-3 rounded-lg border`}
-                          style={{ borderColor: `${theme.color}20` }}
-                        >
-                          <span className={`material-symbols-outlined text-sm ${theme.text}`}>
-                            swap_calls
-                          </span>
-                          <span
-                            className={`text-xs font-semibold tracking-tight uppercase ${theme.text}`}
-                          >
-                            Initiates Cross-Chain Proposal to {action.dstEid}
-                          </span>
-                        </div>
-                      ) : (
-                        action.decoded && (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2" style={{ color: theme.color }}>
-                              <span className="material-symbols-outlined text-sm">function</span>
-                              <span className="text-sm font-bold uppercase tracking-tight">
-                                {action.decoded.functionName}
-                              </span>
-                            </div>
-                            <div
-                              className={`p-4 bg-surface2 rounded-lg border font-mono text-xs text-fg2 space-y-4`}
-                              style={{ borderColor: `${theme.color}10` }}
-                            >
+                        {action.contractName === 'unknown' && (
+                          <div className="bg-warn-bg border border-warn/20 p-3 rounded-lg flex items-center gap-2.5">
+                            <AlertTriangle className="w-4 h-4 text-warn shrink-0" />
+                            <p className="text-[11px] text-warn font-medium">
+                              Target address <span className="font-mono">{action.target}</span> not
+                              found in known contract registry. Manual verification recommended.
+                            </p>
+                          </div>
+                        )}
+
+                        {action.isInitiator ? (
+                          <div className="flex items-center gap-2 bg-info-bg text-info p-2.5 rounded-lg">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[11px] font-semibold tracking-tight uppercase">
+                              Initiates cross-chain proposal to {action.dstEid}
+                            </span>
+                          </div>
+                        ) : (
+                          action.decoded && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Terminal className="w-3.5 h-3.5" style={{ color: theme.color }} />
+                                <span
+                                  className="text-sm font-mono font-semibold"
+                                  style={{ color: theme.color }}
+                                >
+                                  {action.decoded.functionName}
+                                </span>
+                              </div>
                               {action.decoded.args && action.decoded.args.length > 0 ? (
-                                action.decoded.args.map((arg: any, argIndex: number) => (
-                                  <div key={argIndex}>
-                                    <p
-                                      className={`text-[10px] uppercase mb-1 tracking-tighter font-bold opacity-60`}
-                                      style={{ color: theme.color }}
+                                <div className="space-y-2">
+                                  {action.decoded.args.map((arg: any, argIndex: number) => (
+                                    <div
+                                      key={argIndex}
+                                      className="border border-line rounded-lg bg-surface2 p-2.5"
                                     >
-                                      {action.decoded?.paramNames?.[argIndex] || `ARG${argIndex}`} :
-                                    </p>
-                                    <div className="pl-1">{formatArgDisplay(arg, theme)}</div>
-                                  </div>
-                                ))
+                                      <p className="text-[10px] uppercase mb-1 tracking-[0.07em] font-semibold text-fg3">
+                                        {action.decoded?.paramNames?.[argIndex] || `arg${argIndex}`}
+                                      </p>
+                                      <div>{formatArgDisplay(arg, theme)}</div>
+                                    </div>
+                                  ))}
+                                </div>
                               ) : (
-                                <p className="text-[10px] italic opacity-50">No arguments</p>
+                                <p className="text-[10px] italic text-fg3">No arguments</p>
                               )}
                             </div>
-                          </div>
-                        )
-                      )}
-                      {i < hubActions.length - 1 && (
-                        <div
-                          className="h-px w-full mx-auto"
-                          style={{ backgroundColor: `${theme.color}05` }}
-                        />
-                      )}
+                          )
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -556,258 +533,200 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
         return (
           <div
             key={cIdx}
-            className="bg-console-surface border rounded-xl overflow-hidden"
-            style={{ borderColor: `${theme.color}20` }}
+            className="border border-line rounded-xl bg-console-surface overflow-hidden"
           >
-            <div
-              className={`px-5 py-4 flex items-center justify-between border-b ${theme.bg}`}
-              style={{ borderColor: `${theme.color}30` }}
-            >
-              <div className="flex items-center gap-3">
-                <span className={`material-symbols-outlined ${theme.text} text-xl font-bold`}>
-                  {theme.icon}
-                </span>
-                <span className={`text-xs font-bold uppercase tracking-widest ${theme.text}`}>
-                  Cross-Chain Execution
-                </span>
-              </div>
-              <span
-                className={`text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase border`}
-                style={{ borderColor: `${theme.color}50` }}
-              >
-                {container.chain.toUpperCase()}
+            <div className="px-4 py-3.5 flex items-center gap-2.5 border-b border-line flex-wrap">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-info-bg text-info">
+                Satellite
               </span>
+              <ChainIcon theme={theme} className="w-4 h-4" />
+              <span className="text-[13px] font-semibold text-fg">{theme.name}</span>
+              <span className="text-[11px] text-fg3">{container.actions.length} action(s)</span>
             </div>
 
-            <div className="p-5 space-y-10">
-              <div className="space-y-8">
-                {container.actions.map((action: any, aIdx: number) => {
-                  const isValidated = validatedActions.has(action.validationId)
-                  return (
-                    <div
-                      key={aIdx}
-                      className={`space-y-4 transition-all duration-300 ${isValidated ? 'opacity-40 grayscale-[0.5]' : ''}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isValidated}
-                            onChange={() => toggleValidation(action.validationId)}
-                            className="w-3.5 h-3.5 mt-1 rounded border-line2 text-brand-pink bg-field focus:ring-brand-pink/20 cursor-pointer"
-                          />
-                          <div>
-                            <p className="text-[10px] text-fg2 uppercase tracking-widest font-bold mb-1">
-                              Target
-                            </p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <a
-                                href={getExplorerUrl(action.target, container.chain)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`text-sm font-mono select-all hover:underline`}
-                                style={{ color: theme.color }}
+            <div className="divide-y divide-line">
+              {container.actions.map((action: any, aIdx: number) => {
+                const isValidated = validatedActions.has(action.validationId)
+                return (
+                  <div
+                    key={aIdx}
+                    className={`flex gap-3 p-4 transition-all duration-300 ${
+                      isValidated ? 'opacity-40 grayscale-[0.5]' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isValidated}
+                      onChange={() => toggleValidation(action.validationId)}
+                      className="w-4 h-4 mt-1 rounded border-line2 text-brand-pink bg-field focus:ring-brand-pink/20 cursor-pointer shrink-0"
+                    />
+
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex justify-between items-start gap-3 flex-wrap">
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-fg3 uppercase tracking-[0.07em] font-semibold mb-1">
+                            Target
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <a
+                              href={getExplorerUrl(action.target, container.chain)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-mono select-all hover:underline"
+                              style={{ color: theme.color }}
+                            >
+                              {action.target}
+                            </a>
+                            {action.targetName !== 'unknown' && (
+                              <span
+                                className={`text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
+                                style={{ borderColor: `${theme.color}30` }}
                               >
-                                {action.target}
-                              </a>
-                              {action.targetName !== 'unknown' ? (
-                                <span
-                                  className={`inline-block text-[10px] font-bold ${theme.bg} ${theme.text} px-2 py-0.5 rounded uppercase tracking-tighter border`}
-                                  style={{ borderColor: `${theme.color}30` }}
-                                >
-                                  {action.targetName}
-                                </span>
-                              ) : (
-                                <div className="bg-warn-bg border border-warn/20 p-4 rounded-xl flex items-center gap-3 mt-4 w-full">
-                                  <span className="material-symbols-outlined text-warn text-xl">
-                                    warning
-                                  </span>
-                                  <p className="text-[11px] text-warn font-medium">
-                                    Target address{' '}
-                                    <span className="font-mono text-warn">
-                                      {action.target}
-                                    </span>{' '}
-                                    not found in known contract registry. Manual verification
-                                    recommended.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
+                                {action.targetName}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-fg2 uppercase tracking-widest font-bold mb-1">
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-fg3 uppercase tracking-[0.07em] font-semibold mb-1">
                             Value
                           </p>
-                          <p className="text-sm font-mono font-bold text-fg">
+                          <p className="text-xs font-mono font-semibold text-fg">
                             {action.value === '0' ? '0 ETH' : `${action.value} wei`}
                           </p>
                         </div>
                       </div>
 
+                      {action.targetName === 'unknown' && (
+                        <div className="bg-warn-bg border border-warn/20 p-3 rounded-lg flex items-center gap-2.5">
+                          <AlertTriangle className="w-4 h-4 text-warn shrink-0" />
+                          <p className="text-[11px] text-warn font-medium">
+                            Target address <span className="font-mono">{action.target}</span> not
+                            found in known contract registry. Manual verification recommended.
+                          </p>
+                        </div>
+                      )}
+
                       {action.decodedCall && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2" style={{ color: theme.color }}>
-                            <span className="material-symbols-outlined text-sm font-bold">
-                              function
-                            </span>
-                            <span className="text-sm font-bold uppercase tracking-tight">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Terminal className="w-3.5 h-3.5" style={{ color: theme.color }} />
+                            <span
+                              className="text-sm font-mono font-semibold"
+                              style={{ color: theme.color }}
+                            >
                               {action.decodedCall.functionName}
                             </span>
                           </div>
-                          <div
-                            className={`p-4 bg-surface2 rounded-lg border font-mono text-xs text-fg2 space-y-4`}
-                            style={{ borderColor: `${theme.color}10` }}
-                          >
+                          <div className="space-y-2">
                             {action.decodedCall.args.map((arg: any, argIndex: number) => (
-                              <div key={argIndex}>
-                                <p
-                                  className={`text-[10px] uppercase mb-1 tracking-tighter font-bold opacity-60`}
-                                  style={{ color: theme.color }}
-                                >
-                                  {action.decodedCall?.paramNames?.[argIndex] || `ARG${argIndex}`} :
+                              <div
+                                key={argIndex}
+                                className="border border-line rounded-lg bg-surface2 p-2.5"
+                              >
+                                <p className="text-[10px] uppercase mb-1 tracking-[0.07em] font-semibold text-fg3">
+                                  {action.decodedCall?.paramNames?.[argIndex] || `arg${argIndex}`}
                                 </p>
-                                <div className="pl-1">{formatArgDisplay(arg, theme)}</div>
+                                <div>{formatArgDisplay(arg, theme)}</div>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                      {aIdx < container.actions.length - 1 && (
-                        <div
-                          className="h-px w-full mx-auto"
-                          style={{ backgroundColor: `${theme.color}05` }}
-                        />
-                      )}
                     </div>
-                  )
-                })}
-              </div>
-
-              <div className="pt-8 border-t" style={{ borderColor: `${theme.color}20` }}>
-                <p className="text-[10px] font-bold text-fg2 uppercase tracking-widest mb-4">
-                  Satellite Proposal Status
-                </p>
-                {crossChainProposals.filter(
-                  (ccp) => CHAIN_ID_TO_NETWORK[ccp.chainId] === container.chain,
-                ).length === 0 ? (
-                  <div
-                    className={`p-6 ${theme.bg} border border-dashed rounded-xl text-center`}
-                    style={{ borderColor: `${theme.color}20` }}
-                  >
-                    <span
-                      className={`material-symbols-outlined ${theme.text} opacity-30 text-3xl mb-2`}
-                    >
-                      pending_actions
-                    </span>
-                    <p className={`text-xs ${theme.text} opacity-60 font-medium tracking-tight`}>
-                      No satellite proposal found on {container.chain} yet.
-                    </p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {crossChainProposals
-                      .filter((ccp) => CHAIN_ID_TO_NETWORK[ccp.chainId] === container.chain)
-                      .map((ccp) => {
-                        const status = getCrossChainProposalStatus(ccp)
-                        const eta = Number(ccp.eta)
+                )
+              })}
+            </div>
 
-                        return (
-                          <div
-                            key={ccp.id}
-                            className="p-4 bg-surface2 rounded-xl border"
-                            style={{ borderColor: `${theme.color}20` }}
-                          >
-                            <div className="flex justify-between items-center mb-4">
-                              <div className="flex items-center gap-4">
-                                <div className="flex flex-col">
-                                  <span className="text-[9px] text-fg2 font-bold uppercase tracking-widest mb-1">
-                                    Status
-                                  </span>
-                                  <span
-                                    className={`px-2 py-0.5 rounded text-[10px] font-bold w-fit ${
-                                      status === 'Executed'
-                                        ? 'bg-ok-bg text-ok border border-ok/20'
-                                        : status === 'Ready'
-                                          ? `${theme.bg} ${theme.text} border animate-pulse`
-                                          : 'bg-surface3 text-fg3 border border-line'
-                                    }`}
-                                    style={{
-                                      borderColor:
-                                        status === 'Ready' ? `${theme.color}40` : undefined,
-                                    }}
-                                  >
-                                    {status.toUpperCase()}
-                                  </span>
-                                </div>
-                              </div>
+            <div className="p-4 border-t border-line">
+              <p className="text-[10px] font-semibold text-fg3 uppercase tracking-[0.07em] mb-3">
+                Satellite proposal status
+              </p>
+              {crossChainProposals.filter(
+                (ccp) => CHAIN_ID_TO_NETWORK[ccp.chainId] === container.chain,
+              ).length === 0 ? (
+                <div className="p-5 bg-surface2 border border-dashed border-line rounded-lg text-center">
+                  <Clock className="w-6 h-6 mx-auto mb-2 text-fg3 opacity-50" />
+                  <p className="text-xs text-fg3">
+                    No satellite proposal found on {container.chain} yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {crossChainProposals
+                    .filter((ccp) => CHAIN_ID_TO_NETWORK[ccp.chainId] === container.chain)
+                    .map((ccp) => {
+                      const status = getCrossChainProposalStatus(ccp)
+                      const eta = Number(ccp.eta)
 
-                              {(status === 'Ready' || status === 'Pending') && (
-                                <button
-                                  onClick={() => handleExecuteProposal(ccp)}
-                                  disabled={executingProposals.has(ccp.id) || isPending}
-                                  className={`px-4 py-2 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg disabled:opacity-50`}
-                                  style={{ backgroundColor: theme.color, color: '#000' }}
-                                >
-                                  {executingProposals.has(ccp.id)
-                                    ? 'Executing...'
-                                    : 'Execute Satellite'}
-                                </button>
-                              )}
+                      return (
+                        <div
+                          key={ccp.id}
+                          className="p-3.5 bg-surface2 rounded-lg border border-line"
+                        >
+                          <div className="flex justify-between items-center mb-3 gap-2.5 flex-wrap">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[9px] text-fg3 font-semibold uppercase tracking-[0.07em]">
+                                Status
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold w-fit uppercase ${
+                                  status === 'Executed'
+                                    ? 'bg-ok-bg text-ok'
+                                    : status === 'Ready'
+                                      ? `${theme.bg} ${theme.text}`
+                                      : 'bg-surface3 text-fg3'
+                                }`}
+                              >
+                                {status}
+                              </span>
                             </div>
 
-                            <div
-                              className="grid grid-cols-2 gap-4 p-3 bg-surface2 rounded-lg text-[10px] font-mono border"
-                              style={{ borderColor: `${theme.color}10` }}
-                            >
-                              <div>
-                                <span
-                                  className={`block mb-1 uppercase font-bold tracking-tighter opacity-60`}
-                                  style={{ color: theme.color }}
-                                >
-                                  Satellite ID
-                                </span>
-                                <span className="text-fg opacity-80 break-all">
-                                  {ccp.id}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span
-                                  className={`block mb-1 uppercase font-bold tracking-tighter text-right opacity-60`}
-                                  style={{ color: theme.color }}
-                                >
-                                  ETA
-                                </span>
-                                <span className="text-fg">
-                                  {eta > 0 ? new Date(eta * 1000).toLocaleString() : 'Not Set'}
-                                </span>
-                              </div>
+                            {(status === 'Ready' || status === 'Pending') && (
+                              <button
+                                onClick={() => handleExecuteProposal(ccp)}
+                                disabled={executingProposals.has(ccp.id) || isPending}
+                                className="px-3.5 py-2 rounded-lg text-xs font-semibold hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                                style={{ backgroundColor: theme.color, color: '#000' }}
+                              >
+                                {executingProposals.has(ccp.id)
+                                  ? 'Executing...'
+                                  : 'Execute satellite'}
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 p-2.5 bg-field rounded-lg text-[10px] font-mono border border-line">
+                            <div>
+                              <span className="block mb-1 uppercase font-semibold tracking-[0.07em] text-fg3">
+                                Satellite ID
+                              </span>
+                              <span className="text-fg2 break-all">{ccp.id}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="block mb-1 uppercase font-semibold tracking-[0.07em] text-fg3 text-right">
+                                ETA
+                              </span>
+                              <span className="text-fg2">
+                                {eta > 0 ? new Date(eta * 1000).toLocaleString() : 'Not set'}
+                              </span>
                             </div>
                           </div>
-                        )
-                      })}
-                  </div>
-                )}
-              </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
             </div>
           </div>
         )
       })}
 
       {hubActions.length === 0 && satelliteContainers.length === 0 && (
-        <div
-          className="text-center py-12 bg-console-surface rounded-xl border border-dashed border-line"
-          style={{ borderColor: getChainTheme(network).color + '20' }}
-        >
-          <span
-            className="material-symbols-outlined text-4xl mb-3 opacity-30"
-            style={{ color: getChainTheme(network).color }}
-          >
-            terminal
-          </span>
-          <p className="text-sm text-fg2">
-            No executable actions found in this proposal.
-          </p>
+        <div className="text-center py-12 bg-console-surface rounded-xl border border-dashed border-line">
+          <Terminal className="w-8 h-8 mx-auto mb-3 text-fg3 opacity-50" />
+          <p className="text-sm text-fg3">No executable actions found in this proposal.</p>
         </div>
       )}
     </div>
