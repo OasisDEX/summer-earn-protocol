@@ -5,8 +5,10 @@ import ReactMarkdown from 'react-markdown'
 import {
   AlertCircle,
   Bold,
+  Check,
   ChevronDown,
   Code,
+  Copy,
   Download,
   Eye,
   FileText,
@@ -35,6 +37,7 @@ import {
   isAddress,
   keccak256,
   stringToHex,
+  toFunctionSelector,
 } from 'viem'
 import { useConnection, useReadContract, useWriteContract } from 'wagmi'
 
@@ -201,7 +204,11 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
 function CreateProposalPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const skipSimulation = searchParams.get('skipSimulation') === 'true'
+  // Seeded from ?skipSimulation=true, but overridable via the interactive
+  // toggle in the header — the query param only sets the initial value.
+  const [skipSimulation, setSkipSimulation] = useState(
+    () => searchParams.get('skipSimulation') === 'true',
+  )
 
   const { address: userAddress, isConnected } = useConnection()
   const { mutateAsync: writeContractAsync } = useWriteContract()
@@ -232,6 +239,7 @@ function CreateProposalPageContent() {
   // Once the proposal is queued in the timelock these values are frozen, so
   // we surface a warning below if simulated gasUsed approaches them.
   const [lzGasLimits, setLzGasLimits] = useState<Record<string, string>>({})
+  const [copiedActionId, setCopiedActionId] = useState<string | null>(null)
   const descriptionRef = React.useRef<HTMLTextAreaElement>(null)
 
   const satelliteChainIds = useMemo(
@@ -379,6 +387,44 @@ function CreateProposalPageContent() {
     if (!threshold || !votingPower) return true // Default true for UI testing if data not loaded
     return votingPower >= threshold
   }, [threshold, votingPower])
+
+  // Centralized "why can't I submit" list — mirrors the conditions the Submit
+  // button's disabled/title logic already checks, just surfaced as one panel
+  // instead of scattered inline alert boxes.
+  const blockers = useMemo(() => {
+    const list: string[] = []
+    if (!title.trim()) list.push('Add a title')
+    if (!description.trim()) list.push('Add a description')
+    if (actions.some((a) => !a.rawCalldata && (!a.target || !a.method))) {
+      list.push('Every action needs a target and a method')
+    }
+    if (!skipSimulation && !simulationPassed) {
+      list.push(
+        lastSimSignatureRef.current !== actionsSignature
+          ? 'Run a simulation against the current actions, or skip it deliberately'
+          : 'Simulation has reverts or errors — fix and re-simulate before submitting',
+      )
+    }
+    if (isConnected && !isEligible) {
+      list.push(
+        `Insufficient voting power to submit — current power ${votingPower?.toString() || '0'}`,
+      )
+    }
+    return list
+    // lastSimSignatureRef is a ref; actionsSignature already captures every
+    // input that would change its value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    title,
+    description,
+    actions,
+    skipSimulation,
+    simulationPassed,
+    actionsSignature,
+    isConnected,
+    isEligible,
+    votingPower,
+  ])
 
   // --- ABI Fetching Effect ---
   useEffect(() => {
@@ -793,6 +839,33 @@ function CreateProposalPageContent() {
     }
   }
 
+  const getActionSelector = (action: ProposalAction): { label: string; resolved: boolean } => {
+    if (action.rawCalldata && action.rawCalldata.length >= 10) {
+      return { label: action.rawCalldata.slice(0, 10), resolved: true }
+    }
+    const methodObj = action.abi.find((m) => m.name === action.method)
+    if (!methodObj?.name) {
+      return { label: 'Unknown — encode and verify', resolved: false }
+    }
+    try {
+      const signature = `${methodObj.name}(${(methodObj.inputs ?? []).map((i) => i.type).join(',')})`
+      return { label: toFunctionSelector(signature), resolved: true }
+    } catch {
+      return { label: 'Unknown — encode and verify', resolved: false }
+    }
+  }
+
+  const handleCopyCalldata = async (action: ProposalAction) => {
+    try {
+      const calldata = buildActionCalldata(action)
+      await navigator.clipboard.writeText(calldata)
+      setCopiedActionId(action.id)
+      setTimeout(() => setCopiedActionId((cur) => (cur === action.id ? null : cur)), 1500)
+    } catch (err) {
+      console.error('Failed to encode calldata for copy:', err)
+    }
+  }
+
   return (
     <DashboardLayout activeTab="create">
       <div className="mb-5 flex flex-col md:flex-row md:items-end justify-between gap-5">
@@ -809,7 +882,7 @@ function CreateProposalPageContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Hidden file input for import */}
           <input
             ref={fileInputRef}
@@ -829,7 +902,7 @@ function CreateProposalPageContent() {
             ) : (
               <Upload size={16} />
             )}
-            {isDecodingImport ? 'Decoding...' : 'Import'}
+            {isDecodingImport ? 'Decoding...' : 'Import JSON'}
           </button>
           <button
             onClick={handleExportProposal}
@@ -839,27 +912,38 @@ function CreateProposalPageContent() {
             <Download size={16} />
             Export
           </button>
-          {skipSimulation && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-medium">
-              <AlertCircle size={14} />
-              Bypass Active (?skipSimulation=true)
-            </div>
-          )}
-          <div className="w-px h-6 bg-line mx-1" />
           <button
             onClick={handleSimulate}
             disabled={isSimulating || actions.some((a) => !a.method && !a.rawCalldata)}
             className="flex items-center gap-2 h-[34px] px-3.5 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-all disabled:opacity-50"
           >
             {isSimulating ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
-            Simulate
+            {lastSimSignatureRef.current !== null ? 'Re-simulate' : 'Simulate'}
+          </button>
+          <button
+            onClick={() => setSkipSimulation((v) => !v)}
+            className="flex items-center gap-2 h-[34px] px-3 rounded-lg border border-line2 bg-transparent text-fg2 text-xs font-medium hover:text-fg transition-all"
+            title="Bypass the simulation gate on Submit"
+          >
+            Skip simulation
+            <span
+              className={`w-[30px] h-4 rounded-full p-0.5 inline-flex transition-colors ${
+                skipSimulation ? 'bg-brand-pink' : 'bg-surface3'
+              }`}
+            >
+              <span
+                className={`w-3 h-3 rounded-full bg-white transition-transform duration-150 ${
+                  skipSimulation ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </span>
           </button>
           <button
             onClick={handlePropose}
             disabled={!isEligible || !title || isSubmitting || isSimulating || !simulationPassed}
             title={
               skipSimulation
-                ? 'Simulation blockade bypassed via ?skipSimulation=true'
+                ? 'Simulation blockade bypassed via the Skip simulation toggle'
                 : isSimulating
                   ? 'Simulation running…'
                   : !simulationPassed
@@ -888,176 +972,8 @@ function CreateProposalPageContent() {
         </div>
       </div>
 
-      {/* Cross-Chain Gas Limits */}
-      {satelliteChainIds.length > 0 && (
-        <section className="mb-10 space-y-6">
-          <div>
-            <h2 className="text-[13px] font-semibold text-fg">LayerZero gas limits</h2>
-            <p className="text-[11px] text-fg3 mt-0.5">
-              One executor gas limit per satellite chain. Frozen at queue time — re-run simulation
-              after editing.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {gasInsights.map((insight) => {
-              const chain = CHAINS.find((c) => c.id === insight.chainId)
-              const severity = insight.severity
-              const badge =
-                severity === 'critical'
-                  ? { label: 'OVER LIMIT', className: 'text-crit border-crit/30 bg-crit-bg' }
-                  : severity === 'warning'
-                    ? {
-                        label: 'TIGHT',
-                        className: 'text-warn border-warn/30 bg-warn-bg',
-                      }
-                    : severity === 'ok'
-                      ? {
-                          label: 'OK',
-                          className: 'text-ok border-ok/30 bg-ok-bg',
-                        }
-                      : {
-                          label: 'NOT SIMULATED',
-                          className: 'text-fg3 border-line bg-surface2',
-                        }
-              const ratioPct =
-                insight.ratio !== undefined
-                  ? Number.isFinite(insight.ratio)
-                    ? Math.round(insight.ratio * 100)
-                    : Infinity
-                  : null
-              return (
-                <div
-                  key={insight.chainId}
-                  className={`p-3.5 rounded-xl border bg-console-surface space-y-2.5 ${
-                    severity === 'critical'
-                      ? 'border-crit/40'
-                      : severity === 'warning'
-                        ? 'border-warn/40'
-                        : 'border-line'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm">{chain?.name ?? insight.chainId}</span>
-                    <span
-                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.className}`}
-                    >
-                      {badge.label}
-                    </span>
-                  </div>
-                  <label className="block">
-                    <span className="text-[10px] font-bold text-fg2 tracking-widest uppercase ml-1">
-                      Executor Gas
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={lzGasLimits[insight.chainId] ?? DEFAULT_LZ_GAS_LIMIT}
-                      onChange={(e) =>
-                        setLzGasLimits((prev) => ({
-                          ...prev,
-                          [insight.chainId]: e.target.value,
-                        }))
-                      }
-                      className="mt-1 w-full h-[34px] px-2.5 bg-field border border-line2 rounded-lg text-xs font-mono text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 transition-all"
-                      placeholder={DEFAULT_LZ_GAS_LIMIT}
-                    />
-                  </label>
-                  <div className="flex justify-between text-[10px] font-medium text-fg2 uppercase tracking-wider">
-                    <span>Simulated Gas</span>
-                    <span className="font-mono text-fg">
-                      {insight.gasUsed !== undefined ? insight.gasUsed.toLocaleString() : '—'}
-                    </span>
-                  </div>
-                  {ratioPct !== null && (
-                    <div className="flex justify-between text-[10px] font-medium text-fg2 uppercase tracking-wider">
-                      <span>Headroom</span>
-                      <span
-                        className={`font-mono ${
-                          severity === 'critical'
-                            ? 'text-crit'
-                            : severity === 'warning'
-                              ? 'text-warn'
-                              : 'text-ok'
-                        }`}
-                      >
-                        {ratioPct === Infinity ? '∞' : ratioPct}% used
-                      </span>
-                    </div>
-                  )}
-                  {severity === 'critical' && (
-                    <p className="text-[10px] text-crit">
-                      Simulated execution exceeds encoded gas. Raise the limit before submitting.
-                    </p>
-                  )}
-                  {severity === 'warning' && (
-                    <p className="text-[10px] text-warn">
-                      Less than {LZ_GAS_HEADROOM_PERCENT}% headroom. Consider raising the limit
-                      before submitting.
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Simulation Center */}
-      <section className="mb-10 space-y-6">
-        <div>
-          <h2 className="text-[13px] font-semibold text-fg">Simulation center</h2>
-        </div>
-        <SimulationCenter
-          results={results}
-          targetChainIds={Array.from(new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)]))}
-        />
-      </section>
-
-      {!isEligible && isConnected && (
-        <div className="mb-5 p-3.5 border border-crit/30 bg-crit-bg rounded-xl flex items-center gap-3 text-crit">
-          <AlertCircle size={24} />
-          <div>
-            <p className="font-bold">Insufficient Voting Power</p>
-            <p className="text-sm opacity-80">
-              You need to meet the proposal threshold to submit. Current power:{' '}
-              {votingPower?.toString() || '0'}.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {unsimulatableChainIds.length > 0 && (
-        <div className="mb-5 p-3.5 border border-warn/30 bg-warn-bg rounded-xl flex items-center gap-3 text-warn">
-          <AlertCircle size={24} />
-          <div>
-            <p className="font-bold">
-              {hasHyperliquid ? 'Hyperliquid Simulation Not Possible' : 'Destination Not Simulated'}
-            </p>
-            <p className="text-sm opacity-80">
-              {hasHyperliquid ? (
-                <>
-                  There is no simulation possible on Tenderly for Hyperliquid. The simulation on
-                  other chains (such as Base or Arbitrum) must still pass, but the Hyperliquid leg
-                  will be skipped. Please review the cross-chain calldata carefully.
-                </>
-              ) : (
-                <>
-                  Tenderly can&apos;t simulate{' '}
-                  {unsimulatableChainIds
-                    .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
-                    .join(', ')}
-                  , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
-                  submitted without an execution trace. The Hub leg is still simulated — review the
-                  cross-chain calldata carefully before proposing.
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        <div className="xl:col-span-7 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+        <div className="xl:col-span-7 space-y-3.5 min-w-0">
           <div className="border border-line bg-console-surface p-[18px] rounded-xl space-y-4">
             <div>
               <label className="block text-[10px] font-semibold tracking-[0.08em] uppercase text-brand-pink mb-1.5">
@@ -1192,7 +1108,7 @@ function CreateProposalPageContent() {
           </div>
         </div>
 
-        <div className="xl:col-span-5 space-y-4">
+        <div className="xl:col-span-7 space-y-3.5 min-w-0">
           <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
             <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-line">
               <h2 className="text-[13px] font-semibold text-fg">
@@ -1216,6 +1132,11 @@ function CreateProposalPageContent() {
                     item.stateMutability !== 'pure',
                 )
                 const selectedMethodObj = methods.find((m) => m.name === action.method)
+                const isHubAction = action.chainId === HUB_CHAIN_ID
+                const routeLabel = isHubAction
+                  ? 'Executes on the hub'
+                  : `Relayed Base → ${CHAINS.find((c) => c.id === action.chainId)?.name ?? action.chainId} via LayerZero`
+                const selectorInfo = getActionSelector(action)
 
                 return (
                   <div key={action.id} className="p-4 relative group/action">
@@ -1223,6 +1144,11 @@ function CreateProposalPageContent() {
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="text-[10px] font-semibold tracking-[0.08em] uppercase text-fg3 whitespace-nowrap">
                           Action {index + 1}
+                        </span>
+                        <span
+                          className={`text-[11px] truncate ${isHubAction ? 'text-fg3' : 'text-info'}`}
+                        >
+                          {routeLabel}
                         </span>
                         <select
                           value={action.chainId}
@@ -1426,6 +1352,30 @@ function CreateProposalPageContent() {
                           </p>
                         </div>
                       )}
+
+                      <div className="flex items-center gap-2.5 flex-wrap pt-1 border-t border-line/30">
+                        <span className="text-[10px] font-semibold tracking-[0.06em] uppercase text-fg3 pt-3">
+                          Selector
+                        </span>
+                        <span
+                          className={`font-mono text-xs pt-3 ${
+                            selectorInfo.resolved ? 'text-fg2' : 'text-warn'
+                          }`}
+                        >
+                          {selectorInfo.label}
+                        </span>
+                        <button
+                          onClick={() => handleCopyCalldata(action)}
+                          className="ml-auto mt-3 h-7 px-2.5 rounded-md border border-line2 bg-transparent text-fg3 text-[11px] font-semibold hover:text-brand-pink hover:border-brand-pink/40 transition-colors flex items-center gap-1.5"
+                        >
+                          {copiedActionId === action.id ? (
+                            <Check size={12} className="text-ok" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                          {copiedActionId === action.id ? 'Copied' : 'Copy full calldata'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
@@ -1439,6 +1389,174 @@ function CreateProposalPageContent() {
                 Add another action
               </button>
             </div>
+          </div>
+
+          {blockers.length > 0 && (
+            <div className="border border-line rounded-xl bg-console-surface p-[18px]">
+              <div className="text-[13px] font-semibold text-fg mb-2">Before you can submit</div>
+              <div className="space-y-1">
+                {blockers.map((blocker) => (
+                  <div key={blocker} className="flex items-center gap-2 text-xs text-fg2 py-0.5">
+                    <span className="w-[5px] h-[5px] rounded-full bg-warn shrink-0" />
+                    {blocker}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="xl:col-span-5 space-y-3.5 min-w-0">
+          <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-line text-[13px] font-semibold text-fg">
+              On-chain eligibility
+            </div>
+            {[
+              {
+                label: 'Proposal threshold',
+                value: threshold !== undefined ? threshold.toString() : '—',
+                hint: 'Minimum $SUMR voting power required to submit',
+              },
+              {
+                label: 'Your voting power',
+                value: isConnected
+                  ? votingPower !== undefined
+                    ? votingPower.toString()
+                    : '—'
+                  : '—',
+                hint: isConnected
+                  ? 'Snapshot as of a few minutes ago'
+                  : 'Connect a wallet to check',
+              },
+              {
+                label: 'Eligible',
+                value: isConnected ? (isEligible ? 'Yes' : 'No') : '—',
+                hint: isConnected ? undefined : 'Connect a wallet to check',
+              },
+            ].map((row) => (
+              <div key={row.label} className="px-4 py-3 border-b border-line last:border-b-0">
+                <div className="text-[10px] font-semibold tracking-[0.06em] uppercase text-fg3">
+                  {row.label}
+                </div>
+                <div className="font-mono text-[13px] text-fg mt-0.5">{row.value}</div>
+                {row.hint && <div className="text-[11px] text-fg3 mt-px">{row.hint}</div>}
+              </div>
+            ))}
+          </div>
+
+          {satelliteChainIds.length > 0 && (
+            <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-line">
+                <div className="text-[13px] font-semibold text-fg">LayerZero gas limits</div>
+                <div className="text-[11px] text-fg3 mt-0.5">
+                  One executor gas limit per satellite chain. Frozen at queue time — re-run
+                  simulation after editing.
+                </div>
+              </div>
+              {gasInsights.map((insight) => {
+                const chain = CHAINS.find((c) => c.id === insight.chainId)
+                const severity = insight.severity
+                const note =
+                  severity === 'critical'
+                    ? 'Simulated execution exceeds encoded gas'
+                    : severity === 'warning'
+                      ? `Less than ${LZ_GAS_HEADROOM_PERCENT}% headroom`
+                      : severity === 'ok'
+                        ? 'Within headroom'
+                        : 'Run a simulation to compare'
+                const noteClass =
+                  severity === 'critical'
+                    ? 'text-crit'
+                    : severity === 'warning'
+                      ? 'text-warn'
+                      : severity === 'ok'
+                        ? 'text-ok'
+                        : 'text-fg3'
+                return (
+                  <div
+                    key={insight.chainId}
+                    className="px-4 py-3.5 border-b border-line last:border-b-0"
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-2.5">
+                      <span className="text-[13px] font-semibold text-fg">
+                        {chain?.name ?? insight.chainId}
+                      </span>
+                      <span className={`text-[11px] ${noteClass}`}>{note}</span>
+                    </div>
+                    <label className="block">
+                      <span className="text-[10px] font-semibold tracking-[0.06em] uppercase text-fg3 mb-1 block">
+                        Executor Gas
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={lzGasLimits[insight.chainId] ?? DEFAULT_LZ_GAS_LIMIT}
+                        onChange={(e) =>
+                          setLzGasLimits((prev) => ({
+                            ...prev,
+                            [insight.chainId]: e.target.value,
+                          }))
+                        }
+                        className="w-full h-[34px] px-2.5 bg-field border border-line2 rounded-lg text-xs font-mono text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 transition-all"
+                        placeholder={DEFAULT_LZ_GAS_LIMIT}
+                      />
+                    </label>
+                    <div className="flex justify-between mt-2 font-mono text-[11px]">
+                      <span className="text-fg3">Simulated gas</span>
+                      <span className={insight.gasUsed !== undefined ? noteClass : 'text-fg'}>
+                        {insight.gasUsed !== undefined ? insight.gasUsed.toLocaleString() : '—'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-line text-[13px] font-semibold text-fg">
+              Simulation center
+            </div>
+            <div className="p-4">
+              <SimulationCenter
+                results={results}
+                targetChainIds={Array.from(
+                  new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)]),
+                )}
+              />
+            </div>
+            {(unsimulatableChainIds.length > 0 || (isConnected && !isEligible)) && (
+              <div className="px-4 py-3 bg-warn-bg space-y-1.5">
+                {unsimulatableChainIds.length > 0 && (
+                  <p className="text-xs text-fg2">
+                    {hasHyperliquid ? (
+                      <>
+                        There is no simulation possible on Tenderly for Hyperliquid. The simulation
+                        on other chains (such as Base or Arbitrum) must still pass, but the
+                        Hyperliquid leg will be skipped. Please review the cross-chain calldata
+                        carefully.
+                      </>
+                    ) : (
+                      <>
+                        Tenderly can&apos;t simulate{' '}
+                        {unsimulatableChainIds
+                          .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
+                          .join(', ')}
+                        , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
+                        submitted without an execution trace. The Hub leg is still simulated —
+                        review the cross-chain calldata carefully before proposing.
+                      </>
+                    )}
+                  </p>
+                )}
+                {isConnected && !isEligible && (
+                  <p className="text-xs text-fg2">
+                    Insufficient voting power to submit — current power:{' '}
+                    {votingPower?.toString() || '0'}.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
