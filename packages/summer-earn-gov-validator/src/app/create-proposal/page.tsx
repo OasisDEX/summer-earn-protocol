@@ -1089,7 +1089,7 @@ function CreateProposalPageContent() {
                   <textarea
                     ref={descriptionRef}
                     rows={16}
-                    placeholder="# Summary\nDescribe what this proposal does..."
+                    placeholder={'# Summary\nDescribe what this proposal does...'}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full min-h-[180px] p-3 bg-field border border-line2 rounded-lg font-mono text-[13px] leading-relaxed text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 focus:border-brand-pink transition-all placeholder:text-fg3 resize-y"
