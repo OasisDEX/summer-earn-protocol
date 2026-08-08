@@ -100,9 +100,9 @@ module.exports = {
         mono: ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {
-        DEFAULT: '0.5rem',
-        lg: '1rem',
-        xl: '1.5rem',
+        DEFAULT: '0.375rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
         full: '9999px',
       },
       animation: {
