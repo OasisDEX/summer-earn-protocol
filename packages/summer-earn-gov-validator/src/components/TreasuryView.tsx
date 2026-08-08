@@ -10,59 +10,45 @@ interface TreasuryViewProps {
 
 function HoldingsTable({ holdings }: { holdings: TreasuryHolding[] }) {
   return (
-    <div className="glass rounded-3xl overflow-hidden border-sky-400/5">
+    <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-slate-900/50 border-b border-sky-400/10">
+          <thead className="bg-surface2 border-b border-line text-[11px] font-semibold tracking-wider text-fg3 uppercase">
             <tr>
-              <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                Token
-              </th>
-              <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                Balance
-              </th>
-              <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                Value
-              </th>
+              <th className="px-4.5 py-3">Token</th>
+              <th className="px-4.5 py-3 text-right">Balance</th>
+              <th className="px-4.5 py-3 text-right">USD Value</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-sky-400/5">
+          <tbody className="divide-y divide-line text-xs">
             {holdings.map((holding, index) => (
-              <tr key={index} className="hover:bg-primary/5 transition-colors">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border border-sky-400/10 bg-slate-800">
+              <tr key={index} className="hover:bg-surface2 transition-colors">
+                <td className="px-4.5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-surface3 flex-shrink-0 font-mono text-[10px] font-semibold text-fg">
                       {holding.logoURI ? (
                         <img
                           src={holding.logoURI}
                           alt={holding.symbol}
-                          className="w-full h-full object-contain p-1"
-                          onError={(e) => {
-                            ;(e.target as HTMLImageElement).src =
-                              'https://assets.smold.app/api/token/1/0x0000000000000000000000000000000000000000/logo-128.png'
-                          }}
+                          className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">
-                          <span className="material-symbols-outlined text-xs text-on-primary">
-                            paid
-                          </span>
-                        </div>
+                        holding.symbol.slice(0, 2)
                       )}
                     </div>
-                    <div>
-                      <p className="font-bold text-on-surface">{holding.token}</p>
-                      <p className="text-xs text-on-surface-variant">
-                        {holding.symbol} • {holding.chain}
-                      </p>
+                    <div className="min-w-0">
+                      <span className="font-mono text-xs font-semibold text-fg block">{holding.symbol}</span>
+                      <span className="text-[11px] text-fg2 truncate block">
+                        {holding.token} · {holding.chain}
+                      </span>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-5">
-                  <p className="font-medium text-on-surface">{holding.balance}</p>
+                <td className="px-4.5 py-3.5 font-mono text-fg2 text-right">
+                  {holding.balance}
                 </td>
-                <td className="px-6 py-5">
-                  <p className="font-bold text-primary">{holding.value}</p>
+                <td className="px-4.5 py-3.5 font-mono text-fg font-medium text-right">
+                  {holding.value}
                 </td>
               </tr>
             ))}
@@ -79,182 +65,156 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
   const matchesChain = (holding: TreasuryHolding) =>
     selectedChain === 'all' || holding.chain.toLowerCase() === selectedChain.toLowerCase()
 
-  // Per-wallet sections, each filtered by the selected chain; hide empties.
   const walletSections = initialData.wallets
     .map((section) => ({ ...section, holdings: section.holdings.filter(matchesChain) }))
     .filter((section) => section.holdings.length > 0)
 
+  const chainOptions = ['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid']
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto w-full">
+    <div className="space-y-6 max-w-[1240px] mx-auto w-full">
+      <div>
+        <h1 className="m-0 text-[26px] font-semibold tracking-[-0.03em] text-fg">Treasury</h1>
+        <p className="mt-1 text-fg2 text-xs">Prices provided by CoinGecko.</p>
+      </div>
+
       {initialData.error && (
-        <div className="bg-amber-400/10 border border-amber-400/20 text-amber-400 px-6 py-4 rounded-2xl flex items-center gap-4 animate-slide-in">
-          <span className="material-symbols-outlined shrink-0 text-3xl">warning</span>
-          <div className="flex-1">
-            <p className="font-bold text-sm uppercase tracking-wider mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
-              Price Data Warning
-            </p>
-            <p className="text-xs opacity-80">{initialData.error}</p>
-          </div>
+        <div className="bg-warn-bg border border-warn/20 text-warn px-4 py-3 rounded-xl flex items-center gap-3 text-xs">
+          <span className="material-symbols-outlined shrink-0 text-xl">warning</span>
+          <p className="flex-1 m-0">{initialData.error}</p>
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 glass-elevated rounded-3xl p-8 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full -mr-20 -mt-20"></div>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <p className="text-on-surface-variant text-sm font-medium uppercase tracking-widest">
-                  Total Treasury Value
-                </p>
-                {initialData.error && (
-                  <div className="group/tooltip relative flex items-center">
-                    <span className="material-symbols-outlined text-amber-400 text-sm cursor-help">
-                      error_outline
-                    </span>
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-slate-900 border border-amber-400/20 text-amber-400 text-[10px] rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all whitespace-nowrap z-50 shadow-2xl">
-                      Prices may be stale: {initialData.error}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <h3 className="text-5xl md:text-6xl font-extrabold text-on-surface tracking-tighter text-glow drop-shadow-[0_0_15px_rgba(125,211,252,0.3)]">
-                {initialData.totalValue}
-              </h3>
-            </div>
+      {/* KPI Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line border border-line rounded-xl overflow-hidden">
+        <div className="bg-console-surface p-4">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
+            Total Treasury Value
+          </div>
+          <div className="font-mono text-2xl font-medium tracking-tight text-fg mt-1.5">
+            {initialData.totalValue}
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-2xl hover:glass-panel-elevated hover:scale-105 transition-all duration-300">
-          <p className="text-on-surface-variant text-xs font-medium uppercase tracking-wider mb-2">
+        <div className="bg-console-surface p-4">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
             Top Holding
-          </p>
-          <p className="text-xl font-bold text-on-surface">
+          </div>
+          <div className="font-mono text-2xl font-medium tracking-tight text-fg mt-1.5">
             {initialData.topHolding?.symbol || '—'}
-          </p>
-          <p className="text-sm text-on-surface-variant">
-            {initialData.topHolding?.percentage.toFixed(1)}% of total
-          </p>
+          </div>
+          <div className="text-xs text-fg3 mt-0.5">
+            {initialData.topHolding ? `${initialData.topHolding.percentage.toFixed(1)}% of total` : ''}
+          </div>
+        </div>
+
+        <div className="bg-console-surface p-4 sm:col-span-2 lg:col-span-1">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
+            Wallets Tracked
+          </div>
+          <div className="font-mono text-2xl font-medium tracking-tight text-fg mt-1.5">
+            {initialData.wallets.length}
+          </div>
         </div>
       </div>
 
       {/* Top Holdings Aggregated */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold text-on-surface">Top Holdings (Aggregated)</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {initialData.aggregatedHoldings.slice(0, 4).map((holding, index) => (
+      <section className="border border-line rounded-xl bg-console-surface overflow-hidden">
+        <div className="px-4.5 py-3 border-b border-line text-xs font-semibold text-fg">
+          Top holdings, aggregated
+        </div>
+
+        <div className="divide-y divide-line">
+          {initialData.aggregatedHoldings.slice(0, 4).map((h, i) => (
             <div
-              key={index}
-              className="glass-panel p-5 rounded-2xl border-l-4 border-primary/40 hover:glass-panel-elevated transition-all group"
+              key={i}
+              className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-4 px-4.5 py-3.5"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-sky-400/10 bg-slate-800">
-                  {holding.logoURI ? (
-                    <img
-                      src={holding.logoURI}
-                      alt={holding.symbol}
-                      className="w-full h-full object-contain p-1.5"
-                    />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-surface3 flex-shrink-0 font-mono text-[10px] font-semibold text-fg">
+                  {h.logoURI ? (
+                    <img src={h.logoURI} alt={h.symbol} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="material-symbols-outlined text-sm text-primary">paid</span>
+                    h.symbol.slice(0, 2)
                   )}
                 </div>
-                <div>
-                  <p className="font-bold text-on-surface leading-none mb-1">{holding.symbol}</p>
-                  <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">
-                    {holding.name}
-                  </p>
+                <div className="min-w-0">
+                  <span className="block text-xs font-semibold text-fg">{h.symbol}</span>
+                  <span className="block text-[11px] text-fg3 truncate">{h.name}</span>
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-lg font-black text-primary">
-                  ${holding.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </p>
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-on-surface-variant">
-                    {holding.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}{' '}
-                    {holding.symbol}
-                  </span>
-                  <span className="text-primary font-bold">{holding.percentage.toFixed(1)}%</span>
+
+              <div className="font-mono text-sm font-medium text-fg">
+                ${h.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </div>
+
+              <div>
+                <div className="flex justify-between font-mono text-[11px] text-fg3 mb-1">
+                  <span>{h.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} {h.symbol}</span>
+                  <span>{h.percentage.toFixed(1)}%</span>
                 </div>
-                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mt-2">
+                <div className="h-1.5 rounded-full bg-surface3 overflow-hidden">
                   <div
-                    className="h-full bg-primary shadow-[0_0_8px_rgba(125,211,252,0.4)] transition-all duration-1000"
-                    style={{ width: `${holding.percentage}%` }}
-                  ></div>
+                    className="h-full rounded-full bg-brand-gradient"
+                    style={{ width: `${Math.min(h.percentage, 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Chain Filter */}
-      <div className="flex gap-2">
-        {['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic'].map((chain) => (
+      {/* Chain Filter Pills */}
+      <div className="flex gap-1.5 flex-wrap">
+        {chainOptions.map((chain) => (
           <button
             key={chain}
             onClick={() => setSelectedChain(chain)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`h-[30px] px-[11px] rounded-full border text-xs font-medium cursor-pointer transition-colors ${
               selectedChain === chain
-                ? 'bg-primary/10 text-primary'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'border-brand-pink bg-pink-bg text-brand-pink'
+                : 'border-line2 bg-surface3 text-fg2 hover:text-fg'
             }`}
           >
-            {chain === 'all' ? 'All Chains' : chain}
+            {chain === 'all' ? 'All chains' : chain}
           </button>
         ))}
       </div>
 
-      {/* Per-wallet sections */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-end">
-          <h3 className="text-xl font-bold text-on-surface">Asset Holdings by Wallet</h3>
-          <div className="text-xs text-on-surface-variant pb-1">
-            Prices provided by{' '}
-            <a
-              href="https://www.coingecko.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline transition-all"
-            >
-              CoinGecko
-            </a>
-          </div>
-        </div>
-
+      {/* Per-wallet Sections */}
+      <div className="flex flex-col gap-3.5">
         {walletSections.length === 0 ? (
-          <div className="glass rounded-3xl px-6 py-10 text-center text-on-surface-variant border-sky-400/5">
+          <div className="border border-line rounded-xl bg-console-surface p-6 text-center text-fg2 text-xs">
             No holdings for the selected chain.
           </div>
         ) : (
-          <div className="space-y-8">
-            {walletSections.map((section) => (
-              <div key={section.key} className="space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-lg font-bold text-on-surface">{section.label}</h4>
-                    {section.externalUrl && (
-                      <a
-                        href={section.externalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-on-surface-variant hover:text-primary transition-colors"
-                        title="View account"
-                      >
-                        <span className="material-symbols-outlined text-base align-middle">
-                          open_in_new
-                        </span>
-                      </a>
-                    )}
-                  </div>
-                  <span className="text-lg font-black text-primary">{section.value}</span>
-                </div>
-                <HoldingsTable holdings={section.holdings} />
+          walletSections.map((section) => (
+            <section
+              key={section.key}
+              className="border border-line rounded-xl bg-console-surface overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-3 px-4.5 py-3 border-b border-line">
+                <span className="text-xs font-semibold text-fg flex items-center gap-2">
+                  {section.label}
+                  {section.externalUrl && (
+                    <a
+                      href={section.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-fg3 hover:text-brand-pink transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm align-middle">
+                        open_in_new
+                      </span>
+                    </a>
+                  )}
+                </span>
+                <span className="font-mono text-sm font-medium text-fg">{section.value}</span>
               </div>
-            ))}
-          </div>
+              <HoldingsTable holdings={section.holdings} />
+            </section>
+          ))
         )}
       </div>
     </div>
