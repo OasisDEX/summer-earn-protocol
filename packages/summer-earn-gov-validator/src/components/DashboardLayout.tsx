@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 
 import { BottomNavBar, CreateProposalFAB } from './BottomNavBar'
-import { SideNavBar } from './SideNavBar'
 import { TopNavBar } from './TopNavBar'
 
 interface DashboardLayoutProps {
@@ -15,14 +14,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <Suspense fallback={null}>
         <TopNavBar />
       </Suspense>
-      <div className="flex flex-1">
-        <Suspense fallback={null}>
-          <SideNavBar />
-        </Suspense>
-        <main className="flex-1 min-w-0 max-w-[1240px] mx-auto px-5 py-6 pb-20 lg:pb-16">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 min-w-0 w-full max-w-[1240px] mx-auto px-5 py-6 pb-20 lg:pb-16">
+        {children}
+      </main>
       <Suspense fallback={null}>
         <BottomNavBar />
       </Suspense>

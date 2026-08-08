@@ -8,53 +8,44 @@ interface TreasuryViewProps {
   initialData: TreasuryData
 }
 
-function HoldingsTable({ holdings }: { holdings: TreasuryHolding[] }) {
+function formatUsd(value: number) {
+  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+}
+
+function HoldingsRows({ holdings }: { holdings: TreasuryHolding[] }) {
   return (
-    <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-surface2 border-b border-line text-[11px] font-semibold tracking-wider text-fg3 uppercase">
-            <tr>
-              <th className="px-4.5 py-3">Token</th>
-              <th className="px-4.5 py-3 text-right">Balance</th>
-              <th className="px-4.5 py-3 text-right">USD Value</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line text-xs">
-            {holdings.map((holding, index) => (
-              <tr key={index} className="hover:bg-surface2 transition-colors">
-                <td className="px-4.5 py-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-surface3 flex-shrink-0 font-mono text-[10px] font-semibold text-fg">
-                      {holding.logoURI ? (
-                        <img
-                          src={holding.logoURI}
-                          alt={holding.symbol}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        holding.symbol.slice(0, 2)
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-mono text-xs font-semibold text-fg block">{holding.symbol}</span>
-                      <span className="text-[11px] text-fg2 truncate block">
-                        {holding.token} · {holding.chain}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4.5 py-3.5 font-mono text-fg2 text-right">
-                  {holding.balance}
-                </td>
-                <td className="px-4.5 py-3.5 font-mono text-fg font-medium text-right">
-                  {holding.value}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div>
+      {holdings.map((holding, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.8fr)] items-center gap-3.5 px-[18px] py-2.5 border-t border-line"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-surface3 flex-shrink-0 font-mono text-[10px] font-semibold text-fg">
+              {holding.logoURI ? (
+                <img
+                  src={holding.logoURI}
+                  alt={holding.symbol}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                holding.symbol.slice(0, 2)
+              )}
+            </div>
+            <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              <span className="font-mono text-xs font-semibold text-fg">{holding.symbol}</span>
+              <span className="text-xs text-fg2"> {holding.token}</span>
+              <span className="text-[11px] text-fg3"> · {holding.chain}</span>
+            </div>
+          </div>
+          <div className="font-mono text-xs text-fg2 sm:text-right tabular-nums">
+            {holding.balance}
+          </div>
+          <div className="font-mono text-[13px] text-fg font-medium sm:text-right tabular-nums">
+            {holding.value}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -72,10 +63,10 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
   const chainOptions = ['all', 'Mainnet', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid']
 
   return (
-    <div className="space-y-6 max-w-[1240px] mx-auto w-full">
+    <div className="space-y-[18px] max-w-[1240px] mx-auto w-full">
       <div>
         <h1 className="m-0 text-[26px] font-semibold tracking-[-0.03em] text-fg">Treasury</h1>
-        <p className="mt-1 text-fg2 text-xs">Prices provided by CoinGecko.</p>
+        <p className="mt-1 text-fg2 text-[13px]">Prices provided by CoinGecko.</p>
       </div>
 
       {initialData.error && (
@@ -87,7 +78,7 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line border border-line rounded-xl overflow-hidden">
-        <div className="bg-console-surface p-4">
+        <div className="bg-console-surface px-[18px] py-4">
           <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
             Total Treasury Value
           </div>
@@ -96,19 +87,21 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
           </div>
         </div>
 
-        <div className="bg-console-surface p-4">
+        <div className="bg-console-surface px-[18px] py-4">
           <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
             Top Holding
           </div>
           <div className="font-mono text-2xl font-medium tracking-tight text-fg mt-1.5">
             {initialData.topHolding?.symbol || '—'}
           </div>
-          <div className="text-xs text-fg3 mt-0.5">
-            {initialData.topHolding ? `${initialData.topHolding.percentage.toFixed(1)}% of total` : ''}
+          <div className="text-[11px] text-fg3 mt-0.5">
+            {initialData.topHolding
+              ? `${initialData.topHolding.percentage.toFixed(1)}% of total`
+              : ''}
           </div>
         </div>
 
-        <div className="bg-console-surface p-4 sm:col-span-2 lg:col-span-1">
+        <div className="bg-console-surface px-[18px] py-4 sm:col-span-2 lg:col-span-1">
           <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
             Wallets Tracked
           </div>
@@ -120,15 +113,15 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
 
       {/* Top Holdings Aggregated */}
       <section className="border border-line rounded-xl bg-console-surface overflow-hidden">
-        <div className="px-4.5 py-3 border-b border-line text-xs font-semibold text-fg">
+        <div className="px-[18px] py-[13px] border-b border-line text-[13px] font-semibold text-fg">
           Top holdings, aggregated
         </div>
 
-        <div className="divide-y divide-line">
+        <div>
           {initialData.aggregatedHoldings.slice(0, 4).map((h, i) => (
             <div
               key={i}
-              className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-4 px-4.5 py-3.5"
+              className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-[18px] px-[18px] py-3.5 border-t border-line first:border-t-0"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-surface3 flex-shrink-0 font-mono text-[10px] font-semibold text-fg">
@@ -139,21 +132,26 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <span className="block text-xs font-semibold text-fg">{h.symbol}</span>
-                  <span className="block text-[11px] text-fg3 truncate">{h.name}</span>
+                  <span className="block text-[13px] font-semibold text-fg">{h.symbol}</span>
+                  <span className="block text-[11px] text-fg3 truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                    {h.name}
+                  </span>
                 </div>
               </div>
 
-              <div className="font-mono text-sm font-medium text-fg">
-                ${h.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <div className="font-mono text-[15px] font-medium text-fg tabular-nums">
+                {formatUsd(h.totalValue)}
               </div>
 
-              <div>
-                <div className="flex justify-between font-mono text-[11px] text-fg3 mb-1">
-                  <span>{h.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} {h.symbol}</span>
-                  <span>{h.percentage.toFixed(1)}%</span>
+              <div className="min-w-0">
+                <div className="flex justify-between gap-3 font-mono text-[11px] text-fg3 mb-1.5">
+                  <span className="truncate tabular-nums">
+                    {h.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}{' '}
+                    {h.symbol}
+                  </span>
+                  <span className="flex-shrink-0 tabular-nums">{h.percentage.toFixed(1)}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-surface3 overflow-hidden">
+                <div className="h-[5px] rounded-full bg-surface3 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-brand-gradient"
                     style={{ width: `${Math.min(h.percentage, 100)}%` }}
@@ -194,15 +192,15 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
               key={section.key}
               className="border border-line rounded-xl bg-console-surface overflow-hidden"
             >
-              <div className="flex items-center justify-between gap-3 px-4.5 py-3 border-b border-line">
-                <span className="text-xs font-semibold text-fg flex items-center gap-2">
-                  {section.label}
+              <div className="flex items-center justify-between gap-3 px-[18px] py-[13px] border-b border-line">
+                <span className="text-[13px] font-semibold text-fg flex items-center gap-2 min-w-0">
+                  <span className="truncate">{section.label}</span>
                   {section.externalUrl && (
                     <a
                       href={section.externalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-fg3 hover:text-brand-pink transition-colors"
+                      className="text-fg3 hover:text-brand-pink transition-colors flex-shrink-0"
                     >
                       <span className="material-symbols-outlined text-sm align-middle">
                         open_in_new
@@ -210,9 +208,11 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
                     </a>
                   )}
                 </span>
-                <span className="font-mono text-sm font-medium text-fg">{section.value}</span>
+                <span className="font-mono text-sm font-medium text-fg flex-shrink-0 tabular-nums">
+                  {section.value}
+                </span>
               </div>
-              <HoldingsTable holdings={section.holdings} />
+              <HoldingsRows holdings={section.holdings} />
             </section>
           ))
         )}
