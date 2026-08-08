@@ -2,21 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Inter font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root {
+  --bg: #141414;
+  --surface: #1C1C1C;
+  --surface2: #232323;
+  --surface3: #2B2B2B;
+  --field: #181818;
+  --line: #2E2E2E;
+  --line2: #3D3D3D;
+  --fg: #FFFBFD;
+  --fg2: #BAB8B9;
+  --fg3: #777576;
+
+  --pink: #FF49A4;
+  --pinkHi: #FF80BF;
+  --violet: #B049FF;
+  --grad: linear-gradient(90deg, #FF49A4, #B049FF);
+
+  --ok: #69DF31;
+  --warn: #F9A601;
+  --crit: #FF5739;
+  --info: #5C82FF;
+
+  --okBg: rgba(105, 223, 49, 0.13);
+  --warnBg: rgba(249, 166, 1, 0.13);
+  --critBg: rgba(255, 87, 57, 0.13);
+  --pinkBg: rgba(255, 73, 164, 0.13);
+  --infoBg: rgba(92, 130, 255, 0.15);
+  --tint: rgba(255, 255, 255, 0.045);
+
+  --onPrimary: #600037;
+  --onError: #490013;
+  --onSecondary: #2F0060;
+  --onTertiary: #110F82;
+}
+
+[data-theme="light"] {
+  --bg: #F6F3F4;
+  --surface: #FFFFFF;
+  --surface2: #FBF9FA;
+  --surface3: #F1EDEF;
+  --field: #FFFFFF;
+  --line: #E7E2E4;
+  --line2: #D6D0D3;
+  --fg: #191517;
+  --fg2: #6B6568;
+  --fg3: #948E91;
+
+  --pink: #D6157F;
+  --pinkHi: #B60C69;
+  --violet: #8B24E0;
+  --grad: linear-gradient(90deg, #D6157F, #8B24E0);
+
+  --ok: #3E8F16;
+  --warn: #9A6600;
+  --crit: #CE3419;
+  --info: #2A4ED6;
+
+  --okBg: rgba(62, 143, 22, 0.1);
+  --warnBg: rgba(154, 102, 0, 0.1);
+  --critBg: rgba(206, 52, 25, 0.1);
+  --pinkBg: rgba(214, 21, 127, 0.09);
+  --infoBg: rgba(42, 78, 214, 0.1);
+  --tint: rgba(17, 15, 16, 0.035);
+
+  --onPrimary: #FFFFFF;
+  --onError: #FFFFFF;
+  --onSecondary: #FFFFFF;
+  --onTertiary: #FFFFFF;
+}
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
-html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  @apply bg-background text-on-surface;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Material Symbols Outlined font */
@@ -29,10 +97,7 @@ a {
   text-decoration: none;
 }
 
-/* ============================================
-   Glass Effects from code.html
-   ============================================ */
-
+/* Glass Effects */
 .glass-panel,
 .glass,
 .glass-card {
@@ -57,11 +122,7 @@ a {
   text-shadow: 0 0 15px rgba(255, 73, 164, 0.3);
 }
 
-/* ============================================
-   Utility Classes
-   ============================================ */
-
-/* Hide scrollbar but allow scrolling */
+/* Utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -71,52 +132,13 @@ a {
   scrollbar-width: none;
 }
 
-/* Safe area padding for mobile bottom nav */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Tap highlight transparent for mobile */
 .tap-highlight-transparent {
   -webkit-tap-highlight-color: transparent;
 }
-
-/* ============================================
-   Animations
-   ============================================ */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 73, 164, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(255, 73, 164, 0.4);
-  }
-}
-
-/* ============================================
-   Custom Scrollbar (for surfaces)
-   ============================================ */
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -124,13 +146,14 @@ a {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-surface-dim;
+  background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-outline rounded-full;
+  background: var(--line2);
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-on-surface-variant;
+  background: var(--fg3);
 }
