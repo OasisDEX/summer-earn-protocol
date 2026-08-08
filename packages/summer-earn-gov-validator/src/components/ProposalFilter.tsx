@@ -1,6 +1,15 @@
 import React from 'react'
 
-export type ProposalStatus = 'Pending' | 'Executed' | 'Active' | 'Succeeded' | 'Queued' | 'Ready'
+export type ProposalStatus =
+  | 'Pending'
+  | 'Active'
+  | 'Succeeded'
+  | 'Queued'
+  | 'Ready'
+  | 'Executed'
+  | 'Executed on Hub'
+  | 'Defeated'
+  | 'Canceled'
 
 interface ProposalFilterProps {
   selectedStatuses: ProposalStatus[]
@@ -18,6 +27,9 @@ export const ProposalFilter: React.FC<ProposalFilterProps> = ({
     'Queued',
     'Ready',
     'Executed',
+    'Executed on Hub',
+    'Defeated',
+    'Canceled',
   ]
 
   const handleStatusChange = (status: ProposalStatus) => {
@@ -29,24 +41,27 @@ export const ProposalFilter: React.FC<ProposalFilterProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-[11px] font-semibold tracking-wider text-fg3 uppercase">
         Filter status
       </span>
-      <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1 rounded-xl flex flex-wrap items-center gap-1 shadow-inner">
-        {allStatuses.map((status) => (
-          <button
-            key={status}
-            onClick={() => handleStatusChange(status)}
-            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 active:scale-95 ${
-              selectedStatuses.includes(status)
-                ? 'bg-brand-gradient text-black shadow-neon-strong'
-                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {allStatuses.map((status) => {
+          const isSelected = selectedStatuses.includes(status)
+          return (
+            <button
+              key={status}
+              onClick={() => handleStatusChange(status)}
+              className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                isSelected
+                  ? 'border-brand-pink bg-pink-bg text-brand-pink'
+                  : 'border-line2 bg-surface3 text-fg2 hover:text-fg hover:bg-surface2'
+              }`}
+            >
+              {status}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

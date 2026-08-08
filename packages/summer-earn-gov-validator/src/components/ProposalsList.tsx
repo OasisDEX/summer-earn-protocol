@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-import { VoteBar } from '@/components/VoteBar'
 import { TransformedProposal } from '@/types/governance'
 import { formatTimeRemaining, formatTimestamp } from '@/utils/timing'
 
@@ -22,55 +21,7 @@ type FilterStatus =
   | 'Defeated'
   | 'Canceled'
 
-type FilterChain = 'All' | 'Mainnet' | 'Base' | 'Arbitrum' | 'Sonic' | 'Hyperliquid'
-
-const CHAIN_METADATA: Record<
-  string,
-  { icon: string; color: string; bgColor: string; borderColor: string; accentColor: string }
-> = {
-  Mainnet: {
-    icon: 'hub',
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/20',
-    accentColor: 'bg-primary',
-  },
-  Base: {
-    icon: 'change_history',
-    color: 'text-secondary',
-    bgColor: 'bg-secondary/10',
-    borderColor: 'border-secondary/20',
-    accentColor: 'bg-secondary',
-  },
-  Arbitrum: {
-    icon: 'token',
-    color: 'text-secondary',
-    bgColor: 'bg-secondary/10',
-    borderColor: 'border-secondary/20',
-    accentColor: 'bg-secondary',
-  },
-  Sonic: {
-    icon: 'waves',
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/20',
-    accentColor: 'bg-primary',
-  },
-  Hyperliquid: {
-    icon: 'bolt',
-    color: 'text-tertiary',
-    bgColor: 'bg-tertiary/10',
-    borderColor: 'border-tertiary/20',
-    accentColor: 'bg-tertiary',
-  },
-  'Multi-Chain': {
-    icon: 'hub',
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/20',
-    accentColor: 'bg-primary',
-  },
-}
+type FilterChain = 'All' | 'Ethereum' | 'Base' | 'Arbitrum' | 'Sonic' | 'Hyperliquid'
 
 export function ProposalsList({
   initialProposals,
@@ -89,280 +40,215 @@ export function ProposalsList({
   const visibleProposals = filteredProposals.slice(0, visibleCount)
   const hasMore = visibleCount < filteredProposals.length
 
-  const getStatusConfig = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'Active':
-        return {
-          color: 'text-primary',
-          bgColor: 'bg-primary/10',
-          borderColor: 'border-primary/20',
-          glowColor: 'shadow-[0_0_15px_rgba(255,135,185,0.4)]',
-          buttonClass: 'bg-brand-gradient text-black font-black shadow-neon hover:brightness-110',
-          indicatorColor: 'bg-primary',
-        }
       case 'Executed':
-      case 'Succeeded':
-        return {
-          color: 'text-emerald-400',
-          bgColor: 'bg-emerald-400/10',
-          borderColor: 'border-emerald-400/20',
-          glowColor: 'shadow-[0_0_15px_rgba(52,211,153,0.3)]',
-          buttonClass: 'border-outline/20 text-on-surface-variant hover:bg-surface-bright',
-          indicatorColor: 'bg-emerald-400',
-        }
+        return { bg: 'var(--okBg)', fg: 'var(--ok)' }
       case 'Executed on Hub':
-        return {
-          color: 'text-amber-400',
-          bgColor: 'bg-amber-400/10',
-          borderColor: 'border-amber-400/20',
-          glowColor: 'shadow-[0_0_15px_rgba(251,191,36,0.3)]',
-          buttonClass: 'border-outline/20 text-on-surface-variant hover:bg-surface-bright',
-          indicatorColor: 'bg-amber-400',
-        }
       case 'Queued':
-        return {
-          color: 'text-secondary',
-          bgColor: 'bg-secondary/10',
-          borderColor: 'border-secondary/20',
-          glowColor: 'shadow-[0_0_15px_rgba(184,132,255,0.3)]',
-          buttonClass: 'border-secondary/30 text-secondary hover:bg-secondary/10 shadow-neon',
-          indicatorColor: 'bg-secondary',
-        }
+        return { bg: 'var(--warnBg)', fg: 'var(--warn)' }
       case 'Defeated':
-      case 'Canceled':
-        return {
-          color: 'text-error',
-          bgColor: 'bg-error/10',
-          borderColor: 'border-error/20',
-          glowColor: 'shadow-[0_0_15px_rgba(255,110,132,0.3)]',
-          buttonClass: 'border-outline/20 text-on-surface-variant hover:bg-surface-bright',
-          indicatorColor: 'bg-error',
-        }
+        return { bg: 'var(--critBg)', fg: 'var(--crit)' }
       case 'Pending':
-        return {
-          color: 'text-slate-400',
-          bgColor: 'bg-slate-400/10',
-          borderColor: 'border-slate-600/20',
-          glowColor: 'shadow-none',
-          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
-          indicatorColor: 'bg-slate-400',
-        }
+        return { bg: 'var(--infoBg)', fg: 'var(--info)' }
+      case 'Canceled':
       default:
-        return {
-          color: 'text-slate-400',
-          bgColor: 'bg-slate-400/10',
-          borderColor: 'border-slate-600/20',
-          glowColor: 'shadow-none',
-          buttonClass: 'border-slate-700 text-slate-500 hover:bg-slate-800',
-          indicatorColor: 'bg-slate-400',
-        }
+        return { bg: 'var(--surface3)', fg: 'var(--fg3)' }
     }
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-        <div>
-          <h1 className="text-4xl font-extrabold tracking-tighter text-on-surface mb-2">
-            Governance Proposals
-          </h1>
-          <p className="text-on-surface-variant max-w-xl">
-            Shape the future of Lazy Summer DAO. Cast your vote on active protocol upgrades and
-            treasury allocations now.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            href="/create-proposal"
-            className="bg-brand-gradient text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] flex items-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-neon-strong"
-          >
-            <span className="material-symbols-outlined text-[20px]">add_circle</span>
-            New Proposal
-          </Link>
-        </div>
+    <div>
+      <div className="mb-[18px]">
+        <h1 className="margin-0 text-[26px] font-semibold tracking-[-0.03em] text-fg">Proposals</h1>
+        <p className="margin-top-[4px] text-fg2 text-xs">
+          Proposals are created and voted on Base. Satellite chains are execute-only.
+        </p>
       </div>
 
-      <div className="flex flex-col gap-6 mb-12">
-        <div className="space-y-4">
-          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
-            Filter status
-          </span>
-          <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1.5 rounded-2xl flex items-center overflow-x-auto no-scrollbar gap-1 shadow-inner max-w-fit">
-            {(
-              [
-                'All',
-                'Pending',
-                'Active',
-                'Executed',
-                'Executed on Hub',
-                'Queued',
-                'Defeated',
-                'Canceled',
-              ] as FilterStatus[]
-            ).map((status) => (
+      <div className="flex gap-4 flex-wrap items-center mb-4">
+        <div className="flex gap-1.5 flex-wrap">
+          {(
+            [
+              'All',
+              'Pending',
+              'Active',
+              'Executed',
+              'Executed on Hub',
+              'Queued',
+              'Defeated',
+              'Canceled',
+            ] as FilterStatus[]
+          ).map((f) => {
+            const isSelected = statusFilter === f
+            return (
               <button
-                key={status}
+                key={f}
                 onClick={() => {
-                  setStatusFilter(status)
+                  setStatusFilter(f)
                   setVisibleCount(6)
                 }}
-                className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all active:scale-95 whitespace-nowrap ${
-                  statusFilter === status
-                    ? 'bg-brand-gradient text-black shadow-neon'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
+                className={`h-[30px] px-[11px] rounded-full border text-xs font-medium cursor-pointer transition-colors ${
+                  isSelected
+                    ? 'border-brand-pink bg-pink-bg text-brand-pink'
+                    : 'border-line2 bg-surface3 text-fg2 hover:text-fg'
                 }`}
               >
-                {status}
+                {f}
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
 
-        <div className="space-y-4">
-          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] ml-1">
-            Network
-          </span>
-          <div className="bg-surface-container-low/50 border border-outline-variant/10 p-1.5 rounded-2xl flex items-center overflow-x-auto no-scrollbar gap-1 shadow-inner max-w-fit">
-            {(['All', 'Ethereum', 'Base', 'Arbitrum', 'Sonic', 'Hyperliquid'] as FilterChain[]).map(
-              (chain) => (
-                <button
-                  key={chain}
-                  onClick={() => {
-                    setChainFilter(chain)
-                    setVisibleCount(6)
-                  }}
-                  className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider whitespace-nowrap transition-all active:scale-95 ${
-                    chainFilter === chain
-                      ? 'bg-secondary text-black shadow-neon'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50'
-                  }`}
-                >
-                  {chain === 'All' ? 'All Networks' : chain}
-                </button>
-              ),
-            )}
-          </div>
-        </div>
+        <select
+          value={chainFilter}
+          onChange={(e) => setChainFilter(e.target.value as FilterChain)}
+          className="h-[30px] px-2.5 border border-line2 rounded-lg bg-field text-xs text-fg ml-auto font-mono"
+        >
+          <option value="All">All Networks</option>
+          <option value="Ethereum">Ethereum</option>
+          <option value="Base">Base</option>
+          <option value="Arbitrum">Arbitrum</option>
+          <option value="Sonic">Sonic</option>
+          <option value="Hyperliquid">Hyperliquid</option>
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {visibleProposals.map((proposal) => {
-          const chainMetadata = CHAIN_METADATA[proposal.chain] || CHAIN_METADATA['Multi-Chain']
-          const statusConfig = getStatusConfig(proposal.status)
-
+      <div className="flex flex-col gap-2.5">
+        {visibleProposals.map((p) => {
+          const st = getStatusStyle(p.status)
           return (
-            <div
-              key={proposal.id}
-              className={`glass-panel hover:glass-panel-elevated transition-all p-6 rounded-2xl flex flex-col border-t-2 ${chainMetadata.borderColor} ${statusConfig.glowColor} group h-full relative overflow-hidden`}
+            <article
+              key={p.id}
+              className="border border-line rounded-xl bg-console-surface overflow-hidden"
             >
-              {/* Status Highlight / Partial Frame */}
-              <div
-                className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-[30%] rounded-r-full group-hover:h-[40%] transition-all `}
-              />
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-[10px] font-black ${chainMetadata.color} tracking-widest uppercase`}
-                    >
-                      {proposal.displayId || proposal.id.slice(0, 8)}
-                    </span>
-                    <span className="text-[10px] text-on-surface-variant font-medium opacity-60">
-                      • {formatTimestamp(proposal.createdAt)}
-                    </span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-2 px-2 py-0.5 rounded-md ${statusConfig.bgColor} border ${statusConfig.borderColor}`}
-                  >
-                    {proposal.status === 'Active' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                    )}
-                    <span className={`text-[10px] font-bold uppercase ${statusConfig.color}`}>
-                      {proposal.status}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/20 shadow-inner">
-                  <span className={`material-symbols-outlined ${chainMetadata.color} text-sm`}>
-                    {chainMetadata.icon}
-                  </span>
-                  <span className="text-[10px] font-black text-on-surface uppercase tracking-tight">
-                    {proposal.chain}
-                  </span>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-snug mb-3">
-                {proposal.title}
-              </h3>
-              <p className="text-xs text-on-surface-variant line-clamp-3 mb-6 leading-relaxed">
-                {proposal.description}
-              </p>
-
-              {/* Voting Progress */}
-              <div className="mt-auto space-y-4 mb-6">
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em]">
-                  <span className={proposal.quorumReached ? 'text-emerald-400' : 'text-primary'}>
-                    {proposal.quorumReached ? 'Quorum achieved' : 'Quorum goal'}
-                  </span>
-                  <span className="text-on-surface">{Math.round(proposal.quorumProgress)}%</span>
-                </div>
-                <div className="w-full">
-                  <VoteBar
-                    for={proposal.forPercent}
-                    against={proposal.againstPercent}
-                    abstain={proposal.abstainPercent}
-                  />
-                </div>
-                <div className="flex justify-between items-center text-[10px] text-on-surface-variant font-bold tracking-tight">
-                  <div className="flex items-center gap-1.5 opacity-80 uppercase tracking-widest text-[9px]">
-                    <span className="material-symbols-outlined text-[14px]">schedule</span>
-                    <span>
-                      {proposal.status === 'Active'
-                        ? `Ends in ${formatTimeRemaining(proposal.timeRemaining)}`
-                        : proposal.status === 'Pending'
-                          ? `Starts in ${formatTimeRemaining(proposal.timeRemaining)}`
-                          : proposal.status === 'Queued'
-                            ? `Executable @ ${formatTimestamp(proposal.eta)}`
-                            : proposal.status}
-                    </span>
-                  </div>
-                  <span>{(proposal.forVotes + proposal.againstVotes).toLocaleString()} Votes</span>
-                </div>
-              </div>
-
-              <Link
-                href={`${detailPrefix}/${proposal.id}`}
-                className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 ${statusConfig.buttonClass}`}
-              >
-                <span className="material-symbols-outlined text-sm">
-                  {proposal.status === 'Active' ? 'how_to_vote' : 'visibility'}
+              <div className="flex items-center gap-2.5 flex-wrap px-[18px] py-3 border-b border-line">
+                <span className="font-mono text-xs font-semibold text-brand-pink">
+                  {p.displayId || p.id.slice(0, 8)}
                 </span>
-                {proposal.status === 'Active' ? 'Vote & Details' : 'View Details'}
-              </Link>
-            </div>
+                <span
+                  className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider uppercase"
+                  style={{ background: st.bg, color: st.fg }}
+                >
+                  {p.status}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider bg-surface3 text-fg2">
+                  {p.chain}
+                </span>
+                <span className="ml-auto font-mono text-[11px] text-fg3">
+                  {formatTimestamp(p.createdAt)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] gap-6 p-[18px]">
+                <div className="min-w-0">
+                  <h2 className="m-0 mb-1.5 text-[17px] font-semibold tracking-tight text-fg">
+                    {p.title}
+                  </h2>
+                  <p className="m-0 text-fg2 text-xs max-w-[62ch] line-clamp-3">
+                    {p.description}
+                  </p>
+                  <div className="flex gap-2.5 flex-wrap mt-3.5 items-center">
+                    <Link
+                      href={`${detailPrefix}/${p.id}`}
+                      className="h-[32px] inline-flex items-center px-[14px] rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-colors"
+                    >
+                      View details
+                    </Link>
+                    <span className="font-mono text-xs text-fg3">
+                      {p.status === 'Active'
+                        ? `Ends in ${formatTimeRemaining(p.timeRemaining)}`
+                        : p.status === 'Pending'
+                          ? `Starts in ${formatTimeRemaining(p.timeRemaining)}`
+                          : p.status === 'Queued'
+                            ? `Executable @ ${formatTimestamp(p.eta)}`
+                            : p.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-[10px] font-semibold tracking-wider uppercase text-fg3">
+                      Quorum
+                    </span>
+                    <span className="font-mono text-xs text-fg font-medium">
+                      {Math.round(p.quorumProgress)}%
+                    </span>
+                  </div>
+                  <div className="h-[6px] rounded-full bg-surface3 overflow-hidden mb-3.5">
+                    <div
+                      className="h-full rounded-full bg-brand-gradient transition-all"
+                      style={{ width: `${Math.min(p.quorumProgress, 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-fg2">For</span>
+                        <span className="font-mono text-fg3">{Math.round(p.forPercent)}%</span>
+                      </div>
+                      <div className="h-[4px] rounded-full bg-surface3 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-ok"
+                          style={{ width: `${p.forPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-fg2">Against</span>
+                        <span className="font-mono text-fg3">{Math.round(p.againstPercent)}%</span>
+                      </div>
+                      <div className="h-[4px] rounded-full bg-surface3 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-crit"
+                          style={{ width: `${p.againstPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-fg2">Abstain</span>
+                        <span className="font-mono text-fg3">{Math.round(p.abstainPercent)}%</span>
+                      </div>
+                      <div className="h-[4px] rounded-full bg-surface3 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-fg3"
+                          style={{ width: `${p.abstainPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="font-mono text-xs text-fg3 mt-2.5">
+                    {(p.forVotes + p.againstVotes + p.abstainVotes).toLocaleString()} Votes
+                  </div>
+                </div>
+              </div>
+            </article>
           )
         })}
       </div>
 
       {hasMore && (
-        <div className="mt-12 flex justify-center">
+        <div className="flex justify-center mt-4">
           <button
             onClick={() => setVisibleCount((prev) => prev + 6)}
-            className="group glass-panel-elevated px-10 py-3.5 rounded-full flex items-center gap-3 text-on-surface font-semibold hover:border-primary/50 transition-all active:scale-95 shadow-xl"
+            className="h-[36px] px-5 rounded-full border border-line2 bg-surface3 text-fg2 text-xs font-medium cursor-pointer hover:text-fg hover:bg-surface2 transition-colors"
           >
-            Load More Proposals
-            <span className="material-symbols-outlined group-hover:translate-y-0.5 transition-transform">
-              keyboard_arrow_down
-            </span>
+            Load more proposals
           </button>
         </div>
       )}
 
       {filteredProposals.length === 0 && (
-        <div className="text-center py-12">
-          <span className="material-symbols-outlined text-6xl text-slate-600 mb-4">search_off</span>
-          <p className="text-on-surface-variant">No proposals found</p>
+        <div className="text-center py-12 border border-line rounded-xl bg-console-surface">
+          <p className="text-fg2 text-xs">No proposals found matching criteria.</p>
         </div>
       )}
     </div>
