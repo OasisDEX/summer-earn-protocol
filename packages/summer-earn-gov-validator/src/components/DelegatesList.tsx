@@ -12,12 +12,12 @@ interface DelegatesListProps {
 
 export function DelegatesList({ initialDelegates }: DelegatesListProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [visibleCount, setVisibleCount] = useState(6)
   const { address, isConnected } = useAccount()
   const currentChainId = useChainId()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
 
-  // Fetch current delegate
   const { data: currentDelegate } = useReadContract({
     address: HUB_TOKEN_ADDRESS,
     abi: [
@@ -87,150 +87,164 @@ export function DelegatesList({ initialDelegates }: DelegatesListProps) {
       d.address.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const truncateAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-  }
+  const visibleDelegates = filteredDelegates.slice(0, visibleCount)
+  const hasMore = visibleCount < filteredDelegates.length
+
+  const maxVotingPower = Math.max(
+    ...initialDelegates.map((d) => parseFloat(d.votingPower.replace(/,/g, '')) || 0),
+    1,
+  )
+
+  const topPower = initialDelegates[0]?.votingPower || '—'
+  const topDelegator = initialDelegates[0]?.name || '—'
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-        <div className="space-y-2">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface">
-            Community Delegates
-          </h1>
-          <p className="text-on-surface-variant max-w-xl text-lg">
-            Choose a representative to vote on your behalf or join the ranks to lead the Lazy Summer
-            DAO ecosystem.
+    <div className="space-y-6 max-w-[1240px] mx-auto w-full">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="m-0 text-[26px] font-semibold tracking-[-0.03em] text-fg">Delegates</h1>
+          <p className="mt-1 text-fg2 text-xs">
+            Voting power is stSUMR. Delegate to keep your weight active without unstaking.
           </p>
         </div>
-      </div>
 
-      {/* Search */}
-      <div className="mb-8">
-        <div className="relative max-w-md">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            search
-          </span>
+        <div className="flex items-center gap-2 h-[36px] px-3 border border-line rounded-lg bg-field min-w-[240px]">
+          <span className="text-fg3 text-xs">⌕</span>
           <input
             type="text"
-            placeholder="Search by name or address..."
+            placeholder="Search delegates"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-surface-container border border-outline-variant/30 rounded-lg pl-10 pr-4 py-3 text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+            className="flex-1 min-w-0 border-0 bg-transparent text-xs text-fg focus:outline-none"
           />
         </div>
       </div>
 
-      {/* Delegates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDelegates.map((delegate) => {
+      {/* KPI Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line border border-line rounded-xl overflow-hidden">
+        <div className="bg-console-surface p-3.5">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
+            Active Delegates
+          </div>
+          <div className="font-mono text-xl font-medium tracking-tight text-fg mt-1">
+            {initialDelegates.length}
+          </div>
+        </div>
+
+        <div className="bg-console-surface p-3.5">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
+            Largest Voting Power
+          </div>
+          <div className="font-mono text-xl font-medium tracking-tight text-fg mt-1">
+            {topPower}
+          </div>
+        </div>
+
+        <div className="bg-console-surface p-3.5">
+          <div className="text-[11px] font-semibold tracking-wider uppercase text-fg3">
+            Top Delegate
+          </div>
+          <div className="font-mono text-xl font-medium tracking-tight text-fg mt-1">
+            {topDelegator}
+          </div>
+        </div>
+      </div>
+
+      {/* Delegates Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {visibleDelegates.map((delegate, rankIndex) => {
           const isCurrentDelegate =
             currentDelegate?.toString().toLowerCase() === delegate.address.toLowerCase()
+          const numericPower = parseFloat(delegate.votingPower.replace(/,/g, '')) || 0
+          const sharePercent = Math.min((numericPower / maxVotingPower) * 100, 100)
 
           return (
-            <div
+            <article
               key={delegate.address}
-              className={`glass-card hover:glass-card-elevated hover:scale-[1.02] p-6 rounded-2xl group border transition-all duration-300 shadow-lg hover:shadow-primary/5 flex flex-col justify-between ${
-                isCurrentDelegate
-                  ? 'border-emerald-400/30 bg-emerald-400/5'
-                  : 'border-sky-400/10 hover:border-primary/40'
-              }`}
+              className="flex flex-col border border-line rounded-xl bg-console-surface p-4"
             >
-              <div>
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-tertiary p-[2px] shadow-lg shadow-primary/10">
-                      <div className="w-full h-full rounded-full bg-surface-container flex items-center justify-center overflow-hidden">
-                        {delegate.picture ? (
-                          <img
-                            src={delegate.picture}
-                            alt={delegate.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="material-symbols-outlined text-slate-400 text-2xl">
-                            person
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-on-surface text-lg leading-tight">
-                          {delegate.name}
-                        </h3>
-                        {isCurrentDelegate && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-400/20 text-[10px] font-bold text-emerald-400 tracking-wider uppercase">
-                            Current
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-on-surface-variant font-mono opacity-60">
-                          {truncateAddress(delegate.address)}
-                        </p>
-                        {delegate.twitter && (
-                          <a
-                            href={`https://twitter.com/${delegate.twitter}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:text-surface-tint transition-colors"
-                          >
-                            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                    </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-surface3 flex-shrink-0 font-mono text-xs font-semibold text-fg">
+                  {delegate.picture ? (
+                    <img src={delegate.picture} alt={delegate.name} className="w-full h-full object-cover" />
+                  ) : (
+                    delegate.name.slice(0, 2)
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-fg truncate flex items-center gap-2">
+                    <span>{delegate.name}</span>
+                    {isCurrentDelegate && (
+                      <span className="px-1.5 py-0.2 rounded bg-ok-bg text-ok text-[10px]">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-mono text-[11px] text-fg3 truncate mt-0.5">
+                    {delegate.address}
                   </div>
                 </div>
 
-                {delegate.bio && (
-                  <p className="text-sm text-on-surface-variant line-clamp-3 mb-6 min-h-[4.5rem] italic opacity-80 leading-relaxed">
-                    &quot;{delegate.bio}&quot;
-                  </p>
-                )}
+                <span className="font-mono text-[11px] text-fg3">#{rankIndex + 1}</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 bg-surface-container-low rounded-xl border border-outline/10">
-                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">
-                    Voting Power
-                  </p>
-                  <p className="text-lg font-bold text-on-surface">{delegate.votingPower}</p>
+              <p className="my-3 text-xs text-fg2 line-clamp-3 min-h-[54px]">
+                {delegate.bio || 'No bio description provided.'}
+              </p>
+
+              <div className="flex gap-4.5 pt-3 border-t border-line mt-auto">
+                <div>
+                  <div className="text-[10px] font-semibold tracking-wider uppercase text-fg3">
+                    Voting power
+                  </div>
+                  <div className="font-mono text-sm font-medium text-fg mt-0.5 whitespace-nowrap">
+                    {delegate.votingPower}
+                  </div>
                 </div>
-                <div className="p-3 bg-surface-container-low rounded-xl border border-outline/10">
-                  <p className="text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">
+                <div>
+                  <div className="text-[10px] font-semibold tracking-wider uppercase text-fg3">
                     Delegators
-                  </p>
-                  <p className="text-lg font-bold text-on-surface">{delegate.proposalsVoted}</p>
+                  </div>
+                  <div className="font-mono text-sm font-medium text-fg mt-0.5">
+                    {delegate.proposalsVoted}
+                  </div>
                 </div>
+              </div>
+
+              <div className="h-1 rounded-full bg-surface3 overflow-hidden mt-3">
+                <div
+                  className="h-full rounded-full bg-brand-gradient"
+                  style={{ width: `${sharePercent}%` }}
+                />
               </div>
 
               <button
                 onClick={() => handleDelegate(delegate.address)}
                 disabled={isPending || isCurrentDelegate}
-                className="w-full mt-6 py-3 border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-on-primary font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="mt-3.5 h-[34px] rounded-full border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPending && (
-                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                )}
-                {isPending
-                  ? 'Delegating...'
-                  : isCurrentDelegate
-                    ? 'Current Delegate'
-                    : 'Delegate Votes'}
+                {isPending ? 'Delegating...' : isCurrentDelegate ? 'Current Delegate' : 'Delegate votes'}
               </button>
-            </div>
+            </article>
           )
         })}
       </div>
 
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => setVisibleCount((prev) => prev + 6)}
+            className="h-[36px] px-5 rounded-full border border-line2 bg-surface3 text-fg2 text-xs font-medium cursor-pointer hover:text-fg hover:bg-surface2 transition-colors"
+          >
+            Show all {filteredDelegates.length} delegates
+          </button>
+        </div>
+      )}
+
       {filteredDelegates.length === 0 && (
-        <div className="text-center py-12">
-          <span className="material-symbols-outlined text-6xl text-slate-600 mb-4">search_off</span>
-          <p className="text-on-surface-variant">No delegates found</p>
+        <div className="border border-line rounded-xl bg-console-surface p-6 text-center text-fg2 text-xs">
+          No delegates found matching search.
         </div>
       )}
     </div>
