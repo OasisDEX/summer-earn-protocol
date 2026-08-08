@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { AlertTriangle, ExternalLink } from 'lucide-react'
 
 import type { TreasuryData, TreasuryHolding } from '@/services/treasury'
 
@@ -71,7 +72,7 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
 
       {initialData.error && (
         <div className="bg-warn-bg border border-warn/20 text-warn px-4 py-3 rounded-xl flex items-center gap-3 text-xs">
-          <span className="material-symbols-outlined shrink-0 text-xl">warning</span>
+          <AlertTriangle size={20} className="shrink-0" />
           <p className="flex-1 m-0">{initialData.error}</p>
         </div>
       )}
@@ -202,9 +203,7 @@ export function TreasuryView({ initialData }: TreasuryViewProps) {
                       rel="noopener noreferrer"
                       className="text-fg3 hover:text-brand-pink transition-colors flex-shrink-0"
                     >
-                      <span className="material-symbols-outlined text-sm align-middle">
-                        open_in_new
-                      </span>
+                      <ExternalLink size={14} className="inline align-middle" />
                     </a>
                   )}
                 </span>
