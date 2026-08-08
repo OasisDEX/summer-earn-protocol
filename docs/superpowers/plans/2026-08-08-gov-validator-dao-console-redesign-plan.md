@@ -1,31 +1,30 @@
-# DAO Console Redesign Implementation Plan
+# DAO Console Redesign Implementation Plan (Revision 3)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Apply the new Summer DAO Console design system (`.resources/design/Summer DAO Console.dc.html` & `Summer Design System.dc.html`) across all views in `@summerfi/summer-earn-gov-validator`.
+**Goal:** Apply the new Summer DAO Console design system (`.resources/design/Summer DAO Console.dc.html` & `Summer Design System.dc.html`) across all views and components in `@summerfi/summer-earn-gov-validator`.
 
-**Architecture:** Integrate CSS variables into `globals.scss` with dark mode default and `data-theme="light"` overrides. Map CSS tokens into `tailwind.config.js` and update header, side/bottom navigation, proposals, proposal details, treasury, delegates, create proposal, and simulation components.
+**Architecture:** Define `:root` dark mode defaults and `[data-theme="light"]` overrides in `globals.scss`. Map CSS variables into `tailwind.config.js` while aliasing all legacy semantic color classes (`surface-container`, `on-surface-variant`, `primary`, `error`, etc.) to prevent unstyling existing components. Load Google Fonts (`Inter`, `JetBrains Mono`) and SSR theme initialization in `layout.tsx`. Update navigation, proposal lists, proposal details (including v1 routes), treasury, delegates, create proposal page (`src/app/create-proposal/page.tsx`), AppKit providers, and loading/error states.
 
-**Tech Stack:** Next.js (App Router), Tailwind CSS, SCSS, Inter & JetBrains Mono Google Fonts, React, TypeScript, Viem/Wagmi.
+**Tech Stack:** Next.js (App Router), Tailwind CSS, SCSS, Inter & JetBrains Mono Google Fonts, React, TypeScript, Viem/Wagmi, Reown AppKit.
 
 ---
 
-### Task 1: CSS Variables & Design System Token Integration
+### Task 1: CSS Variables, Font Loading & Non-Breaking Tailwind Token Aliases
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/styles/globals.scss`
 - Modify: `packages/summer-earn-gov-validator/tailwind.config.js`
+- Modify: `packages/summer-earn-gov-validator/src/app/layout.tsx`
 
-- [ ] **Step 1: Update globals.scss with CSS color variables and JetBrains Mono font**
+- [ ] **Step 1: Update globals.scss with CSS color variables (no render-blocking @import)**
 
-Edit `packages/summer-earn-gov-validator/src/styles/globals.scss` to import `JetBrains Mono` alongside `Inter`, define `:root` dark variables, and `[data-theme="light"]` overrides:
+Edit `packages/summer-earn-gov-validator/src/styles/globals.scss` to define `:root` dark variables, `[data-theme="light"]` overrides, and JetBrains Mono utility class. (Font imports are handled via `<link>` in `layout.tsx` to prevent PostCSS `@import` ordering warnings):
 
 ```scss
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   --bg: #141414;
@@ -107,21 +106,24 @@ body {
 }
 ```
 
-- [ ] **Step 2: Update tailwind.config.js to bind CSS variables**
+- [ ] **Step 2: Update tailwind.config.js preserving legacy color aliases**
 
-Update `packages/summer-earn-gov-validator/tailwind.config.js` to add font families and color mapping:
+Update `packages/summer-earn-gov-validator/tailwind.config.js` to add new design tokens while mapping legacy semantic names (`surface-container`, `on-surface-variant`, `background`, `surface`, `primary`, `error`, `success`, `warning`, `outline-variant`) to CSS variables so existing components remain fully styled:
 
 ```js
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/config/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
+        // Design System Variables
         bg: 'var(--bg)',
         surface: 'var(--surface)',
         surface2: 'var(--surface2)',
@@ -139,10 +141,45 @@ module.exports = {
         warn: 'var(--warn)',
         crit: 'var(--crit)',
         info: 'var(--info)',
+
+        // Legacy Semantic Aliases (Non-Breaking)
+        'surface-container': 'var(--surface2)',
+        'surface-container-high': 'var(--surface3)',
+        'surface-container-lowest': 'var(--bg)',
+        'surface-dim': 'var(--bg)',
+        'surface-bright': 'var(--surface2)',
+        'surface-variant': 'var(--surface2)',
+        background: 'var(--bg)',
+        primary: 'var(--pink)',
+        'primary-fixed': 'var(--pink)',
+        'primary-fixed-dim': 'var(--pinkHi)',
+        secondary: 'var(--violet)',
+        'on-surface': 'var(--fg)',
+        'on-surface-variant': 'var(--fg2)',
+        'on-background': 'var(--fg)',
+        outline: 'var(--line2)',
+        'outline-variant': 'var(--line)',
+        error: 'var(--crit)',
+        success: 'var(--ok)',
+        warning: 'var(--warn)',
+        'error-container': 'var(--critBg)',
+        'on-error-container': 'var(--crit)',
+
+        // Chain Colors
+        'chain-base': '#0052FF',
+        'chain-arbitrum': 'var(--violet)',
+        'chain-mainnet': 'var(--pink)',
+        'chain-sonic': '#00e5ff',
+        'chain-hyperliquid': 'var(--info)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        headline: ['Inter', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+        label: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+      },
+      backgroundImage: {
+        'brand-gradient': 'var(--grad)',
       },
     },
   },
@@ -150,21 +187,59 @@ module.exports = {
 }
 ```
 
-- [ ] **Step 3: Test CSS variables compilation**
+- [ ] **Step 3: Update layout.tsx with font links & anti-flash script**
+
+Update `packages/summer-earn-gov-validator/src/app/layout.tsx` to include `Inter` & `JetBrains Mono` `<link>` elements, anti-flash inline theme script (`<script dangerouslySetInnerHTML={{ __html: "(function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){}})()" }} />`), and `data-theme="dark"` default:
+
+```tsx
+import type { Metadata } from 'next'
+import { Providers } from '../components/Providers'
+import '@/styles/globals.scss'
+
+export const metadata: Metadata = {
+  title: 'Summer.fi DAO | Governance Validator',
+  description: 'Participate in the Lazy Summer DAO. Validate, review, and vote on governance proposals shaping the future of the Summer Earn Protocol.',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" data-theme="dark" className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body className="bg-bg text-fg font-body min-h-screen">
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  )
+}
+```
+
+- [ ] **Step 4: Run build check**
 
 Run: `pnpm --filter @summerfi/summer-earn-gov-validator build`  
 Expected: BUILD SUCCESS
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add packages/summer-earn-gov-validator/src/styles/globals.scss packages/summer-earn-gov-validator/tailwind.config.js
-git commit -m "style(gov-validator): add DAO console CSS variables and font tokens"
+git add packages/summer-earn-gov-validator/src/styles/globals.scss packages/summer-earn-gov-validator/tailwind.config.js packages/summer-earn-gov-validator/src/app/layout.tsx
+git commit -m "style(gov-validator): add CSS variables, non-breaking tailwind aliases, and layout font/theme hydration"
 ```
 
 ---
 
-### Task 2: Sticky Header, Navigation Bars & Theme Toggle
+### Task 2: Header, Navigation Shell, Theme Toggle & AppKit Providers
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/components/Header.tsx`
@@ -172,6 +247,7 @@ git commit -m "style(gov-validator): add DAO console CSS variables and font toke
 - Modify: `packages/summer-earn-gov-validator/src/components/SideNavBar.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/BottomNavBar.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/DarkModeToggle.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/Providers.tsx`
 
 - [ ] **Step 1: Redesign Header.tsx & TopNavBar.tsx**
 
@@ -181,9 +257,9 @@ Update `Header.tsx` / `TopNavBar.tsx` with sticky container (`position: sticky; 
 
 Restyle `SideNavBar.tsx` and `BottomNavBar.tsx` to use `var(--surface)`, `var(--line)` borders, active pink tab indicators, and `pb-safe` padding for mobile screens.
 
-- [ ] **Step 3: Update DarkModeToggle.tsx**
+- [ ] **Step 3: Update DarkModeToggle.tsx & Providers.tsx**
 
-Ensure `DarkModeToggle.tsx` toggles `data-theme="light"` / `data-theme="dark"` attribute on `document.documentElement` or container element.
+Ensure `DarkModeToggle.tsx` toggles both `data-theme` attribute and `dark` class on `document.documentElement` while persisting choice to `localStorage`. Configure Reown AppKit theme variables in `Providers.tsx` to align modal colors with `var(--surface)` and `var(--pink)`.
 
 - [ ] **Step 4: Verify build**
 
@@ -193,18 +269,19 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/summer-earn-gov-validator/src/components/Header.tsx packages/summer-earn-gov-validator/src/components/TopNavBar.tsx packages/summer-earn-gov-validator/src/components/SideNavBar.tsx packages/summer-earn-gov-validator/src/components/BottomNavBar.tsx packages/summer-earn-gov-validator/src/components/DarkModeToggle.tsx
-git commit -m "feat(gov-validator): update header, top/side/bottom navigation, and theme toggle"
+git add packages/summer-earn-gov-validator/src/components/Header.tsx packages/summer-earn-gov-validator/src/components/TopNavBar.tsx packages/summer-earn-gov-validator/src/components/SideNavBar.tsx packages/summer-earn-gov-validator/src/components/BottomNavBar.tsx packages/summer-earn-gov-validator/src/components/DarkModeToggle.tsx packages/summer-earn-gov-validator/src/components/Providers.tsx
+git commit -m "feat(gov-validator): update navigation shell, theme toggle, and wallet provider theme"
 ```
 
 ---
 
-### Task 3: Proposals List & Filter Components
+### Task 3: Proposals List, Filter & Skeleton Components
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/components/ProposalFilter.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/ProposalsList.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/ProposalList.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/ProposalsListSkeleton.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/app/proposals/page.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/app/proposals/v1/page.tsx`
 
@@ -212,9 +289,9 @@ git commit -m "feat(gov-validator): update header, top/side/bottom navigation, a
 
 Update status filter options to `All`, `Pending`, `Active`, `Executed`, `Executed on Hub`, `Queued`, `Defeated`, `Canceled` with 30px pill styling (`border-radius: 99px`), and network dropdown options (`All Networks`, `Ethereum`, `Base`, `Arbitrum`, `Sonic`, `Hyperliquid`).
 
-- [ ] **Step 2: Restyle ProposalsList.tsx & ProposalList.tsx cards**
+- [ ] **Step 2: Restyle ProposalsList.tsx, ProposalList.tsx & Skeleton**
 
-Format proposal cards with monospaced SIP tags (`SIP4.3`), status badges (`var(--okBg)` / `var(--critBg)`), network badges, Quorum progress bars (`height: 6px`), and For / Against / Abstain tally breakdown bars (`height: 4px`, monospaced percentages in `JetBrains Mono`).
+Format proposal cards with monospaced SIP tags (`SIP4.3`), status badges (`var(--okBg)` / `var(--critBg)`), network badges, Quorum progress bars (`height: 6px`), and For / Against / Abstain tally breakdown bars (`height: 4px`, monospaced percentages in `JetBrains Mono`). Update `ProposalsListSkeleton.tsx` to reflect the new 12px rounded console card layout.
 
 - [ ] **Step 3: Verify build**
 
@@ -224,13 +301,13 @@ Expected: PASS
 - [ ] **Step 4: Commit**
 
 ```bash
-git add packages/summer-earn-gov-validator/src/components/ProposalFilter.tsx packages/summer-earn-gov-validator/src/components/ProposalsList.tsx packages/summer-earn-gov-validator/src/components/ProposalList.tsx packages/summer-earn-gov-validator/src/app/proposals/
-git commit -m "feat(gov-validator): apply DAO console styling to proposals list and filters"
+git add packages/summer-earn-gov-validator/src/components/ProposalFilter.tsx packages/summer-earn-gov-validator/src/components/ProposalsList.tsx packages/summer-earn-gov-validator/src/components/ProposalList.tsx packages/summer-earn-gov-validator/src/components/ProposalsListSkeleton.tsx packages/summer-earn-gov-validator/src/app/proposals/
+git commit -m "feat(gov-validator): apply console design to proposals list, filters, and skeleton"
 ```
 
 ---
 
-### Task 4: Proposal Detail & Execution Components
+### Task 4: Proposal Detail, Execution & Voting Modals
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/components/ProposalExecutionDetails.tsx`
@@ -238,15 +315,18 @@ git commit -m "feat(gov-validator): apply DAO console styling to proposals list 
 - Modify: `packages/summer-earn-gov-validator/src/components/PhaseIndicator.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/CountdownTimer.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/VotingModal.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/ProposalModal.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/RecentVotes.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/app/proposal/[id]/page.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/app/proposal/v1/[id]/page.tsx`
 
-- [ ] **Step 1: Restyle ProposalExecutionDetails.tsx**
+- [ ] **Step 1: Restyle ProposalExecutionDetails.tsx & Pages**
 
-Format proposed action targets with network tags, monospaced addresses, decoded function signatures, pre-calculated selector display ("Unknown, encode and verify" fallback), parameter tables, and calldata copy button.
+Format proposed action targets in `ProposalExecutionDetails.tsx` and detail pages (`/proposal/[id]` and `/proposal/v1/[id]`) with network tags, monospaced addresses, decoded function signatures, pre-calculated selector display ("Unknown, encode and verify" fallback), parameter tables, and calldata copy button.
 
-- [ ] **Step 2: Restyle VotingInfo, PhaseIndicator, CountdownTimer & Modal**
+- [ ] **Step 2: Restyle VotingInfo, PhaseIndicator, CountdownTimer & Modals**
 
-Format stSUMR voting power displays, voting progress meters, phase progress indicators, and monospaced unit timer (`CountdownTimer.tsx`) in `JetBrains Mono`.
+Format stSUMR voting power displays, voting progress meters, phase progress indicators, monospaced unit timer (`CountdownTimer.tsx`), and modal dialogs (`VotingModal.tsx`, `ProposalModal.tsx`) using console card panels (`var(--surface)` background, `var(--line)` borders).
 
 - [ ] **Step 3: Verify build**
 
@@ -256,8 +336,8 @@ Expected: PASS
 - [ ] **Step 4: Commit**
 
 ```bash
-git add packages/summer-earn-gov-validator/src/components/ProposalExecutionDetails.tsx packages/summer-earn-gov-validator/src/components/ProposalVotingInfo.tsx packages/summer-earn-gov-validator/src/components/PhaseIndicator.tsx packages/summer-earn-gov-validator/src/components/CountdownTimer.tsx packages/summer-earn-gov-validator/src/components/VotingModal.tsx packages/summer-earn-gov-validator/src/components/RecentVotes.tsx
-git commit -m "feat(gov-validator): apply console styling to proposal details and execution views"
+git add packages/summer-earn-gov-validator/src/components/ProposalExecutionDetails.tsx packages/summer-earn-gov-validator/src/components/ProposalVotingInfo.tsx packages/summer-earn-gov-validator/src/components/PhaseIndicator.tsx packages/summer-earn-gov-validator/src/components/CountdownTimer.tsx packages/summer-earn-gov-validator/src/components/VotingModal.tsx packages/summer-earn-gov-validator/src/components/ProposalModal.tsx packages/summer-earn-gov-validator/src/components/RecentVotes.tsx packages/summer-earn-gov-validator/src/app/proposal/
+git commit -m "feat(gov-validator): apply console styling to proposal detail pages, modals, and execution views"
 ```
 
 ---
@@ -286,7 +366,7 @@ Expected: PASS
 
 ```bash
 git add packages/summer-earn-gov-validator/src/components/TreasuryView.tsx packages/summer-earn-gov-validator/src/components/TreasuryList.tsx packages/summer-earn-gov-validator/src/app/treasury/page.tsx
-git commit -m "feat(gov-validator): redesign Treasury view with aggregated holdings and wallet cards"
+git commit -m "feat(gov-validator): redesign Treasury view with aggregated holdings, chain pills, and wallet cards"
 ```
 
 ---
@@ -299,7 +379,7 @@ git commit -m "feat(gov-validator): redesign Treasury view with aggregated holdi
 
 - [ ] **Step 1: Redesign Delegates header, search, and stats**
 
-Add monospaced search bar (`⌕ Search delegates`), stats cards (**Delegates** count, **Largest voting power**, **Most delegators**) in `JetBrains Mono`.
+Add monospaced search bar (`⌕ Search delegates`), stats cards (**Delegates** count e.g. 42, **Largest voting power**, **Most delegators**) in `JetBrains Mono`.
 
 - [ ] **Step 2: Redesign delegate card grid & pagination button**
 
@@ -319,29 +399,30 @@ git commit -m "feat(gov-validator): redesign Delegates view with search, stats, 
 
 ---
 
-### Task 7: Create Proposal & Simulation Components
+### Task 7: Create Proposal Page, Simulation & App Feedback States
 
 **Files:**
-- Modify: `packages/summer-earn-gov-validator/src/components/Form.tsx`
-- Modify: `packages/summer-earn-gov-validator/src/components/SimulationCenter/` (and `SimulateProposalButton.tsx`)
 - Modify: `packages/summer-earn-gov-validator/src/app/create-proposal/page.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/SimulationCenter/SimulationCenter.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/app/loading.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/app/error.tsx`
 
-- [ ] **Step 1: Redesign Form.tsx proposal action builder**
+- [ ] **Step 1: Redesign src/app/create-proposal/page.tsx action builder & gas panel**
 
-Style title input, tabbed Markdown/Preview description editor, multi-chain action card items (Chain dropdown, Target input in `JetBrains Mono`, Method signature selector, parameter inputs with `--pink` type badges), selector hash display, and validation blocker alert box.
+Restyle title input, tabbed Markdown/Preview description editor, multi-chain action card items (Chain dropdown, Target input in `JetBrains Mono`, Method signature selector, parameter inputs with `--pink` type badges), selector hash display, validation blocker alert box, and LayerZero satellite gas limits panel in `src/app/create-proposal/page.tsx`.
 
-- [ ] **Step 2: Redesign Simulation Center & LayerZero Satellite Gas Limits**
+- [ ] **Step 2: Redesign Simulation Center & App Loading/Error states**
 
-Restyle proposer eligibility card, LayerZero satellite chain executor gas limit fields, and simulation status cards (*Idle*, *Not run yet*, *Done* with gas numbers in `JetBrains Mono` and execution trace button).
+Restyle `SimulationCenter.tsx` status cards (*Idle*, *Not run yet*, *Done* with gas numbers in `JetBrains Mono` and execution trace button). Restyle `loading.tsx` spinner and `error.tsx` error boundaries with `var(--surface)` panels and `var(--pink)` brand accenting.
 
-- [ ] **Step 3: Verify full application build**
+- [ ] **Step 3: Run full package build & lint verification**
 
-Run: `pnpm --filter @summerfi/summer-earn-gov-validator build`  
-Expected: PASS
+Run: `pnpm --filter @summerfi/summer-earn-gov-validator build && pnpm --filter @summerfi/summer-earn-gov-validator lint`  
+Expected: PASS (Zero build or lint errors)
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add packages/summer-earn-gov-validator/src/components/Form.tsx packages/summer-earn-gov-validator/src/components/SimulationCenter/ packages/summer-earn-gov-validator/src/app/create-proposal/
-git commit -m "feat(gov-validator): redesign Create Proposal form and Simulation Center"
+git add packages/summer-earn-gov-validator/src/app/create-proposal/page.tsx packages/summer-earn-gov-validator/src/components/SimulationCenter/ packages/summer-earn-gov-validator/src/app/loading.tsx packages/summer-earn-gov-validator/src/app/error.tsx
+git commit -m "feat(gov-validator): redesign Create Proposal page, Simulation Center, loading and error views"
 ```
