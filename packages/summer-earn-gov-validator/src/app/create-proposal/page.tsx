@@ -10,12 +10,10 @@ import {
   Download,
   Eye,
   FileText,
-  Globe,
   Italic,
   Link as LinkIcon,
   List,
   Loader2,
-  Network,
   Play,
   Plus,
   Quote,
@@ -40,9 +38,8 @@ import {
 } from 'viem'
 import { useConnection, useReadContract, useWriteContract } from 'wagmi'
 
-import { SideNavBar } from '@/components/SideNavBar'
+import { DashboardLayout } from '@/components/DashboardLayout'
 import { SimulationCenter } from '@/components/SimulationCenter/SimulationCenter'
-import { TopNavBar } from '@/components/TopNavBar'
 import { GOVERNOR_ABI as HUB_GOVERNOR_ABI } from '@/config/abis/governor'
 import { CHAINS, HUB_CHAIN_ID, HUB_GOVERNOR_ADDRESS } from '@/config/chains'
 import deploymentConfigRaw from '@/config/index.json'
@@ -117,14 +114,14 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
   if (isArray) {
     const arrayValue = Array.isArray(value) ? (value as unknown[]) : []
     return (
-      <div className="space-y-3 p-4 bg-surface-container-lowest/50 rounded-2xl border border-outline-variant/30">
+      <div className="space-y-3 p-4 bg-field/50 rounded-xl border border-line/30">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold text-primary tracking-widest uppercase">
+          <label className="text-[10px] font-bold text-brand-pink tracking-widest uppercase">
             {label} (Array)
           </label>
           <button
             onClick={() => onChange([...arrayValue, isTuple ? {} : ''])}
-            className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary-fixed transition-colors"
+            className="flex items-center gap-1 text-[10px] font-bold text-brand-pink hover:text-pink-hi transition-colors"
           >
             <Plus size={12} /> Add Item
           </button>
@@ -146,16 +143,14 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
               </div>
               <button
                 onClick={() => onChange(arrayValue.filter((_, i) => i !== idx))}
-                className="mt-8 p-2 text-on-surface-variant hover:text-error transition-colors"
+                className="mt-8 p-2 text-fg2 hover:text-crit transition-colors"
               >
                 <Trash2 size={14} />
               </button>
             </div>
           ))}
           {arrayValue.length === 0 && (
-            <p className="text-[10px] text-on-surface-variant/50 italic py-2">
-              No items added yet.
-            </p>
+            <p className="text-[10px] text-fg2/50 italic py-2">No items added yet.</p>
           )}
         </div>
       </div>
@@ -166,8 +161,8 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
     const tupleValue =
       typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
     return (
-      <div className="space-y-4 p-4 bg-surface-variant/20 rounded-2xl border border-outline-variant/50">
-        <label className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">
+      <div className="space-y-4 p-4 bg-surface2 rounded-xl border border-line/50">
+        <label className="text-[10px] font-bold text-fg2 tracking-widest uppercase">
           {label} (Tuple)
         </label>
         <div className="space-y-4">
@@ -187,7 +182,7 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
 
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase ml-1">
+      <label className="text-[10px] font-bold text-fg2 tracking-widest uppercase ml-1">
         {label} <span className="text-[8px] opacity-40">({param.type})</span>
       </label>
       <input
@@ -195,7 +190,7 @@ const DynamicArgumentField: React.FC<ArgumentFieldProps> = ({
         placeholder={`Enter ${param.type}...`}
         value={typeof value === 'string' || typeof value === 'number' ? value : ''}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/20"
+        className="w-full h-9 px-2.5 bg-field border border-line2 rounded-lg text-sm text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 transition-all placeholder:text-fg3"
       />
     </div>
   )
@@ -799,686 +794,655 @@ function CreateProposalPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-sans selection:bg-primary/30 antialiased tracking-tight">
-      <TopNavBar />
-      <div className="flex">
-        <SideNavBar />
-        <main className="flex-1 p-8 max-w-7xl mx-auto">
-          {/* Header Area */}
-          <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 text-primary mb-2">
-                <Globe size={16} className="text-primary-fixed" />
-                <span className="text-xs font-bold tracking-widest uppercase">
-                  Multi-Chain Governance
-                </span>
-              </div>
-              <h1 className="text-4xl font-bold tracking-tighter text-on-surface mb-2">
-                Create New SIP
-              </h1>
-              <p className="text-on-surface-variant max-w-2xl">
-                Submit a proposal to execute actions across the Lazy Summer DAO ecosystem. SIPs can
-                include local Hub actions and cross-chain transactions via LayerZero.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Hidden file input for import */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleImportProposal}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isDecodingImport}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all font-bold text-sm disabled:opacity-50"
-                title="Import proposal from JSON"
-              >
-                {isDecodingImport ? (
-                  <Loader2 className="animate-spin" size={16} />
-                ) : (
-                  <Upload size={16} />
-                )}
-                {isDecodingImport ? 'Decoding...' : 'Import'}
-              </button>
-              <button
-                onClick={handleExportProposal}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all font-bold text-sm"
-                title="Export proposal to JSON"
-              >
-                <Download size={16} />
-                Export
-              </button>
-              {skipSimulation && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-medium">
-                  <AlertCircle size={14} />
-                  Bypass Active (?skipSimulation=true)
-                </div>
-              )}
-              <div className="w-px h-6 bg-outline-variant mx-1" />
-              <button
-                onClick={handleSimulate}
-                disabled={isSimulating || actions.some((a) => !a.method && !a.rawCalldata)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-primary/30 text-primary hover:bg-primary/10 transition-all font-bold disabled:opacity-50"
-              >
-                {isSimulating ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
-                Simulate
-              </button>
-              <button
-                onClick={handlePropose}
-                disabled={
-                  !isEligible || !title || isSubmitting || isSimulating || !simulationPassed
-                }
-                title={
-                  skipSimulation
-                    ? 'Simulation blockade bypassed via ?skipSimulation=true'
-                    : isSimulating
-                      ? 'Simulation running…'
-                      : !simulationPassed
-                        ? lastSimSignatureRef.current !== actionsSignature
-                          ? 'Run simulation against the current actions before submitting'
-                          : 'Simulation has reverts or errors — fix and re-simulate before submitting'
-                        : worstGasSeverity === 'critical'
-                          ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
-                          : worstGasSeverity === 'warning'
-                            ? `Warning: less than ${LZ_GAS_HEADROOM_PERCENT}% gas headroom on at least one chain`
-                            : undefined
-                }
-                className={`px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
-                  isEligible && title && simulationPassed && !isSimulating
-                    ? 'bg-primary text-on-primary hover:brightness-110 shadow-primary/20'
-                    : 'bg-surface-container-highest text-on-surface-variant cursor-not-allowed grayscale'
-                }`}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <ShieldCheck size={18} />
-                )}
-                Submit Proposal
-              </button>
-            </div>
+    <DashboardLayout activeTab="create">
+      <div className="mb-5 flex flex-col md:flex-row md:items-end justify-between gap-5">
+        <div>
+          <div className="text-[11px] font-semibold tracking-[0.1em] uppercase text-brand-pink">
+            Multi-chain governance
           </div>
+          <h1 className="mt-1.5 m-0 text-[26px] font-semibold tracking-[-0.03em] text-fg">
+            Create new SIP
+          </h1>
+          <p className="mt-1 text-fg2 text-[13px] max-w-[62ch]">
+            A proposal can include local hub actions and cross-chain transactions relayed via
+            LayerZero. Proposals are created on Base; satellites are execute-only.
+          </p>
+        </div>
 
-          {/* Cross-Chain Gas Limits */}
-          {satelliteChainIds.length > 0 && (
-            <section className="mb-10 space-y-6">
-              <div className="flex items-center gap-3">
-                <Settings className="text-primary" size={20} />
-                <h2 className="text-xl font-bold">LayerZero Gas Limits</h2>
-              </div>
-              <p className="text-xs text-on-surface-variant max-w-3xl">
-                Executor gas limit baked into <code className="font-mono">_options</code> per
-                destination. Frozen at queue time — once the proposal is in the timelock you
-                can&apos;t bump it. Re-run the simulation after editing.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {gasInsights.map((insight) => {
-                  const chain = CHAINS.find((c) => c.id === insight.chainId)
-                  const severity = insight.severity
-                  const badge =
+        <div className="flex items-center gap-3">
+          {/* Hidden file input for import */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportProposal}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isDecodingImport}
+            className="flex items-center gap-2 h-[34px] px-3.5 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-all disabled:opacity-50"
+            title="Import proposal from JSON"
+          >
+            {isDecodingImport ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <Upload size={16} />
+            )}
+            {isDecodingImport ? 'Decoding...' : 'Import'}
+          </button>
+          <button
+            onClick={handleExportProposal}
+            className="flex items-center gap-2 h-[34px] px-3.5 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-all"
+            title="Export proposal to JSON"
+          >
+            <Download size={16} />
+            Export
+          </button>
+          {skipSimulation && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-medium">
+              <AlertCircle size={14} />
+              Bypass Active (?skipSimulation=true)
+            </div>
+          )}
+          <div className="w-px h-6 bg-line mx-1" />
+          <button
+            onClick={handleSimulate}
+            disabled={isSimulating || actions.some((a) => !a.method && !a.rawCalldata)}
+            className="flex items-center gap-2 h-[34px] px-3.5 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-all disabled:opacity-50"
+          >
+            {isSimulating ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
+            Simulate
+          </button>
+          <button
+            onClick={handlePropose}
+            disabled={!isEligible || !title || isSubmitting || isSimulating || !simulationPassed}
+            title={
+              skipSimulation
+                ? 'Simulation blockade bypassed via ?skipSimulation=true'
+                : isSimulating
+                  ? 'Simulation running…'
+                  : !simulationPassed
+                    ? lastSimSignatureRef.current !== actionsSignature
+                      ? 'Run simulation against the current actions before submitting'
+                      : 'Simulation has reverts or errors — fix and re-simulate before submitting'
+                    : worstGasSeverity === 'critical'
+                      ? 'Warning: simulated gas exceeds encoded _options gas on at least one chain'
+                      : worstGasSeverity === 'warning'
+                        ? `Warning: less than ${LZ_GAS_HEADROOM_PERCENT}% gas headroom on at least one chain`
+                        : undefined
+            }
+            className={`h-[34px] px-[18px] rounded-full text-[13px] font-semibold flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap ${
+              isEligible && title && simulationPassed && !isSimulating
+                ? 'bg-brand-gradient text-white hover:brightness-110'
+                : 'bg-surface3 text-fg3 cursor-not-allowed'
+            }`}
+          >
+            {isSubmitting ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <ShieldCheck size={18} />
+            )}
+            Submit Proposal
+          </button>
+        </div>
+      </div>
+
+      {/* Cross-Chain Gas Limits */}
+      {satelliteChainIds.length > 0 && (
+        <section className="mb-10 space-y-6">
+          <div>
+            <h2 className="text-[13px] font-semibold text-fg">LayerZero gas limits</h2>
+            <p className="text-[11px] text-fg3 mt-0.5">
+              One executor gas limit per satellite chain. Frozen at queue time — re-run simulation
+              after editing.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {gasInsights.map((insight) => {
+              const chain = CHAINS.find((c) => c.id === insight.chainId)
+              const severity = insight.severity
+              const badge =
+                severity === 'critical'
+                  ? { label: 'OVER LIMIT', className: 'text-crit border-crit/30 bg-crit-bg' }
+                  : severity === 'warning'
+                    ? {
+                        label: 'TIGHT',
+                        className: 'text-warn border-warn/30 bg-warn-bg',
+                      }
+                    : severity === 'ok'
+                      ? {
+                          label: 'OK',
+                          className: 'text-ok border-ok/30 bg-ok-bg',
+                        }
+                      : {
+                          label: 'NOT SIMULATED',
+                          className: 'text-fg3 border-line bg-surface2',
+                        }
+              const ratioPct =
+                insight.ratio !== undefined
+                  ? Number.isFinite(insight.ratio)
+                    ? Math.round(insight.ratio * 100)
+                    : Infinity
+                  : null
+              return (
+                <div
+                  key={insight.chainId}
+                  className={`p-3.5 rounded-xl border bg-console-surface space-y-2.5 ${
                     severity === 'critical'
-                      ? { label: 'OVER LIMIT', className: 'text-error border-error/30 bg-error/10' }
+                      ? 'border-crit/40'
                       : severity === 'warning'
-                        ? {
-                            label: 'TIGHT',
-                            className: 'text-warning border-warning/30 bg-warning/10',
-                          }
-                        : severity === 'ok'
-                          ? {
-                              label: 'OK',
-                              className: 'text-success border-success/30 bg-success/10',
-                            }
-                          : {
-                              label: 'NOT SIMULATED',
-                              className:
-                                'text-on-surface-variant border-outline-variant bg-surface-container-low',
-                            }
-                  const ratioPct =
-                    insight.ratio !== undefined
-                      ? Number.isFinite(insight.ratio)
-                        ? Math.round(insight.ratio * 100)
-                        : Infinity
-                      : null
-                  return (
-                    <div
-                      key={insight.chainId}
-                      className={`p-5 rounded-2xl border bg-surface-container-lowest space-y-3 ${
-                        severity === 'critical'
-                          ? 'border-error/40'
-                          : severity === 'warning'
-                            ? 'border-warning/40'
-                            : 'border-outline-variant'
+                        ? 'border-warn/40'
+                        : 'border-line'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-sm">{chain?.name ?? insight.chainId}</span>
+                    <span
+                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.className}`}
+                    >
+                      {badge.label}
+                    </span>
+                  </div>
+                  <label className="block">
+                    <span className="text-[10px] font-bold text-fg2 tracking-widest uppercase ml-1">
+                      Executor Gas
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={lzGasLimits[insight.chainId] ?? DEFAULT_LZ_GAS_LIMIT}
+                      onChange={(e) =>
+                        setLzGasLimits((prev) => ({
+                          ...prev,
+                          [insight.chainId]: e.target.value,
+                        }))
+                      }
+                      className="mt-1 w-full h-[34px] px-2.5 bg-field border border-line2 rounded-lg text-xs font-mono text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 transition-all"
+                      placeholder={DEFAULT_LZ_GAS_LIMIT}
+                    />
+                  </label>
+                  <div className="flex justify-between text-[10px] font-medium text-fg2 uppercase tracking-wider">
+                    <span>Simulated Gas</span>
+                    <span className="font-mono text-fg">
+                      {insight.gasUsed !== undefined ? insight.gasUsed.toLocaleString() : '—'}
+                    </span>
+                  </div>
+                  {ratioPct !== null && (
+                    <div className="flex justify-between text-[10px] font-medium text-fg2 uppercase tracking-wider">
+                      <span>Headroom</span>
+                      <span
+                        className={`font-mono ${
+                          severity === 'critical'
+                            ? 'text-crit'
+                            : severity === 'warning'
+                              ? 'text-warn'
+                              : 'text-ok'
+                        }`}
+                      >
+                        {ratioPct === Infinity ? '∞' : ratioPct}% used
+                      </span>
+                    </div>
+                  )}
+                  {severity === 'critical' && (
+                    <p className="text-[10px] text-crit">
+                      Simulated execution exceeds encoded gas. Raise the limit before submitting.
+                    </p>
+                  )}
+                  {severity === 'warning' && (
+                    <p className="text-[10px] text-warn">
+                      Less than {LZ_GAS_HEADROOM_PERCENT}% headroom. Consider raising the limit
+                      before submitting.
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Simulation Center */}
+      <section className="mb-10 space-y-6">
+        <div>
+          <h2 className="text-[13px] font-semibold text-fg">Simulation center</h2>
+        </div>
+        <SimulationCenter
+          results={results}
+          targetChainIds={Array.from(new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)]))}
+        />
+      </section>
+
+      {!isEligible && isConnected && (
+        <div className="mb-5 p-3.5 border border-crit/30 bg-crit-bg rounded-xl flex items-center gap-3 text-crit">
+          <AlertCircle size={24} />
+          <div>
+            <p className="font-bold">Insufficient Voting Power</p>
+            <p className="text-sm opacity-80">
+              You need to meet the proposal threshold to submit. Current power:{' '}
+              {votingPower?.toString() || '0'}.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {unsimulatableChainIds.length > 0 && (
+        <div className="mb-5 p-3.5 border border-warn/30 bg-warn-bg rounded-xl flex items-center gap-3 text-warn">
+          <AlertCircle size={24} />
+          <div>
+            <p className="font-bold">
+              {hasHyperliquid ? 'Hyperliquid Simulation Not Possible' : 'Destination Not Simulated'}
+            </p>
+            <p className="text-sm opacity-80">
+              {hasHyperliquid ? (
+                <>
+                  There is no simulation possible on Tenderly for Hyperliquid. The simulation on
+                  other chains (such as Base or Arbitrum) must still pass, but the Hyperliquid leg
+                  will be skipped. Please review the cross-chain calldata carefully.
+                </>
+              ) : (
+                <>
+                  Tenderly can&apos;t simulate{' '}
+                  {unsimulatableChainIds
+                    .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
+                    .join(', ')}
+                  , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
+                  submitted without an execution trace. The Hub leg is still simulated — review the
+                  cross-chain calldata carefully before proposing.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        <div className="xl:col-span-7 space-y-6">
+          <div className="border border-line bg-console-surface p-[18px] rounded-xl space-y-4">
+            <div>
+              <label className="block text-[10px] font-semibold tracking-[0.08em] uppercase text-brand-pink mb-1.5">
+                Title
+              </label>
+              <input
+                type="text"
+                placeholder="SIPX.Y.Z: Proposal Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full h-10 px-3 bg-field border border-line2 rounded-lg text-sm text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 focus:border-brand-pink transition-all placeholder:text-fg3"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="text-[10px] font-semibold tracking-[0.08em] uppercase text-brand-pink">
+                    Description
+                  </label>
+                  <div className="flex p-0.5 bg-surface3 rounded-lg border border-line gap-0.5">
+                    <button
+                      onClick={() => setActiveTab('editor')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                        activeTab === 'editor'
+                          ? 'bg-console-surface text-fg'
+                          : 'text-fg2 hover:text-fg'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-sm">{chain?.name ?? insight.chainId}</span>
-                        <span
-                          className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.className}`}
-                        >
-                          {badge.label}
-                        </span>
-                      </div>
-                      <label className="block">
-                        <span className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase ml-1">
-                          Executor Gas
-                        </span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={lzGasLimits[insight.chainId] ?? DEFAULT_LZ_GAS_LIMIT}
-                          onChange={(e) =>
-                            setLzGasLimits((prev) => ({
-                              ...prev,
-                              [insight.chainId]: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                          placeholder={DEFAULT_LZ_GAS_LIMIT}
-                        />
-                      </label>
-                      <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
-                        <span>Simulated Gas</span>
-                        <span className="font-mono text-on-surface">
-                          {insight.gasUsed !== undefined ? insight.gasUsed.toLocaleString() : '—'}
-                        </span>
-                      </div>
-                      {ratioPct !== null && (
-                        <div className="flex justify-between text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
-                          <span>Headroom</span>
-                          <span
-                            className={`font-mono ${
-                              severity === 'critical'
-                                ? 'text-error'
-                                : severity === 'warning'
-                                  ? 'text-warning'
-                                  : 'text-success'
-                            }`}
-                          >
-                            {ratioPct === Infinity ? '∞' : ratioPct}% used
-                          </span>
-                        </div>
-                      )}
-                      {severity === 'critical' && (
-                        <p className="text-[10px] text-error">
-                          Simulated execution exceeds encoded gas. Raise the limit before
-                          submitting.
-                        </p>
-                      )}
-                      {severity === 'warning' && (
-                        <p className="text-[10px] text-warning">
-                          Less than {LZ_GAS_HEADROOM_PERCENT}% headroom. Consider raising the limit
-                          before submitting.
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
+                      <Code size={12} />
+                      Markdown
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('preview')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                        activeTab === 'preview'
+                          ? 'bg-console-surface text-fg'
+                          : 'text-fg2 hover:text-fg'
+                      }`}
+                    >
+                      <Eye size={12} />
+                      Preview
+                    </button>
+                  </div>
+                </div>
+
+                {activeTab === 'editor' && (
+                  <div className="flex items-center gap-1 p-1 bg-field border border-line rounded-xl overflow-x-auto no-scrollbar">
+                    <button
+                      onClick={() => insertMarkdown('**', '**')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Bold"
+                    >
+                      <Bold size={16} />
+                    </button>
+                    <button
+                      onClick={() => insertMarkdown('*', '*')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Italic"
+                    >
+                      <Italic size={16} />
+                    </button>
+                    <button
+                      onClick={() => insertMarkdown('# ')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Heading"
+                    >
+                      <Type size={16} />
+                    </button>
+                    <div className="w-px h-4 bg-line mx-1" />
+                    <button
+                      onClick={() => insertMarkdown('- ')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="List"
+                    >
+                      <List size={16} />
+                    </button>
+                    <button
+                      onClick={() => insertMarkdown('> ')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Quote"
+                    >
+                      <Quote size={16} />
+                    </button>
+                    <button
+                      onClick={() => insertMarkdown('`', '`')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Code"
+                    >
+                      <Code size={16} />
+                    </button>
+                    <div className="w-px h-4 bg-line mx-1" />
+                    <button
+                      onClick={() => insertMarkdown('[', '](url)')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Link"
+                    >
+                      <LinkIcon size={16} />
+                    </button>
+                    <button
+                      onClick={() => insertMarkdown('| ')}
+                      className="p-2 hover:bg-surface3 rounded-lg text-fg2 transition-colors"
+                      title="Table"
+                    >
+                      <TableIcon size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
-            </section>
-          )}
 
-          {/* Simulation Center */}
-          <section className="mb-10 space-y-6">
-            <div className="flex items-center gap-3">
-              <Network className="text-primary" size={20} />
-              <h2 className="text-xl font-bold">Simulation Center</h2>
-            </div>
-            <SimulationCenter
-              results={results}
-              targetChainIds={Array.from(new Set([HUB_CHAIN_ID, ...actions.map((a) => a.chainId)]))}
-            />
-          </section>
-
-          {!isEligible && isConnected && (
-            <div className="mb-8 p-4 glass-panel border-error/20 bg-error/5 rounded-2xl flex items-center gap-4 text-error">
-              <AlertCircle size={24} />
-              <div>
-                <p className="font-bold">Insufficient Voting Power</p>
-                <p className="text-sm opacity-80">
-                  You need to meet the proposal threshold to submit. Current power:{' '}
-                  {votingPower?.toString() || '0'}.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {unsimulatableChainIds.length > 0 && (
-            <div className="mb-8 p-4 glass-panel border-warning/20 bg-warning/5 rounded-2xl flex items-center gap-4 text-warning">
-              <AlertCircle size={24} />
-              <div>
-                <p className="font-bold">
-                  {hasHyperliquid
-                    ? 'Hyperliquid Simulation Not Possible'
-                    : 'Destination Not Simulated'}
-                </p>
-                <p className="text-sm opacity-80">
-                  {hasHyperliquid ? (
-                    <>
-                      There is no simulation possible on Tenderly for Hyperliquid. The simulation on
-                      other chains (such as Base or Arbitrum) must still pass, but the Hyperliquid
-                      leg will be skipped. Please review the cross-chain calldata carefully.
-                    </>
-                  ) : (
-                    <>
-                      Tenderly can&apos;t simulate{' '}
-                      {unsimulatableChainIds
-                        .map((cid) => CHAINS.find((c) => c.id === cid)?.name ?? cid)
-                        .join(', ')}
-                      , so {unsimulatableChainIds.length > 1 ? 'these legs' : 'this leg'} will be
-                      submitted without an execution trace. The Hub leg is still simulated — review
-                      the cross-chain calldata carefully before proposing.
-                    </>
-                  )}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-            <div className="xl:col-span-7 space-y-6">
-              <div className="glass-panel p-8 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 to-transparent" />
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-primary tracking-widest uppercase ml-1">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="SIPX.Y.Z: Proposal Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-on-surface-variant/30"
+              {activeTab === 'editor' ? (
+                <div className="relative group">
+                  <textarea
+                    ref={descriptionRef}
+                    rows={16}
+                    placeholder="# Summary\nDescribe what this proposal does..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full min-h-[180px] p-3 bg-field border border-line2 rounded-lg font-mono text-[13px] leading-relaxed text-fg focus:outline-none focus:ring-1 focus:ring-brand-pink/40 focus:border-brand-pink transition-all placeholder:text-fg3 resize-y"
                   />
                 </div>
-
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between ml-1">
-                      <label className="text-xs font-bold text-primary tracking-widest uppercase">
-                        Description
-                      </label>
-                      <div className="flex p-1 bg-surface-container-lowest rounded-xl border border-outline-variant">
-                        <button
-                          onClick={() => setActiveTab('editor')}
-                          className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                            activeTab === 'editor'
-                              ? 'bg-primary/20 text-primary'
-                              : 'text-on-surface-variant hover:text-on-surface'
-                          }`}
-                        >
-                          <Code size={14} />
-                          Markdown
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('preview')}
-                          className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                            activeTab === 'preview'
-                              ? 'bg-primary/20 text-primary'
-                              : 'text-on-surface-variant hover:text-on-surface'
-                          }`}
-                        >
-                          <Eye size={14} />
-                          Preview
-                        </button>
-                      </div>
-                    </div>
-
-                    {activeTab === 'editor' && (
-                      <div className="flex items-center gap-1 p-1 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-x-auto no-scrollbar">
-                        <button
-                          onClick={() => insertMarkdown('**', '**')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Bold"
-                        >
-                          <Bold size={16} />
-                        </button>
-                        <button
-                          onClick={() => insertMarkdown('*', '*')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Italic"
-                        >
-                          <Italic size={16} />
-                        </button>
-                        <button
-                          onClick={() => insertMarkdown('# ')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Heading"
-                        >
-                          <Type size={16} />
-                        </button>
-                        <div className="w-px h-4 bg-outline-variant mx-1" />
-                        <button
-                          onClick={() => insertMarkdown('- ')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="List"
-                        >
-                          <List size={16} />
-                        </button>
-                        <button
-                          onClick={() => insertMarkdown('> ')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Quote"
-                        >
-                          <Quote size={16} />
-                        </button>
-                        <button
-                          onClick={() => insertMarkdown('`', '`')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Code"
-                        >
-                          <Code size={16} />
-                        </button>
-                        <div className="w-px h-4 bg-outline-variant mx-1" />
-                        <button
-                          onClick={() => insertMarkdown('[', '](url)')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Link"
-                        >
-                          <LinkIcon size={16} />
-                        </button>
-                        <button
-                          onClick={() => insertMarkdown('| ')}
-                          className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition-colors"
-                          title="Table"
-                        >
-                          <TableIcon size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {activeTab === 'editor' ? (
-                    <div className="relative group">
-                      <textarea
-                        ref={descriptionRef}
-                        rows={16}
-                        placeholder="# Summary\nDescribe what this proposal does..."
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-on-surface-variant/30 resize-none"
-                      />
-                    </div>
+              ) : (
+                <div className="w-full min-h-[180px] p-3 bg-surface2 border border-line2 rounded-lg text-[13px] text-fg2 prose prose-invert max-w-none">
+                  {description ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
                   ) : (
-                    <div className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 min-h-[400px] prose prose-invert prose-sky max-w-none">
-                      {description ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
-                      ) : (
-                        <p className="text-on-surface-variant italic">Nothing to preview yet...</p>
-                      )}
-                    </div>
+                    <p className="text-fg2 italic">Nothing to preview yet...</p>
                   )}
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="xl:col-span-5 space-y-4">
+          <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
+            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-line">
+              <h2 className="text-[13px] font-semibold text-fg">
+                Proposed actions
+                <span className="ml-2 font-mono text-[11px] text-fg3">{actions.length}</span>
+              </h2>
+              <button
+                onClick={addAction}
+                className="h-7 w-7 rounded-lg border border-line2 bg-surface3 text-fg flex items-center justify-center hover:bg-surface2 transition-all"
+              >
+                <Plus size={14} />
+              </button>
             </div>
 
-            <div className="xl:col-span-5 space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-bold tracking-tight text-on-surface flex items-center gap-2">
-                  Proposed Actions
-                  <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full border border-primary/20">
-                    {actions.length} Total
-                  </span>
-                </h2>
-                <button
-                  onClick={addAction}
-                  className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/30"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
+            <div className="divide-y divide-line">
+              {actions.map((action, index) => {
+                const methods = action.abi.filter(
+                  (item) =>
+                    item.type === 'function' &&
+                    item.stateMutability !== 'view' &&
+                    item.stateMutability !== 'pure',
+                )
+                const selectedMethodObj = methods.find((m) => m.name === action.method)
 
-              <div className="p-5 space-y-8">
-                {actions.map((action, index) => {
-                  const methods = action.abi.filter(
-                    (item) =>
-                      item.type === 'function' &&
-                      item.stateMutability !== 'view' &&
-                      item.stateMutability !== 'pure',
-                  )
-                  const selectedMethodObj = methods.find((m) => m.name === action.method)
-
-                  return (
-                    <div
-                      key={action.id}
-                      className="glass-panel-elevated p-6 rounded-3xl border border-outline-variant/50 relative group/action transition-all"
-                    >
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-surface-container-highest flex items-center justify-center text-xs font-bold text-on-surface border border-outline-variant">
-                            {index + 1}
-                          </div>
-                          <select
-                            value={action.chainId}
-                            onChange={(e) =>
-                              updateAction(action.id, {
-                                chainId: e.target.value,
-                                abi: [],
-                                method: '',
-                                args: {},
-                              })
-                            }
-                            className="bg-transparent text-sm font-bold text-on-surface focus:outline-none cursor-pointer hover:text-primary transition-colors"
-                          >
-                            {CHAINS.map((c) => (
-                              <option
-                                key={c.id}
-                                value={c.id}
-                                style={{ backgroundColor: '#020617' }}
-                              >
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <button
-                          onClick={() => removeAction(action.id)}
-                          className="opacity-0 group-hover/action:opacity-100 p-2 text-on-surface-variant hover:text-error transition-all"
+                return (
+                  <div key={action.id} className="p-4 relative group/action">
+                    <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-[10px] font-semibold tracking-[0.08em] uppercase text-fg3 whitespace-nowrap">
+                          Action {index + 1}
+                        </span>
+                        <select
+                          value={action.chainId}
+                          onChange={(e) =>
+                            updateAction(action.id, {
+                              chainId: e.target.value,
+                              abi: [],
+                              method: '',
+                              args: {},
+                            })
+                          }
+                          className="h-9 px-2.5 bg-field border border-line2 rounded-lg text-[13px] text-fg focus:outline-none cursor-pointer"
                         >
-                          <Trash2 size={16} />
-                        </button>
+                          {CHAINS.map((c) => (
+                            <option key={c.id} value={c.id} className="bg-field text-fg">
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={() => removeAction(action.id)}
+                        className="opacity-0 group-hover/action:opacity-100 border-0 bg-transparent p-0 text-[11px] text-fg3 hover:text-crit transition-all cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-fg2 tracking-widest uppercase ml-1">
+                          Target Address
+                        </label>
+                        <div className="relative group/input">
+                          {(() => {
+                            const tag = getContractTag(
+                              action.target,
+                              CHAINS.find((c) => c.id === action.chainId)?.key || 'base',
+                            )
+                            const isFetching = isFetchingAbi[action.id]
+                            return (
+                              <>
+                                <input
+                                  type="text"
+                                  placeholder="0x..."
+                                  value={action.target}
+                                  onChange={(e) =>
+                                    updateAction(action.id, {
+                                      target: e.target.value,
+                                      abi: [],
+                                      method: '',
+                                      args: {},
+                                    })
+                                  }
+                                  className={`w-full h-9 px-2.5 bg-field border border-line2 rounded-lg font-mono focus:outline-none focus:ring-1 focus:ring-brand-pink/40 transition-all placeholder:text-fg3 text-xs ${
+                                    tag ? 'pr-32' : isFetching ? 'pr-12' : 'pr-3'
+                                  }`}
+                                />
+                                {(tag || isFetching) && (
+                                  <div className="absolute right-[1px] top-[1px] bottom-[1px] flex items-center pr-3 pl-12 rounded-r-xl bg-gradient-to-r from-transparent via-field/95 to-field pointer-events-none">
+                                    <div className="flex items-center gap-2">
+                                      {isFetching && (
+                                        <Loader2
+                                          className="animate-spin text-brand-pink"
+                                          size={14}
+                                        />
+                                      )}
+                                      {tag && (
+                                        <span className="bg-pink-bg text-brand-pink text-[10px] font-bold px-2 py-1 rounded-lg border border-brand-pink/20 whitespace-nowrap backdrop-blur-sm shadow-sm">
+                                          {tag}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </div>
                       </div>
 
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase ml-1">
-                            Target Address
-                          </label>
-                          <div className="relative group/input">
-                            {(() => {
-                              const tag = getContractTag(
-                                action.target,
-                                CHAINS.find((c) => c.id === action.chainId)?.key || 'base',
-                              )
-                              const isFetching = isFetchingAbi[action.id]
-                              return (
-                                <>
-                                  <input
-                                    type="text"
-                                    placeholder="0x..."
-                                    value={action.target}
-                                    onChange={(e) =>
+                      {action.abi.length > 0 && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-fg2 tracking-widest uppercase ml-1">
+                              Select Method
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={action.method}
+                                onChange={(e) =>
+                                  updateAction(action.id, { method: e.target.value, args: {} })
+                                }
+                                className="w-full h-9 px-2.5 bg-field border border-line2 rounded-lg text-xs font-mono text-fg appearance-none focus:outline-none focus:ring-1 focus:ring-brand-pink/40 transition-all cursor-pointer"
+                              >
+                                <option value="">Choose a function...</option>
+                                {methods.map((m, idx) => (
+                                  <option
+                                    key={`${m.name}-${idx}`}
+                                    value={m.name}
+                                    className="bg-field text-fg"
+                                  >
+                                    {m.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown
+                                size={16}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-fg2 pointer-events-none"
+                              />
+                            </div>
+                          </div>
+
+                          {selectedMethodObj && (
+                            <div className="space-y-4 border-t border-line/30 pt-4">
+                              {selectedMethodObj.inputs && selectedMethodObj.inputs.length > 0 ? (
+                                selectedMethodObj.inputs.map((input, idx: number) => (
+                                  <DynamicArgumentField
+                                    key={`${input.name}-${idx}`}
+                                    param={input}
+                                    value={action.args[input.name]}
+                                    onChange={(val) =>
                                       updateAction(action.id, {
-                                        target: e.target.value,
-                                        abi: [],
-                                        method: '',
-                                        args: {},
+                                        args: { ...action.args, [input.name]: val },
                                       })
                                     }
-                                    className={`w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/10 text-sm ${
-                                      tag ? 'pr-32' : isFetching ? 'pr-12' : 'pr-3'
-                                    }`}
                                   />
-                                  {(tag || isFetching) && (
-                                    <div className="absolute right-[1px] top-[1px] bottom-[1px] flex items-center pr-3 pl-12 rounded-r-xl bg-gradient-to-r from-transparent via-surface-container-low/95 to-surface-container-low pointer-events-none">
-                                      <div className="flex items-center gap-2">
-                                        {isFetching && (
-                                          <Loader2
-                                            className="animate-spin text-primary"
-                                            size={14}
-                                          />
-                                        )}
-                                        {tag && (
-                                          <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-lg border border-primary/20 whitespace-nowrap backdrop-blur-sm shadow-sm">
-                                            {tag}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </>
-                              )
-                            })()}
-                          </div>
-                        </div>
-
-                        {action.abi.length > 0 && (
-                          <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase ml-1">
-                                Select Method
-                              </label>
-                              <div className="relative">
-                                <select
-                                  value={action.method}
-                                  onChange={(e) =>
-                                    updateAction(action.id, { method: e.target.value, args: {} })
-                                  }
-                                  className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-3 text-sm font-bold text-on-surface appearance-none focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer"
-                                >
-                                  <option value="">Choose a function...</option>
-                                  {methods.map((m, idx) => (
-                                    <option
-                                      key={`${m.name}-${idx}`}
-                                      value={m.name}
-                                      style={{ backgroundColor: '#020617' }}
-                                    >
-                                      {m.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown
-                                  size={16}
-                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none"
-                                />
-                              </div>
-                            </div>
-
-                            {selectedMethodObj && (
-                              <div className="space-y-4 border-t border-outline-variant/30 pt-4">
-                                {selectedMethodObj.inputs && selectedMethodObj.inputs.length > 0 ? (
-                                  selectedMethodObj.inputs.map((input, idx: number) => (
-                                    <DynamicArgumentField
-                                      key={`${input.name}-${idx}`}
-                                      param={input}
-                                      value={action.args[input.name]}
-                                      onChange={(val) =>
-                                        updateAction(action.id, {
-                                          args: { ...action.args, [input.name]: val },
-                                        })
-                                      }
-                                    />
-                                  ))
-                                ) : (
-                                  <p className="text-xs text-on-surface-variant/50 italic py-2 text-center">
-                                    No arguments required for this method.
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Imported raw calldata display (shown when ABI decode failed) */}
-                        {action.rawCalldata && (
-                          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <FileText size={14} className="text-primary" />
-                              <span className="text-[10px] font-bold text-primary tracking-widest uppercase">
-                                Imported Raw Calldata
-                              </span>
-                              {action.rawValue && action.rawValue !== '0' && (
-                                <span className="bg-yellow-500/10 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-yellow-500/20">
-                                  Value: {action.rawValue} wei
-                                </span>
+                                ))
+                              ) : (
+                                <p className="text-xs text-fg2/50 italic py-2 text-center">
+                                  No arguments required for this method.
+                                </p>
                               )}
                             </div>
-                            {decodeErrors[action.id] && (
-                              <div className="p-3 bg-error/5 border border-error/20 rounded-xl flex items-start gap-2">
-                                <AlertCircle size={14} className="text-error/60 mt-0.5 shrink-0" />
-                                <p className="text-[11px] text-error/80">
-                                  {decodeErrors[action.id]}
-                                </p>
-                              </div>
-                            )}
-                            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 overflow-x-auto">
-                              <code className="text-[11px] font-mono text-on-surface-variant break-all leading-relaxed">
-                                {action.rawCalldata.slice(0, 10)}
-                                <span className="opacity-40">
-                                  {action.rawCalldata.slice(10, 74)}...
-                                </span>
-                              </code>
-                              <div className="mt-2 flex items-center gap-2">
-                                <span className="text-[9px] text-on-surface-variant/40">
-                                  {action.rawCalldata.length} chars
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(action.rawCalldata || '')
-                                  }}
-                                  className="text-[9px] text-primary hover:text-primary-fixed transition-colors"
-                                >
-                                  Copy full calldata
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
+                      )}
 
-                        {action.abi.length === 0 &&
-                          !isFetchingAbi[action.id] &&
-                          !action.rawCalldata &&
-                          action.target &&
-                          isAddress(action.target) && (
-                            <div className="p-6 border border-dashed border-error/20 bg-error/5 rounded-2xl flex flex-col items-center justify-center text-center space-y-2">
-                              <AlertCircle size={20} className="text-error/40" />
-                              <p className="text-xs text-error/60 font-medium">
-                                ABI not found. Please ensure the contract is verified on the
-                                explorer.
-                              </p>
+                      {/* Imported raw calldata display (shown when ABI decode failed) */}
+                      {action.rawCalldata && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <FileText size={14} className="text-brand-pink" />
+                            <span className="text-[10px] font-bold text-brand-pink tracking-widest uppercase">
+                              Imported Raw Calldata
+                            </span>
+                            {action.rawValue && action.rawValue !== '0' && (
+                              <span className="bg-yellow-500/10 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-yellow-500/20">
+                                Value: {action.rawValue} wei
+                              </span>
+                            )}
+                          </div>
+                          {decodeErrors[action.id] && (
+                            <div className="p-3 bg-crit/5 border border-crit/20 rounded-xl flex items-start gap-2">
+                              <AlertCircle size={14} className="text-crit/60 mt-0.5 shrink-0" />
+                              <p className="text-[11px] text-crit/80">{decodeErrors[action.id]}</p>
                             </div>
                           )}
+                          <div className="bg-field border border-line rounded-xl p-4 overflow-x-auto">
+                            <code className="text-[11px] font-mono text-fg2 break-all leading-relaxed">
+                              {action.rawCalldata.slice(0, 10)}
+                              <span className="opacity-40">
+                                {action.rawCalldata.slice(10, 74)}...
+                              </span>
+                            </code>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-[9px] text-fg2/40">
+                                {action.rawCalldata.length} chars
+                              </span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(action.rawCalldata || '')
+                                }}
+                                className="text-[9px] text-brand-pink hover:text-pink-hi transition-colors"
+                              >
+                                Copy full calldata
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                        {(!action.target || !isAddress(action.target)) && !action.rawCalldata && (
-                          <div className="p-8 border border-dashed border-outline-variant rounded-2xl flex flex-col items-center justify-center text-center space-y-2 grayscale">
-                            <Settings size={20} className="text-on-surface-variant/30" />
-                            <p className="text-xs text-on-surface-variant/50 max-w-[200px]">
-                              Enter a target address to load contract methods.
+                      {action.abi.length === 0 &&
+                        !isFetchingAbi[action.id] &&
+                        !action.rawCalldata &&
+                        action.target &&
+                        isAddress(action.target) && (
+                          <div className="p-6 border border-dashed border-crit/20 bg-crit/5 rounded-xl flex flex-col items-center justify-center text-center space-y-2">
+                            <AlertCircle size={20} className="text-crit/40" />
+                            <p className="text-xs text-crit/60 font-medium">
+                              ABI not found. Please ensure the contract is verified on the explorer.
                             </p>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  )
-                })}
 
-                <button
-                  onClick={addAction}
-                  className="w-full py-4 rounded-3xl border border-dashed border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all text-sm font-bold flex items-center justify-center gap-2"
-                >
-                  <Plus size={18} />
-                  Add Another Action
-                </button>
-              </div>
+                      {(!action.target || !isAddress(action.target)) && !action.rawCalldata && (
+                        <div className="p-8 border border-dashed border-line rounded-xl flex flex-col items-center justify-center text-center space-y-2 grayscale">
+                          <Settings size={20} className="text-fg2/30" />
+                          <p className="text-xs text-fg2/50 max-w-[200px]">
+                            Enter a target address to load contract methods.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              <button
+                onClick={addAction}
+                className="w-full m-4 mt-0 py-3 rounded-lg border border-dashed border-line text-fg2 hover:text-brand-pink hover:border-brand-pink/50 hover:bg-pink-bg transition-all text-xs font-semibold flex items-center justify-center gap-2"
+              >
+                <Plus size={14} />
+                Add another action
+              </button>
             </div>
           </div>
-        </main>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

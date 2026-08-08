@@ -1,18 +1,20 @@
 'use client'
 
 import { CrossChainProposals } from '../../components/CrossChainProposals'
-import { Header } from '../../components/Header'
+import { DashboardLayout } from '../../components/DashboardLayout'
 
 export default function CrossChainProposalsPage() {
   return (
-    <>
-      <Header />
-      <main className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-          Cross-Chain Governance Proposals
+    <DashboardLayout>
+      <div className="mb-[18px]">
+        <h1 className="m-0 text-[26px] font-semibold tracking-[-0.03em] text-fg">
+          Cross-Chain Proposals
         </h1>
-        <CrossChainProposals />
-      </main>
-    </>
+        <p className="mt-1 text-fg2 text-xs">
+          Hub proposals on Base and their satellite execute-only legs.
+        </p>
+      </div>
+      <CrossChainProposals />
+    </DashboardLayout>
   )
 }

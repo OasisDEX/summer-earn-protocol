@@ -413,14 +413,14 @@ export const CrossChainProposals: React.FC = () => {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
         <div className="animate-pulse flex flex-col items-center space-y-4">
-          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-8 w-32 bg-surface3 rounded"></div>
+          <div className="h-4 w-24 bg-surface3 rounded"></div>
         </div>
       </div>
     )
   if (error)
     return (
-      <div className="text-red-500 dark:text-red-400 p-6 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
+      <div className="text-crit p-4 border border-crit/30 rounded-xl bg-crit-bg">
         <div className="flex items-center space-x-2">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -436,40 +436,33 @@ export const CrossChainProposals: React.FC = () => {
     )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Cross-Chain Proposals
-        </h2>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          Total Proposals: {filteredProposals.length}
-        </div>
+        <div className="text-xs text-fg3 font-mono">{filteredProposals.length} proposals</div>
       </div>
 
       <div className="space-y-4">
         <ProposalFilter selectedStatuses={selectedStatuses} onStatusChange={setSelectedStatuses} />
 
         {isConnected && votingPower !== undefined && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="border border-line rounded-xl bg-console-surface p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-                Your Voting Power
-              </h3>
-              <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+              <h3 className="text-sm font-semibold text-fg">Your Voting Power</h3>
+              <span className="font-mono text-xl font-medium text-fg">
                 {(Number(votingPower) / 1e18).toLocaleString(undefined, {
                   maximumFractionDigits: 2,
                 })}{' '}
                 SUMR
               </span>
             </div>
-            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-xs text-fg3 mt-1">
               This is your current voting power including decay adjustments
             </p>
           </div>
         )}
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-3">
         {filteredProposals.map(({ baseProposal, crossChainProposals }) => {
           const baseStatus = baseProposal.status.toUpperCase()
           const currentTimestamp = Math.floor(Date.now() / 1000)
@@ -489,33 +482,31 @@ export const CrossChainProposals: React.FC = () => {
           return (
             <div
               key={baseProposal.id}
-              className="group border border-gray-200 dark:border-gray-700 rounded-xl p-6 space-y-4 bg-white dark:bg-gray-800 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out"
+              className="border border-line rounded-xl p-4 space-y-3.5 bg-console-surface"
             >
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Proposal #{baseProposal.id}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h3 className="text-base font-semibold text-fg">Proposal #{baseProposal.id}</h3>
+                    <p className="text-xs text-fg3">
                       Created on{' '}
                       {new Date(Number(baseProposal.createdAt) * 1000).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
                         effectiveStatus === 'EXECUTED'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                          ? 'bg-ok-bg text-ok'
                           : effectiveStatus === 'SUCCEEDED'
-                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300'
+                            ? 'bg-ok-bg text-ok'
                             : isBaseReady
-                              ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
+                              ? 'bg-warn-bg text-warn'
                               : isBaseQueued
-                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                ? 'bg-warn-bg text-warn'
                                 : effectiveStatus === 'ACTIVE'
-                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                                  ? 'bg-info-bg text-info'
+                                  : 'bg-surface3 text-fg3'
                       }`}
                     >
                       {isBaseReady ? 'Ready' : effectiveStatus}
@@ -524,10 +515,10 @@ export const CrossChainProposals: React.FC = () => {
                       <button
                         onClick={() => handleQueueBaseProposal(baseProposal)}
                         disabled={executingProposals.has(baseProposal.id) || isPending}
-                        className={`px-4 py-1.5 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
+                        className={`h-[30px] px-3 text-white text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 ${
                           executingProposals.has(baseProposal.id) || isPending
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700'
+                            ? 'bg-surface3 text-fg3 cursor-not-allowed'
+                            : 'bg-brand-pink hover:brightness-110'
                         }`}
                       >
                         {executingProposals.has(baseProposal.id) || isPending ? (
@@ -575,12 +566,12 @@ export const CrossChainProposals: React.FC = () => {
                           isPending ||
                           (!isBaseReady && isBaseQueued)
                         }
-                        className={`px-4 py-1.5 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
+                        className={`h-[30px] px-3 text-white text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 ${
                           executingProposals.has(baseProposal.id) ||
                           isPending ||
                           (!isBaseReady && isBaseQueued)
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700'
+                            ? 'bg-surface3 text-fg3 cursor-not-allowed'
+                            : 'bg-brand-pink hover:brightness-110'
                         }`}
                       >
                         {executingProposals.has(baseProposal.id) || isPending ? (
@@ -624,18 +615,18 @@ export const CrossChainProposals: React.FC = () => {
                 </div>
 
                 {/* Timing Information */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="border border-line rounded-xl bg-console-surface p-4">
                   <PhaseIndicator timing={timing} variant="default" />
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-fg2 text-sm leading-relaxed bg-surface2 p-3 rounded-lg border border-line">
                   {baseProposal.description.slice(0, 100)}
                   {baseProposal.description.length > 100 && '...'}
                 </p>
                 <div className="flex flex-wrap gap-3 text-sm">
-                  <span className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center space-x-2">
+                  <span className="px-3 py-1.5 bg-surface2 border border-line rounded-full flex items-center space-x-2">
                     <svg
-                      className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                      className="w-4 h-4 text-fg3"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -647,16 +638,16 @@ export const CrossChainProposals: React.FC = () => {
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-fg2">
                       ETA:{' '}
                       {baseProposal.eta === '0'
                         ? 'Not queued'
                         : new Date(Number(baseProposal.eta) * 1000).toLocaleString()}
                     </span>
                   </span>
-                  <span className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center space-x-2">
+                  <span className="px-3 py-1.5 bg-surface2 border border-line rounded-full flex items-center space-x-2">
                     <svg
-                      className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                      className="w-4 h-4 text-fg3"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -668,14 +659,12 @@ export const CrossChainProposals: React.FC = () => {
                         d="M13 10V3L4 14h7v7l9-11h-7z"
                       />
                     </svg>
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Chains: {baseProposal.chains.join(', ')}
-                    </span>
+                    <span className="text-fg2">Chains: {baseProposal.chains.join(', ')}</span>
                   </span>
                   {baseStatus === 'PENDING' &&
                     effectiveStatus === 'PENDING' &&
                     timing.timeRemaining > 0 && (
-                      <span className="px-4 py-2 bg-amber-50 dark:bg-amber-900/30 rounded-full flex items-center space-x-2 text-amber-800 dark:text-amber-300">
+                      <span className="px-3 py-1.5 bg-warn-bg rounded-full flex items-center space-x-2 text-warn">
                         <svg
                           className="w-4 h-4"
                           fill="none"
@@ -696,7 +685,7 @@ export const CrossChainProposals: React.FC = () => {
                       </span>
                     )}
                   {baseStatus === 'PENDING' && effectiveStatus === 'ACTIVE' && (
-                    <span className="px-4 py-2 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center space-x-2 text-green-800 dark:text-green-300">
+                    <span className="px-3 py-1.5 bg-ok-bg rounded-full flex items-center space-x-2 text-ok">
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -717,48 +706,42 @@ export const CrossChainProposals: React.FC = () => {
 
                 {/* Voting Section for Active Proposals */}
                 {effectiveStatus === 'ACTIVE' && (
-                  <div className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-4">
+                  <div className="border-t border-line pt-4 mt-4">
                     <div className="space-y-4">
                       {/* Current Vote Counts */}
                       {proposalData[baseProposal.id]?.votes && (
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                            Current Votes
-                          </h4>
+                        <div className="bg-surface2 border border-line rounded-lg p-3.5">
+                          <h4 className="text-sm font-medium text-fg2 mb-3">Current Votes</h4>
                           <div className="grid grid-cols-3 gap-4">
                             <div className="text-center">
-                              <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                              <div className="font-mono text-base font-medium text-ok">
                                 {(
                                   Number(proposalData[baseProposal.id].votes.forVotes) / 1e18
                                 ).toLocaleString(undefined, {
                                   maximumFractionDigits: 0,
                                 })}
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">For</div>
+                              <div className="text-sm text-fg3">For</div>
                             </div>
                             <div className="text-center">
-                              <div className="text-lg font-bold text-red-600 dark:text-red-400">
+                              <div className="font-mono text-base font-medium text-crit">
                                 {(
                                   Number(proposalData[baseProposal.id].votes.againstVotes) / 1e18
                                 ).toLocaleString(undefined, {
                                   maximumFractionDigits: 0,
                                 })}
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                Against
-                              </div>
+                              <div className="text-sm text-fg3">Against</div>
                             </div>
                             <div className="text-center">
-                              <div className="text-lg font-bold text-gray-600 dark:text-gray-400">
+                              <div className="text-lg font-bold text-fg3">
                                 {(
                                   Number(proposalData[baseProposal.id].votes.abstainVotes) / 1e18
                                 ).toLocaleString(undefined, {
                                   maximumFractionDigits: 0,
                                 })}
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                Abstain
-                              </div>
+                              <div className="text-sm text-fg3">Abstain</div>
                             </div>
                           </div>
                         </div>
@@ -766,10 +749,10 @@ export const CrossChainProposals: React.FC = () => {
 
                       {/* User Already Voted Notice */}
                       {isConnected && proposalData[baseProposal.id]?.hasVoted === true && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="bg-ok-bg border border-ok/20 rounded-lg p-3">
                           <div className="flex items-center space-x-2">
                             <svg
-                              className="w-5 h-5 text-green-600"
+                              className="w-5 h-5 text-ok"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -781,7 +764,7 @@ export const CrossChainProposals: React.FC = () => {
                                 d="M5 13l4 4L19 7"
                               />
                             </svg>
-                            <p className="text-sm text-green-800 font-medium">
+                            <p className="text-sm text-ok font-medium">
                               You have already voted on this proposal.
                             </p>
                           </div>
@@ -794,15 +777,15 @@ export const CrossChainProposals: React.FC = () => {
                         votingPower > 0n &&
                         proposalData[baseProposal.id]?.hasVoted !== true && (
                           <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-700">Cast Your Vote</h4>
+                            <h4 className="text-sm font-medium text-fg2">Cast Your Vote</h4>
                             <div className="flex gap-3">
                               <button
                                 onClick={() => handleVote(baseProposal.id, 1 as VoteSupport)}
                                 disabled={votingProposals.has(baseProposal.id) || isPending}
-                                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
+                                className={`flex-1 h-[34px] px-3 rounded-lg text-white text-xs font-semibold transition-colors ${
                                   votingProposals.has(baseProposal.id) || isPending
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-green-600 hover:bg-green-700'
+                                    ? 'bg-surface3 text-fg3 cursor-not-allowed'
+                                    : 'bg-ok hover:brightness-110'
                                 }`}
                               >
                                 {votingProposals.has(baseProposal.id) || isPending ? (
@@ -829,10 +812,10 @@ export const CrossChainProposals: React.FC = () => {
                               <button
                                 onClick={() => handleVote(baseProposal.id, 0 as VoteSupport)}
                                 disabled={votingProposals.has(baseProposal.id) || isPending}
-                                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
+                                className={`flex-1 h-[34px] px-3 rounded-lg text-white text-xs font-semibold transition-colors ${
                                   votingProposals.has(baseProposal.id) || isPending
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-red-600 hover:bg-red-700'
+                                    ? 'bg-surface3 text-fg3 cursor-not-allowed'
+                                    : 'bg-crit hover:brightness-110'
                                 }`}
                               >
                                 {votingProposals.has(baseProposal.id) || isPending ? (
@@ -859,10 +842,10 @@ export const CrossChainProposals: React.FC = () => {
                               <button
                                 onClick={() => handleVote(baseProposal.id, 2 as VoteSupport)}
                                 disabled={votingProposals.has(baseProposal.id) || isPending}
-                                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors duration-200 ${
+                                className={`flex-1 h-[34px] px-3 rounded-lg text-white text-xs font-semibold transition-colors ${
                                   votingProposals.has(baseProposal.id) || isPending
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-gray-600 hover:bg-gray-700'
+                                    ? 'bg-surface3 text-fg3 cursor-not-allowed'
+                                    : 'bg-surface3 hover:bg-surface2 text-fg'
                                 }`}
                               >
                                 {votingProposals.has(baseProposal.id) || isPending ? (
@@ -893,9 +876,9 @@ export const CrossChainProposals: React.FC = () => {
                       {/* Show voting buttons even when data is loading, but user has wallet connected */}
                       {isConnected && votingPower === undefined && (
                         <div className="space-y-3">
-                          <h4 className="text-sm font-medium text-gray-700">Cast Your Vote</h4>
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <p className="text-sm text-blue-800">Loading voting data...</p>
+                          <h4 className="text-sm font-medium text-fg2">Cast Your Vote</h4>
+                          <div className="bg-info-bg border border-info/20 rounded-lg p-3">
+                            <p className="text-sm text-info">Loading voting data...</p>
                           </div>
                         </div>
                       )}
@@ -903,16 +886,16 @@ export const CrossChainProposals: React.FC = () => {
                       {isConnected &&
                         votingPower !== undefined &&
                         (!votingPower || votingPower === BigInt(0)) && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                            <p className="text-sm text-yellow-800">
+                          <div className="bg-warn-bg border border-warn/20 rounded-lg p-3">
+                            <p className="text-sm text-warn">
                               You need SUMR tokens and voting power to participate in governance.
                             </p>
                           </div>
                         )}
 
                       {!isConnected && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <p className="text-sm text-blue-800">
+                        <div className="bg-info-bg border border-info/20 rounded-lg p-3">
+                          <p className="text-sm text-info">
                             Connect your wallet to participate in governance voting.
                           </p>
                         </div>
@@ -922,56 +905,50 @@ export const CrossChainProposals: React.FC = () => {
                 )}
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <div className="space-y-3 pt-4 border-t border-line">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                    Cross-Chain Proposals
-                  </h4>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {crossChainProposals.length} proposals
-                  </span>
+                  <h4 className="text-lg font-medium text-fg2">Cross-Chain Proposals</h4>
+                  <span className="text-xs text-fg3">{crossChainProposals.length} proposals</span>
                 </div>
                 {crossChainProposals.length === 0 ? (
-                  <div className="text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="text-fg3 italic bg-surface3 p-4 rounded-lg">
                     <p className="text-center mb-3">No cross-chain proposals found</p>
                     {baseProposal.chains && baseProposal.chains.length > 1 ? (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <p className="text-sm font-medium text-fg2">
                           This proposal will affect chains:
                         </p>
                         <div className="flex flex-wrap gap-2 justify-center">
                           {baseProposal.chains.map((chain) => (
                             <span
                               key={chain}
-                              className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium"
+                              className="px-2.5 py-0.5 bg-info-bg text-info rounded-full text-xs font-medium"
                             >
                               {chain.charAt(0).toUpperCase() + chain.slice(1)}
                             </span>
                           ))}
                         </div>
                         {baseProposal.targets && baseProposal.targets.length > 0 && (
-                          <div className="mt-3 pt-2 border-t border-gray-200">
-                            <p className="text-xs font-medium text-gray-700 mb-1">
-                              Target contracts:
-                            </p>
+                          <div className="mt-3 pt-2 border-t border-line">
+                            <p className="text-xs font-medium text-fg2 mb-1">Target contracts:</p>
                             <div className="space-y-1">
                               {baseProposal.targets.slice(0, 3).map((target, index) => (
                                 <div
                                   key={index}
-                                  className="text-xs text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded"
+                                  className="text-xs text-fg2 font-mono bg-surface3 px-2 py-1 rounded"
                                 >
                                   {target}
                                 </div>
                               ))}
                               {baseProposal.targets.length > 3 && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-fg3">
                                   ... and {baseProposal.targets.length - 3} more contracts
                                 </p>
                               )}
                             </div>
                           </div>
                         )}
-                        <p className="text-xs text-gray-600 mt-2 text-center">
+                        <p className="text-xs text-fg2 mt-2 text-center">
                           Cross-chain proposals will be created after execution
                         </p>
                       </div>
@@ -997,11 +974,11 @@ export const CrossChainProposals: React.FC = () => {
                       return (
                         <div
                           key={ccp.id}
-                          className="border-l-4 border-blue-500 pl-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-r-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200"
+                          className="border border-line pl-3.5 py-3 bg-surface2 rounded-lg"
                         >
                           <div className="flex flex-wrap gap-3 items-center justify-between">
                             <div className="flex flex-wrap gap-3 items-center">
-                              <span className="font-medium text-blue-900 dark:text-blue-100 flex items-center space-x-2">
+                              <span className="font-medium text-fg flex items-center space-x-2 text-sm">
                                 <svg
                                   className="w-4 h-4"
                                   fill="none"
@@ -1020,14 +997,14 @@ export const CrossChainProposals: React.FC = () => {
                               <span
                                 className={`px-3 py-1 rounded-full text-sm ${
                                   ccpStatus === 'Executed'
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                    ? 'bg-ok-bg text-ok'
                                     : ccpStatus === 'Ready'
-                                      ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
+                                      ? 'bg-warn-bg text-warn'
                                       : ccpStatus === 'Queued'
-                                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                        ? 'bg-warn-bg text-warn'
                                         : ccpStatus === 'Pending'
-                                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                                          ? 'bg-info-bg text-info'
+                                          : 'bg-surface3 text-fg3'
                                 }`}
                               >
                                 {ccpStatus}
@@ -1035,12 +1012,12 @@ export const CrossChainProposals: React.FC = () => {
                               {eta > 0 && (
                                 <div className="flex items-center space-x-2 text-sm">
                                   {ccpStatus === 'Queued' ? (
-                                    <span className="text-yellow-700 dark:text-yellow-300">
+                                    <span className="text-warn">
                                       Ready in: {Math.floor(timeUntilReady / 3600)}h{' '}
                                       {Math.floor((timeUntilReady % 3600) / 60)}m
                                     </span>
                                   ) : ccpStatus === 'Ready' ? (
-                                    <span className="text-orange-700 dark:text-orange-300">
+                                    <span className="text-warn">
                                       Ready since: {new Date(eta * 1000).toLocaleString()}
                                     </span>
                                   ) : null}
@@ -1051,10 +1028,10 @@ export const CrossChainProposals: React.FC = () => {
                               <button
                                 onClick={() => handleExecuteProposal(ccp)}
                                 disabled={executingProposals.has(ccp.id) || isPending}
-                                className={`px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
+                                className={`h-[30px] px-3 text-white text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 ${
                                   executingProposals.has(ccp.id) || isPending
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-blue-600 hover:bg-blue-700'
+                                    ? 'bg-surface3 text-fg3 cursor-not-allowed'
+                                    : 'bg-brand-pink hover:brightness-110'
                                 }`}
                               >
                                 {executingProposals.has(ccp.id) || isPending ? (
@@ -1096,14 +1073,10 @@ export const CrossChainProposals: React.FC = () => {
                             )}
                           </div>
                           <div className="mt-2 space-y-1">
-                            <p className="text-sm text-blue-700 dark:text-blue-300 font-mono">
-                              ID: {ccp.id}
-                            </p>
-                            <p className="text-sm text-blue-700 dark:text-blue-300 font-mono">
-                              Salt: {ccp.salt}
-                            </p>
+                            <p className="text-xs text-fg3 font-mono">ID: {ccp.id}</p>
+                            <p className="text-xs text-fg3 font-mono">Salt: {ccp.salt}</p>
                             {eta > 0 && (
-                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                              <p className="text-xs text-fg3">
                                 ETA: {new Date(eta * 1000).toLocaleString()}
                               </p>
                             )}

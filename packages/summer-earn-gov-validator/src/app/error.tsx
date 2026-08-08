@@ -19,15 +19,15 @@ export default function Error({
   return (
     <DashboardLayout>
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-        <div className="glass-panel p-8 rounded-2xl max-w-md">
-          <span className="material-symbols-outlined text-6xl text-error mb-4">error</span>
-          <h2 className="text-2xl font-bold text-on-surface mb-2">Something went wrong</h2>
-          <p className="text-on-surface-variant mb-6">
-            {error.message || 'An unexpected error occurred'}
-          </p>
+        <div className="border border-line rounded-xl bg-console-surface p-8 max-w-md w-full">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-crit-bg flex items-center justify-center text-crit text-2xl font-bold">
+            !
+          </div>
+          <h2 className="text-lg font-semibold text-fg mb-2">Something went wrong</h2>
+          <p className="text-fg2 text-sm mb-6">{error.message || 'An unexpected error occurred'}</p>
           <button
             onClick={() => reset()}
-            className="px-6 py-3 bg-primary text-on-primary rounded-lg font-semibold hover:brightness-110 active:scale-95 transition-all"
+            className="h-[34px] px-5 bg-brand-gradient text-white rounded-full text-xs font-semibold hover:brightness-110 active:scale-95 transition-all"
           >
             Try again
           </button>

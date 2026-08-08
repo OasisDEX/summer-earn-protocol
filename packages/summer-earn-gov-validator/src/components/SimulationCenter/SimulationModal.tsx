@@ -28,61 +28,53 @@ export function SimulationModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-6xl max-h-[90vh] overflow-hidden bg-surface-container-lowest border border-outline-variant shadow-2xl rounded-3xl animate-in zoom-in-95 fade-in duration-300 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-outline-variant">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Play className="text-primary" size={20} fill="currentColor" />
+      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden bg-console-surface border border-line rounded-xl shadow-2xl flex flex-col">
+        <div className="flex items-center justify-between p-4.5 border-b border-line">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-pink-bg flex items-center justify-center text-brand-pink">
+              <Play size={16} fill="currentColor" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Simulation Center</h2>
-              <p className="text-xs text-on-surface-variant font-medium">
+              <h2 className="text-base font-semibold text-fg">Simulation Center</h2>
+              <p className="text-xs text-fg2">
                 Verify multi-chain proposal execution before voting
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-surface-container-high rounded-full transition-colors"
+            className="p-1.5 hover:bg-surface3 rounded-lg text-fg2 hover:text-fg transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-6">
           <SimulationCenter results={results} targetChainIds={targetChainIds} />
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-outline-variant flex justify-end gap-3 bg-surface-container-low">
+        <div className="p-4.5 border-t border-line flex justify-end gap-2.5 bg-surface2">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-surface-container-high transition-colors"
+            className="h-[34px] px-4 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-colors"
           >
             Close
           </button>
           <button
             onClick={onSimulate}
             disabled={isSimulating}
-            className="px-8 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+            className="h-[34px] px-5 bg-brand-gradient text-white rounded-full text-xs font-semibold hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
           >
             {isSimulating ? (
               <>
-                <span className="w-4 h-4 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin" />
+                <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 Simulating...
               </>
             ) : (
               <>
-                <Play size={16} fill="currentColor" />
+                <Play size={14} fill="currentColor" />
                 Run Simulation
               </>
             )}
