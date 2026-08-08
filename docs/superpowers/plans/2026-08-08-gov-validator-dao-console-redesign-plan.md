@@ -1,25 +1,25 @@
-# DAO Console Redesign Implementation Plan (Revision 5)
+# DAO Console Redesign Implementation Plan (Revision 6)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Apply the new Summer DAO Console design system (`.resources/design/Summer DAO Console.dc.html` & `Summer Design System.dc.html`) across all views and components in `@summerfi/summer-earn-gov-validator`.
 
-**Architecture:** Define `:root` dark mode defaults and `[data-theme="light"]` overrides in `globals.scss`. Map CSS variables into `tailwind.config.js` while aliasing all 48 legacy semantic color keys with accessible contrast pairings, exposing `*Bg` tint utilities (`ok-bg`, `warn-bg`, `crit-bg`, `pink-bg`, `info-bg`, `tint`, `pink-hi`), preserving `borderRadius`, `animation`, `keyframes`, `boxShadow`, and built-in Tailwind `pink` color scales. Load Google Fonts (`Inter`, `JetBrains Mono`) and SSR theme initialization in `layout.tsx` while preserving openGraph/twitter metadata. Update navigation shell, proposal lists, proposal details (including v1 routes & `SimulateProposalButton.tsx`), treasury, delegates, create proposal page (`src/app/create-proposal/page.tsx`), cross-chain proposals (`CrossChainProposals.tsx`, `src/app/cross-chain/page.tsx`), simulation components (`SimCard.tsx`, `SimulationModal.tsx`), AppKit providers, and loading/error states.
+**Architecture:** Define `:root` dark mode defaults, theme-scoped `--onPrimary`/`--onError`/`--onSecondary`/`--onTertiary` variables, and `[data-theme="light"]` overrides in `globals.scss`. Map CSS variables into `tailwind.config.js` while aliasing all 48 legacy semantic color keys, exposing `*Bg` tint utilities (`ok-bg`, `warn-bg`, `crit-bg`, `pink-bg`, `info-bg`, `tint`, `pink-hi`), preserving `borderRadius`, `animation`, `keyframes`, `boxShadow`, and built-in Tailwind `pink` color scales. Load Google Fonts (`Inter`, `JetBrains Mono`) and SSR theme hydration in `layout.tsx` while preserving openGraph/twitter metadata. Update navigation shell, proposal lists, proposal details (including v1 routes & `SimulateProposalButton.tsx`), treasury, delegates, create proposal page (`src/app/create-proposal/page.tsx`), cross-chain proposals (`CrossChainProposals.tsx`, `src/app/cross-chain/page.tsx`), simulation components (`SimCard.tsx`, `SimulationModal.tsx`), AppKit providers, and loading/error states.
 
 **Tech Stack:** Next.js (App Router), Tailwind CSS, SCSS, Inter & JetBrains Mono Google Fonts, React, TypeScript, Viem/Wagmi, Reown AppKit.
 
 ---
 
-### Task 1: Accessible Color Tokens, Background Tint Utilities & Layout Hydration
+### Task 1: Accessible Theme-Scoped Foreground Tokens, Background Tint Utilities & Layout Hydration
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/styles/globals.scss`
 - Modify: `packages/summer-earn-gov-validator/tailwind.config.js`
 - Modify: `packages/summer-earn-gov-validator/src/app/layout.tsx`
 
-- [ ] **Step 1: Update globals.scss with CSS color variables (no duplicate font-mono)**
+- [ ] **Step 1: Update globals.scss with theme-scoped CSS variables (no duplicate font-mono)**
 
-Edit `packages/summer-earn-gov-validator/src/styles/globals.scss` to define `:root` dark variables and `[data-theme="light"]` overrides. (Font loads are handled via `<link>` in `layout.tsx` to prevent PostCSS `@import` ordering warnings, and `font-mono` is managed by Tailwind):
+Edit `packages/summer-earn-gov-validator/src/styles/globals.scss` to define `:root` dark variables (including `--onPrimary: #600037`, `--onError: #490013`, `--onSecondary: #2F0060`, `--onTertiary: #110F82`) and `[data-theme="light"]` overrides (including `--onPrimary: #FFFFFF`, `--onError: #FFFFFF`, `--onSecondary: #FFFFFF`, `--onTertiary: #FFFFFF` for >5.5:1 contrast):
 
 ```scss
 @tailwind base;
@@ -54,6 +54,11 @@ Edit `packages/summer-earn-gov-validator/src/styles/globals.scss` to define `:ro
   --pinkBg: rgba(255, 73, 164, 0.13);
   --infoBg: rgba(92, 130, 255, 0.15);
   --tint: rgba(255, 255, 255, 0.045);
+
+  --onPrimary: #600037;
+  --onError: #490013;
+  --onSecondary: #2F0060;
+  --onTertiary: #110F82;
 }
 
 [data-theme="light"] {
@@ -84,6 +89,11 @@ Edit `packages/summer-earn-gov-validator/src/styles/globals.scss` to define `:ro
   --pinkBg: rgba(214, 21, 127, 0.09);
   --infoBg: rgba(42, 78, 214, 0.1);
   --tint: rgba(17, 15, 16, 0.035);
+
+  --onPrimary: #FFFFFF;
+  --onError: #FFFFFF;
+  --onSecondary: #FFFFFF;
+  --onTertiary: #FFFFFF;
 }
 
 * {
@@ -102,9 +112,9 @@ body {
 }
 ```
 
-- [ ] **Step 2: Update tailwind.config.js with tint utilities, paired contrast colors and config extensions**
+- [ ] **Step 2: Update tailwind.config.js with tint utilities, theme-scoped contrast tokens and config extensions**
 
-Update `packages/summer-earn-gov-validator/tailwind.config.js` to expose `*Bg` tint utilities (`ok-bg`, `warn-bg`, `crit-bg`, `pink-bg`, `info-bg`, `tint`, `pink-hi`), map legacy `on-*` keys to contrast-paired values, map `surface` & `background` to `var(--bg)`, add `console-surface`, preserve built-in `pink-*` scales (`brand-pink`, `brand-violet`), and keep `borderRadius`, `animation`, `keyframes`, and `boxShadow`:
+Update `packages/summer-earn-gov-validator/tailwind.config.js` to expose `*Bg` tint utilities (`ok-bg`, `warn-bg`, `crit-bg`, `pink-bg`, `info-bg`, `tint`, `pink-hi`), map `on-primary`, `on-error`, `on-secondary`, `on-tertiary` to CSS variables (`var(--onPrimary)`, `var(--onError)`, `var(--onSecondary)`, `var(--onTertiary)`), map `surface` & `background` to `var(--bg)`, add `console-surface`, preserve built-in `pink-*` scales (`brand-pink`, `brand-violet`), and keep `borderRadius`, `animation`, `keyframes`, and `boxShadow`:
 
 ```js
 /** @type {import('tailwindcss').Config} */
@@ -132,7 +142,6 @@ module.exports = {
         fg2: 'var(--fg2)',
         fg3: 'var(--fg3)',
         'brand-pink': 'var(--pink)',
-        'brand-pink-hi': 'var(--pinkHi)',
         'brand-violet': 'var(--violet)',
         ok: 'var(--ok)',
         warn: 'var(--warn)',
@@ -146,9 +155,9 @@ module.exports = {
         tint: 'var(--tint)',
         'pink-hi': 'var(--pinkHi)',
 
-        // Complete 48-Key Legacy Semantic Aliases (Contrast Paired)
+        // Complete 48-Key Legacy Semantic Aliases (Theme-Scoped Contrast Tokens)
         'surface-container': 'var(--surface)',
-        'on-tertiary-fixed-variant': '#272993',
+        'on-tertiary-fixed-variant': 'var(--violet)',
         'surface-tint': 'var(--pink)',
         'tertiary-container': 'var(--surface2)',
         'surface-container-lowest': 'var(--bg)',
@@ -157,11 +166,11 @@ module.exports = {
         background: 'var(--bg)',
         'surface-dim': 'var(--bg)',
         'on-surface-variant': 'var(--fg2)',
-        'on-error-container': '#ffb2b9',
+        'on-error-container': 'var(--onError)',
         'primary-fixed-dim': 'var(--pinkHi)',
         primary: 'var(--pink)',
         'surface-container-high': 'var(--surface2)',
-        'on-tertiary-container': '#e8d0ff',
+        'on-tertiary-container': 'var(--fg2)',
         secondary: 'var(--violet)',
         'primary-fixed': 'var(--pink)',
         'on-surface': 'var(--fg)',
@@ -172,29 +181,29 @@ module.exports = {
         error: 'var(--crit)',
         success: 'var(--ok)',
         warning: 'var(--warn)',
-        'on-primary-container': '#4b002a',
-        'on-primary-fixed-variant': '#5c0034',
+        'on-primary-container': 'var(--onPrimary)',
+        'on-primary-fixed-variant': 'var(--fg2)',
         'surface-bright': 'var(--surface2)',
         'surface-container-low': 'var(--bg)',
-        'on-secondary-fixed': '#4a0090',
+        'on-secondary-fixed': 'var(--onSecondary)',
         'inverse-primary': 'var(--pink)',
-        'on-secondary': '#2f0060',
+        'on-secondary': 'var(--onSecondary)',
         'on-background': 'var(--fg)',
         'surface-container-highest': 'var(--surface3)',
         'surface-variant': 'var(--surface2)',
         'secondary-fixed-dim': 'var(--violet)',
         tertiary: 'var(--violet)',
-        'on-tertiary-fixed': '#030062',
+        'on-tertiary-fixed': 'var(--onTertiary)',
         'secondary-fixed': 'var(--violet)',
         'tertiary-fixed-dim': 'var(--violet)',
         'secondary-container': 'var(--surface2)',
-        'on-error': '#490013',
-        'on-secondary-container': '#ebd8ff',
+        'on-error': 'var(--onError)',
+        'on-secondary-container': 'var(--fg2)',
         'outline-variant': 'var(--line)',
-        'on-secondary-fixed-variant': '#6f08d0',
-        'on-primary': '#600037',
+        'on-secondary-fixed-variant': 'var(--fg2)',
+        'on-primary': 'var(--onPrimary)',
         'primary-container': 'var(--pinkBg)',
-        'on-tertiary': '#110f82',
+        'on-tertiary': 'var(--onTertiary)',
 
         // Chain Colors (Synced to Nocturne)
         'chain-base': '#0052FF',
@@ -315,7 +324,7 @@ Expected: BUILD SUCCESS
 
 ```bash
 git add packages/summer-earn-gov-validator/src/styles/globals.scss packages/summer-earn-gov-validator/tailwind.config.js packages/summer-earn-gov-validator/src/app/layout.tsx
-git commit -m "style(gov-validator): add background tint utilities, contrast-paired tokens, and layout hydration"
+git commit -m "style(gov-validator): add background tint utilities, theme-scoped on-* tokens, and layout hydration"
 ```
 
 ---
@@ -481,7 +490,7 @@ git commit -m "feat(gov-validator): redesign Delegates view with search, stats, 
 
 ---
 
-### Task 7: Create Proposal Page, Simulation Cards, Cross-Chain & App Feedback States
+### Task 7: Create Proposal Page, Simulation Cards, Cross-Chain & Dual-Theme Verification
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/app/create-proposal/page.tsx`
@@ -505,7 +514,7 @@ Restyle `SimCard.tsx` cards (*Idle*, *Not run yet*, *Done* with gas numbers in `
 
 Restyle `loading.tsx` spinner and `error.tsx` error boundaries with `var(--surface)` panels and `var(--pink)` brand accenting.
 
-- [ ] **Step 4: Run full package build, lint & dual-theme verification**
+- [ ] **Step 4: Run full package build & lint verification**
 
 Run: `pnpm --filter @summerfi/summer-earn-gov-validator build && pnpm --filter @summerfi/summer-earn-gov-validator lint`  
 Expected: PASS (Zero build or lint errors across dark and light themes)
