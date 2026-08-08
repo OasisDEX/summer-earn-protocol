@@ -1,21 +1,21 @@
 # Design Specification: DAO Console Redesign for Summer Earn Gov Validator
 
 **Date:** 2026-08-08  
-**Status:** Approved  
-**Target Package:** `packages/summer-earn-gov-validator`  
+**Status:** Revision 2 (Feedback Applied)  
+**Target Package:** `@summerfi/summer-earn-gov-validator`  
 **Reference Design:** `.resources/design/Summer DAO Console.dc.html`, `Summer Design System.dc.html`
 
 ---
 
 ## 1. Executive Summary & Goals
 
-This specification details the end-to-end design transformation of the `summer-earn-gov-validator` Next.js application to adopt the new **Summer DAO Console** design system from `.resources/design/`. 
+This specification details the end-to-end design transformation of the `@summerfi/summer-earn-gov-validator` Next.js application to adopt the **Summer DAO Console** design system from `.resources/design/`. 
 
 The redesign introduces:
 - A standardized CSS variable token scale supporting both Dark Mode (default) and Light Mode.
 - Monospaced numeric and data formatting (`JetBrains Mono`) for hex addresses, timestamps, proposal IDs, percentages, and vote metrics.
-- Refactored sticky top navigation header and sub-navigation tabs.
-- Completely updated components across all application views: Proposals, Proposal Details, Treasury, Delegates, Create Proposal, and Cross-Chain Simulation Center.
+- Refactored header (`Header.tsx`, `TopNavBar.tsx`), navigation rail (`SideNavBar.tsx`), mobile navigation (`BottomNavBar.tsx`), and sub-navigation tabs across all v1 and current routes.
+- Completely updated components across all application views: Proposals (v1 & current), Proposal Details (v1 & current), Treasury, Delegates, Create Proposal, and Simulation components.
 
 ---
 
@@ -23,7 +23,10 @@ The redesign introduces:
 
 ### 2.1 CSS Color Variables & Design Ramp (`src/styles/globals.scss`)
 
-The `:root` element will define dark mode tokens by default, and `[data-theme="light"]` will override color variables for light mode.
+The `:root` element defines dark mode tokens by default, and `[data-theme="light"]` overrides color variables for light mode.
+
+> [!NOTE]
+> The light palette below is derived for matched contrast and requires brand sign-off prior to production deployment.
 
 ```scss
 :root {
@@ -89,58 +92,75 @@ The `:root` element will define dark mode tokens by default, and `[data-theme="l
 
 ### 2.2 Typography Scale
 - **Prose & Body:** `Inter, system-ui, sans-serif`
-- **Data & Numbers:** `'JetBrains Mono', monospace` (loaded via Google Fonts) for hashes, addresses, SIP tags, date/timestamps, voting power values, and gas numbers.
+- **Data & Numbers:** `'JetBrains Mono', monospace` (loaded via Google Fonts) for hex hashes, addresses, SIP tags, timestamps, voting power metrics, percentages, and gas numbers.
 
 ---
 
-## 3. Layout Shell & Navigation
+## 3. Layout Shell & Navigation Components
 
-### 3.1 Header & Top Sub-Nav (`src/components/Header.tsx`, `TopNavBar.tsx`)
-- **Sticky Header:** Positioned at `top: 0`, `z-index: 20` with `var(--surface)` background and `var(--line)` bottom border.
-- **Header Elements:**
+### 3.1 Sticky Header & Navigation Bars
+- **Sticky Header (`Header.tsx`, `TopNavBar.tsx`):**
+  - Positioned at `top: 0`, `z-index: 20` with `var(--surface)` background and `var(--line)` bottom border.
   - Brand identity: 26px gradient dot + "Lazy Summer DAO" title (`font-weight: 600`).
-  - Actions: Theme toggle (`☀️`/`🌙`), "New proposal" shortcut, and "Connect wallet" pill button with brand gradient.
-- **Top Sub-Nav Tabs:**
-  - Clean horizontal tab bar for routing: `Proposals`, `Treasury`, `Delegates`, `Create proposal`, `Cross-chain`.
-  - Active tab indicated by `border-bottom: 2px solid var(--pink)` and `--fg` color.
+  - Actions: Dark/Light Theme toggle (`DarkModeToggle.tsx`), "New proposal" shortcut button, and "Connect wallet" pill button (`ConnectButton.tsx`).
+- **Sub-Nav Tabs:**
+  - Active tabs: `Proposals`, `Treasury`, `Delegates`, `Create proposal`. (The `/cross-chain` standalone view is removed from tab nav).
+  - Active tab indicated by `border-bottom: 2px solid var(--pink)` and `--fg` text.
+- **Side Nav Rail (`SideNavBar.tsx`):**
+  - Desktop sidebar updated to share `var(--surface)` background, `var(--line)` borders, and active pink accent states.
+- **Mobile Bottom Nav (`BottomNavBar.tsx`):**
+  - Fixed bottom bar using `var(--surface)` with `backdrop-filter: blur(16px)`, `border-top: 1px solid var(--line)`, and `pb-safe` spacing for mobile viewports.
 
 ---
 
 ## 4. Detailed Component Specifications by View
 
-### 4.1 Proposals View (`src/app/proposals`, `ProposalsList.tsx`, `ProposalFilter.tsx`)
-- **Page Title:** `Proposals` (26px, weight 600, tracking -0.03em) + sub-description.
-- **Status Filter Bar:** Pill buttons (`All`, `Active`, `Pending`, `Succeeded`, `Executed`, `Queued`, `Defeated`, `Canceled`) using semantic background/text variables.
-- **Network Dropdown:** Network selector for Base, Mainnet, Arbitrum, Sonic, Hyperliquid.
+### 4.1 Proposals View (`src/app/proposals`, `src/app/proposals/v1`, `ProposalsList.tsx`, `ProposalList.tsx`, `ProposalFilter.tsx`)
+- **Page Header:** `Proposals` (26px, weight 600) + subtitle *"Proposals are created and voted on Base. Satellite chains are execute-only."*
+- **Status Filter Pills (`ProposalFilter.tsx`):**
+  - Options: `All`, `Pending`, `Active`, `Executed`, `Executed on Hub`, `Queued`, `Defeated`, `Canceled`.
+  - Styled as 30px pill buttons (`border-radius: 99px`) using semantic color backgrounds (`var(--okBg)`, `var(--warnBg)`, `var(--critBg)`, etc.).
+- **Network Dropdown:**
+  - Options: `All Networks`, `Ethereum`, `Base`, `Arbitrum`, `Sonic`, `Hyperliquid`.
+  - Monospaced select box styled with `var(--field)` background and `var(--line2)` border.
 - **Proposal Cards:**
-  - Header: Monospaced SIP tag (`SIP4.3`), status badge (`Active`/`Pending`/`Executed`), network badge, and relative date.
-  - Body: 2-column layout. Left: Title, summary paragraph, "View details" button. Right: Quorum meter bar + For/Against/Abstain breakdown bars with monospaced percentages.
+  - Header: Monospaced SIP tag (`SIP4.3`), status badge, network badge (`Base`, `Ethereum`), and relative date timestamp.
+  - Body: Left column has Title, summary prose, and "View details" button. Right column displays Quorum meter bar + For / Against / Abstain tally breakdown bars with monospaced percentages and total vote count.
+  - Applies to both current proposals list and `/proposals/v1` list.
 
-### 4.2 Proposal Detail View (`src/app/proposal/[id]`, `ProposalExecutionDetails.tsx`, `ProposalVotingInfo.tsx`)
-- **Main Panel:** SIP Title, badge metadata, and full rendered markdown proposal description.
-- **Phase Timeline Indicator:** Step-by-step state tracker (Pending → Active → Succeeded → Queued → Executed).
-- **Voting Action Panel:** User voting power (stSUMR) display, vote submission options, and live voting modal.
-- **Proposed Actions List:** Target contract address (`JetBrains Mono`), chain tag, decoded signature, function selector hash, parameter values table, and calldata copy action.
+### 4.2 Proposal Detail View (`src/app/proposal/[id]`, `src/app/proposal/v1/[id]`, `ProposalExecutionDetails.tsx`, `ProposalVotingInfo.tsx`, `VotingModal.tsx`, `RecentVotes.tsx`, `CountdownTimer.tsx`)
+- **Main Panel:** SIP Title, badge metadata, and full rendered markdown description.
+- **Phase Timeline Indicator (`PhaseIndicator.tsx`):** Timeline steps (Pending → Active → Succeeded → Queued → Executed) styled with console badges.
+- **Voting Panel (`ProposalVotingInfo.tsx`, `VotingModal.tsx`, `RecentVotes.tsx`):**
+  - Monospaced stSUMR voting power display, vote progress meters, recent votes list, and voting modal using updated dialog styling.
+- **Countdown Timer (`CountdownTimer.tsx`):** Monospaced countdown units (`d`, `h`, `m`, `s`) in `JetBrains Mono` with muted label text (`var(--fg3)`).
+- **Proposed Actions Breakdown (`ProposalExecutionDetails.tsx`):**
+  - Chain badge, target address (`0x...` in `JetBrains Mono`), decoded signature, selector display (showing published SIP selector string or `"Unknown, encode and verify"` without modifying selector resolution logic), parameters table, and calldata copy button.
 
 ### 4.3 Treasury View (`src/app/treasury`, `TreasuryView.tsx`, `TreasuryList.tsx`)
-- **KPI Summary Grid:** Cards for Total Treasury Value, SUMR Price, and Liquid Reserves set in 24px `JetBrains Mono`.
-- **Top Holdings Panel:** Aggregated token holdings showing token logo mark, symbol, USD value, balance, and percentage share progress bar (`var(--grad)` fill).
-- **Wallet Sections:** Grouped wallet breakdowns (*Main Treasury*, *Arcadia PoL*, *Aerodrome Multisig*, *Guardians*) with token balances and chain indicators.
+- **KPI Summary Grid:** Cards for **Total Treasury Value**, **Top Holding**, and **Wallets** set in 24px `JetBrains Mono` with 11px uppercase labels (`var(--fg3)`).
+- **Top Holdings Panel:** Header *"Top holdings, aggregated"*. Rows displaying token logo mark, symbol, USD value, balance, and percentage share progress bar (`var(--grad)` fill).
+- **Chain Filter Pills:** Option pills (`All chains`, `Mainnet`, `Base`, `Arbitrum`, `Sonic`, `Hyperliquid`) to filter wallet holdings by chain. (Note: token chain label uses `Mainnet` in line with Treasury data).
+- **Wallet Sections:** Grouped wallet breakdowns (*Main Treasury*, *Arcadia PoL*, *Aerodrome Multisig*, *Guardians*) with token balances, chain tags, and USD values.
 
 ### 4.4 Delegates View (`src/app/delegates`, `DelegatesList.tsx`)
-- **Header & Stats:** Search input + delegate stats (Total stSUMR Staked, Delegated Weight, Active Delegates).
-- **Delegate Cards Grid:** Avatar mark, Name, shortened address (`JetBrains Mono`), Rank badge (`#1`), 3-line bio, Voting Power, Delegators count, voting weight share bar, and "Delegate votes" pill action.
+- **Header & Stats:** Search input (`⌕ Search delegates`) + stats cards (**Delegates** count e.g. 42, **Largest voting power**, **Most delegators**).
+- **Delegate Cards Grid:** Avatar mark, Name, shortened address (`JetBrains Mono`), Rank badge (`#1`), 3-line bio, Voting Power, Delegators count, voting weight share bar, and "Delegate votes" button.
+- **Pagination:** "Load more delegates" / "Show all 42 delegates" button at grid bottom.
 
-### 4.5 Create Proposal & Simulation Center (`src/app/create-proposal`, `src/app/cross-chain`, `Form.tsx`, `SimulationCenter`)
-- **Header & Toolbar:** Category tag `MULTI-CHAIN GOVERNANCE`, title, Import/Export JSON buttons, Simulation trigger, Skip Simulation toggle, and Submit button.
-- **Action Builder:** Chain selector, Target address, Method selector, dynamic parameter inputs with `--pink` type tags, selector hash computation.
-- **Right Column (Simulation Center):** On-chain eligibility checks, LayerZero satellite executor gas limit inputs, and per-chain simulation status cards (*Idle*, *Pending*, *Done* with gas used in `JetBrains Mono` + execution trace trigger).
+### 4.5 Create Proposal & Simulation Center (`src/app/create-proposal`, `Form.tsx`, `SimulateProposalButton.tsx`, `SimulationCenter`)
+- **Header & Toolbar:** Category tag `MULTI-CHAIN GOVERNANCE`, title, Import/Export JSON buttons, `SimulateProposalButton.tsx` (Run simulation), Skip Simulation toggle, and Submit button.
+- **Action Builder (`Form.tsx`):** Chain selector, Target address, Method selector, dynamic parameter inputs with `--pink` type tags, pre-calculated/SIP-defined selector display, and validation blocker box.
+- **Simulation Center:** On-chain eligibility checks, LayerZero satellite executor gas limit fields, and per-chain simulation status cards (*Idle*, *Not run yet*, *Done* with gas used in `JetBrains Mono` + execution trace trigger).
 
 ---
 
-## 5. Testing & Verification Strategy
+## 5. Build & Verification Commands
 
 1. **Visual & Theme Verification:** Validate all views in both Dark and Light modes (`data-theme="light"` / `dark`) for proper color contrast and CSS variable resolution.
 2. **Monospace & Alignment Checks:** Verify that all numbers, hashes, percentages, dates, and addresses render in `JetBrains Mono`.
-3. **Responsive Testing:** Verify 2-column grid collapse on mobile screens (`@media (max-width: 760px)`).
-4. **Integration & Build Checks:** Ensure `pnpm --filter summer-earn-gov-validator build` succeeds without linting or compilation errors.
+3. **Responsive Testing:** Verify grid collapse on mobile viewports (`@media (max-width: 760px)`) and mobile bottom nav padding (`pb-safe`).
+4. **Integration & Package Build:** Execute target build command:
+   ```bash
+   pnpm --filter @summerfi/summer-earn-gov-validator build
+   ```
