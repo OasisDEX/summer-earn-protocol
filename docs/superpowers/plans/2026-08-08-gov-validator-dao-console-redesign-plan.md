@@ -1,16 +1,16 @@
-# DAO Console Redesign Implementation Plan (Revision 3)
+# DAO Console Redesign Implementation Plan (Revision 4)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Apply the new Summer DAO Console design system (`.resources/design/Summer DAO Console.dc.html` & `Summer Design System.dc.html`) across all views and components in `@summerfi/summer-earn-gov-validator`.
 
-**Architecture:** Define `:root` dark mode defaults and `[data-theme="light"]` overrides in `globals.scss`. Map CSS variables into `tailwind.config.js` while aliasing all legacy semantic color classes (`surface-container`, `on-surface-variant`, `primary`, `error`, etc.) to prevent unstyling existing components. Load Google Fonts (`Inter`, `JetBrains Mono`) and SSR theme initialization in `layout.tsx`. Update navigation, proposal lists, proposal details (including v1 routes), treasury, delegates, create proposal page (`src/app/create-proposal/page.tsx`), AppKit providers, and loading/error states.
+**Architecture:** Define `:root` dark mode defaults and `[data-theme="light"]` overrides in `globals.scss`. Map CSS variables into `tailwind.config.js` while aliasing all 48 legacy semantic color keys (`surface-container`, `on-surface-variant`, `background`, `primary`, `error`, etc.), keeping `borderRadius`, `animation`, `keyframes`, `boxShadow`, and built-in Tailwind `pink` color scales intact. Load Google Fonts (`Inter`, `JetBrains Mono`) and SSR theme initialization in `layout.tsx` while preserving openGraph/twitter metadata. Update navigation shell, proposal lists, proposal details (including v1 routes), treasury, delegates, create proposal page (`src/app/create-proposal/page.tsx`), cross-chain proposals (`CrossChainProposals.tsx`, `src/app/cross-chain/page.tsx`), simulation cards (`SimCard.tsx`, `SimulationModal.tsx`), AppKit providers, and loading/error states.
 
 **Tech Stack:** Next.js (App Router), Tailwind CSS, SCSS, Inter & JetBrains Mono Google Fonts, React, TypeScript, Viem/Wagmi, Reown AppKit.
 
 ---
 
-### Task 1: CSS Variables, Font Loading & Non-Breaking Tailwind Token Aliases
+### Task 1: Complete 48-Key Tailwind Aliases, Design System Tokens & Layout Metadata
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/styles/globals.scss`
@@ -106,9 +106,9 @@ body {
 }
 ```
 
-- [ ] **Step 2: Update tailwind.config.js preserving legacy color aliases**
+- [ ] **Step 2: Update tailwind.config.js preserving ALL 48 color keys and extensions**
 
-Update `packages/summer-earn-gov-validator/tailwind.config.js` to add new design tokens while mapping legacy semantic names (`surface-container`, `on-surface-variant`, `background`, `surface`, `primary`, `error`, `success`, `warning`, `outline-variant`) to CSS variables so existing components remain fully styled:
+Update `packages/summer-earn-gov-validator/tailwind.config.js` to add console token variables, alias all 48 existing semantic color keys, use `brand-pink` / `brand-violet` to preserve Tailwind's built-in `pink-*` scales, and preserve `borderRadius`, `animation`, `keyframes`, and `boxShadow`:
 
 ```js
 /** @type {import('tailwindcss').Config} */
@@ -123,9 +123,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Design System Variables
+        // Design System Direct Variables
         bg: 'var(--bg)',
-        surface: 'var(--surface)',
+        surface: 'var(--bg)', // Preserve page background behavior for legacy bg-surface
+        'console-surface': 'var(--surface)',
         surface2: 'var(--surface2)',
         surface3: 'var(--surface3)',
         field: 'var(--field)',
@@ -134,38 +135,65 @@ module.exports = {
         fg: 'var(--fg)',
         fg2: 'var(--fg2)',
         fg3: 'var(--fg3)',
-        pink: 'var(--pink)',
-        pinkHi: 'var(--pinkHi)',
-        violet: 'var(--violet)',
+        'brand-pink': 'var(--pink)',
+        'brand-pink-hi': 'var(--pinkHi)',
+        'brand-violet': 'var(--violet)',
         ok: 'var(--ok)',
         warn: 'var(--warn)',
         crit: 'var(--crit)',
         info: 'var(--info)',
 
-        // Legacy Semantic Aliases (Non-Breaking)
-        'surface-container': 'var(--surface2)',
-        'surface-container-high': 'var(--surface3)',
+        // Complete 48-Key Legacy Semantic Aliases (Non-Breaking)
+        'surface-container': 'var(--surface)',
+        'on-tertiary-fixed-variant': 'var(--violet)',
+        'surface-tint': 'var(--pink)',
+        'tertiary-container': 'var(--surface2)',
         'surface-container-lowest': 'var(--bg)',
-        'surface-dim': 'var(--bg)',
-        'surface-bright': 'var(--surface2)',
-        'surface-variant': 'var(--surface2)',
+        'on-primary-fixed': 'var(--fg)',
+        'error-container': 'var(--critBg)',
         background: 'var(--bg)',
-        primary: 'var(--pink)',
-        'primary-fixed': 'var(--pink)',
-        'primary-fixed-dim': 'var(--pinkHi)',
-        secondary: 'var(--violet)',
-        'on-surface': 'var(--fg)',
+        'surface-dim': 'var(--bg)',
         'on-surface-variant': 'var(--fg2)',
-        'on-background': 'var(--fg)',
+        'on-error-container': 'var(--crit)',
+        'primary-fixed-dim': 'var(--pinkHi)',
+        primary: 'var(--pink)',
+        'surface-container-high': 'var(--surface2)',
+        'on-tertiary-container': 'var(--fg2)',
+        secondary: 'var(--violet)',
+        'primary-fixed': 'var(--pink)',
+        'on-surface': 'var(--fg)',
+        'inverse-on-surface': 'var(--fg3)',
+        'tertiary-fixed': 'var(--violet)',
+        'inverse-surface': 'var(--surface3)',
         outline: 'var(--line2)',
-        'outline-variant': 'var(--line)',
         error: 'var(--crit)',
         success: 'var(--ok)',
         warning: 'var(--warn)',
-        'error-container': 'var(--critBg)',
-        'on-error-container': 'var(--crit)',
+        'on-primary-container': 'var(--fg)',
+        'on-primary-fixed-variant': 'var(--fg2)',
+        'surface-bright': 'var(--surface2)',
+        'surface-container-low': 'var(--bg)',
+        'on-secondary-fixed': 'var(--fg)',
+        'inverse-primary': 'var(--pink)',
+        'on-secondary': 'var(--fg)',
+        'on-background': 'var(--fg)',
+        'surface-container-highest': 'var(--surface3)',
+        'surface-variant': 'var(--surface2)',
+        'secondary-fixed-dim': 'var(--violet)',
+        tertiary: 'var(--violet)',
+        'on-tertiary-fixed': 'var(--fg)',
+        'secondary-fixed': 'var(--violet)',
+        'tertiary-fixed-dim': 'var(--violet)',
+        'secondary-container': 'var(--surface2)',
+        'on-error': 'var(--fg)',
+        'on-secondary-container': 'var(--fg2)',
+        'outline-variant': 'var(--line)',
+        'on-secondary-fixed-variant': 'var(--fg2)',
+        'on-primary': 'var(--fg)',
+        'primary-container': 'var(--pinkBg)',
+        'on-tertiary': 'var(--fg)',
 
-        // Chain Colors
+        // Chain Colors (Synced to Nocturne)
         'chain-base': '#0052FF',
         'chain-arbitrum': 'var(--violet)',
         'chain-mainnet': 'var(--pink)',
@@ -178,8 +206,32 @@ module.exports = {
         label: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      borderRadius: {
+        DEFAULT: '0.5rem',
+        lg: '1rem',
+        xl: '1.5rem',
+        full: '9999px',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.2s ease-out',
+        'slide-in': 'slideIn 0.2s ease-out',
+      },
       backgroundImage: {
         'brand-gradient': 'var(--grad)',
+      },
+      boxShadow: {
+        neon: '0 0 15px rgba(255, 73, 164, 0.3), 0 0 30px rgba(184, 132, 255, 0.2)',
+        'neon-strong': '0 0 20px rgba(255, 73, 164, 0.5), 0 0 40px rgba(184, 132, 255, 0.3)',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideIn: {
+          '0%': { opacity: '0', transform: 'translateY(-20px) scale(0.95)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
     },
   },
@@ -187,18 +239,44 @@ module.exports = {
 }
 ```
 
-- [ ] **Step 3: Update layout.tsx with font links & anti-flash script**
+- [ ] **Step 3: Update layout.tsx adding fonts & theme hydration while preserving metadata**
 
-Update `packages/summer-earn-gov-validator/src/app/layout.tsx` to include `Inter` & `JetBrains Mono` `<link>` elements, anti-flash inline theme script (`<script dangerouslySetInnerHTML={{ __html: "(function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){}})()" }} />`), and `data-theme="dark"` default:
+Update `packages/summer-earn-gov-validator/src/app/layout.tsx` to add font `<link>` elements and anti-flash script into `<head>` while retaining existing metadata (openGraph, twitter, title, description):
 
 ```tsx
 import type { Metadata } from 'next'
+
 import { Providers } from '../components/Providers'
+
 import '@/styles/globals.scss'
 
 export const metadata: Metadata = {
   title: 'Summer.fi DAO | Governance Validator',
-  description: 'Participate in the Lazy Summer DAO. Validate, review, and vote on governance proposals shaping the future of the Summer Earn Protocol.',
+  description:
+    'Participate in the Lazy Summer DAO. Validate, review, and vote on governance proposals shaping the future of the Summer Earn Protocol.',
+  openGraph: {
+    title: 'Summer.fi DAO | Governance Validator',
+    description:
+      'Participate in the Lazy Summer DAO. Validate, review, and vote on governance proposals shaping the future of the Summer Earn Protocol.',
+    url: 'https://vote.summer.fi',
+    siteName: 'Summer.fi DAO',
+    images: [
+      {
+        url: 'https://summer.fi/img/branding/dot-dark.svg',
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Summer.fi DAO | Governance Validator',
+    description:
+      'Participate in the Lazy Summer DAO. Validate, review, and vote on governance proposals shaping the future of the Summer Earn Protocol.',
+    creator: '@summerfinance_',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -234,7 +312,7 @@ Expected: BUILD SUCCESS
 
 ```bash
 git add packages/summer-earn-gov-validator/src/styles/globals.scss packages/summer-earn-gov-validator/tailwind.config.js packages/summer-earn-gov-validator/src/app/layout.tsx
-git commit -m "style(gov-validator): add CSS variables, non-breaking tailwind aliases, and layout font/theme hydration"
+git commit -m "style(gov-validator): add complete 48-key tailwind aliases, preserve metadata and config extensions"
 ```
 
 ---
@@ -399,11 +477,15 @@ git commit -m "feat(gov-validator): redesign Delegates view with search, stats, 
 
 ---
 
-### Task 7: Create Proposal Page, Simulation & App Feedback States
+### Task 7: Create Proposal Page, Simulation Cards, Cross-Chain & App Feedback States
 
 **Files:**
 - Modify: `packages/summer-earn-gov-validator/src/app/create-proposal/page.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/SimulationCenter/SimCard.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/components/SimulationCenter/SimulationCenter.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/SimulationCenter/SimulationModal.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/components/CrossChainProposals.tsx`
+- Modify: `packages/summer-earn-gov-validator/src/app/cross-chain/page.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/app/loading.tsx`
 - Modify: `packages/summer-earn-gov-validator/src/app/error.tsx`
 
@@ -411,18 +493,22 @@ git commit -m "feat(gov-validator): redesign Delegates view with search, stats, 
 
 Restyle title input, tabbed Markdown/Preview description editor, multi-chain action card items (Chain dropdown, Target input in `JetBrains Mono`, Method signature selector, parameter inputs with `--pink` type badges), selector hash display, validation blocker alert box, and LayerZero satellite gas limits panel in `src/app/create-proposal/page.tsx`.
 
-- [ ] **Step 2: Redesign Simulation Center & App Loading/Error states**
+- [ ] **Step 2: Redesign SimCard.tsx, SimulationModal.tsx & Cross-Chain components**
 
-Restyle `SimulationCenter.tsx` status cards (*Idle*, *Not run yet*, *Done* with gas numbers in `JetBrains Mono` and execution trace button). Restyle `loading.tsx` spinner and `error.tsx` error boundaries with `var(--surface)` panels and `var(--pink)` brand accenting.
+Restyle `SimCard.tsx` cards (*Idle*, *Not run yet*, *Done* with gas numbers in `JetBrains Mono` and execution trace button), `SimulationModal.tsx`, `CrossChainProposals.tsx`, and `/cross-chain/page.tsx` with `var(--surface)` panels and `var(--line)` borders.
 
-- [ ] **Step 3: Run full package build & lint verification**
+- [ ] **Step 3: Redesign App Loading/Error states**
+
+Restyle `loading.tsx` spinner and `error.tsx` error boundaries with `var(--surface)` panels and `var(--pink)` brand accenting.
+
+- [ ] **Step 4: Run full package build & lint verification**
 
 Run: `pnpm --filter @summerfi/summer-earn-gov-validator build && pnpm --filter @summerfi/summer-earn-gov-validator lint`  
 Expected: PASS (Zero build or lint errors)
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add packages/summer-earn-gov-validator/src/app/create-proposal/page.tsx packages/summer-earn-gov-validator/src/components/SimulationCenter/ packages/summer-earn-gov-validator/src/app/loading.tsx packages/summer-earn-gov-validator/src/app/error.tsx
-git commit -m "feat(gov-validator): redesign Create Proposal page, Simulation Center, loading and error views"
+git add packages/summer-earn-gov-validator/src/app/create-proposal/page.tsx packages/summer-earn-gov-validator/src/components/SimulationCenter/ packages/summer-earn-gov-validator/src/components/CrossChainProposals.tsx packages/summer-earn-gov-validator/src/app/cross-chain/ packages/summer-earn-gov-validator/src/app/loading.tsx packages/summer-earn-gov-validator/src/app/error.tsx
+git commit -m "feat(gov-validator): redesign Create Proposal page, Simulation Center cards, Cross-Chain views, loading and error views"
 ```
