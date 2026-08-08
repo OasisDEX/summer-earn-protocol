@@ -24,7 +24,6 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
   const actions = useMemo(() => {
     if (isTerminalState) return []
 
-    // 1. Hub chain actions (baseProposal)
     const simActions: Action[] = []
 
     fullProposal.baseProposal.targets.forEach((target, i) => {
@@ -40,7 +39,6 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
         value,
       })
 
-      // Try to decode cross-chain executions from sendProposalToTargetChain
       const decodedCrossChain = decodeCrossChainCalldata(calldata)
       if (decodedCrossChain) {
         const satelliteChain = CHAINS.find((c) => c.key === decodedCrossChain.dstEid)
@@ -59,7 +57,6 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
       }
     })
 
-    // 2. Satellite chain actions from subgraph (as fallback, ensuring no duplicates)
     fullProposal.crossChainProposals.forEach((ccp) => {
       ccp.targets.forEach((target, i) => {
         const calldata = ccp.calldatas[i]
@@ -83,7 +80,7 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
     })
 
     return simActions
-  }, [fullProposal])
+  }, [fullProposal, isTerminalState])
 
   const targetChainIds = useMemo(
     () => Array.from(new Set(actions.map((a) => a.chainId))),
@@ -101,10 +98,10 @@ export function SimulateProposalButton({ fullProposal, status }: SimulateProposa
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all active:scale-95"
+        className="h-[34px] px-3.5 rounded-lg border border-line2 bg-surface3 text-brand-pink font-semibold text-xs cursor-pointer hover:bg-surface2 transition-colors inline-flex items-center gap-2"
       >
-        <Play size={14} fill="currentColor" />
-        Simulate Transactions
+        <Play size={13} fill="currentColor" />
+        Run simulation
       </button>
 
       <SimulationModal

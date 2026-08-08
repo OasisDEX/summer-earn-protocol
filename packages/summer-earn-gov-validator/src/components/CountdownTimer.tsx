@@ -41,26 +41,26 @@ export function CountdownTimer({
     lg: 'text-base',
   }
 
-  const isUrgent = timeRemaining < 60 * 60 // Less than 1 hour
-  const isCritical = timeRemaining < 60 * 15 // Less than 15 minutes
+  const isUrgent = timeRemaining < 60 * 60
+  const isCritical = timeRemaining < 60 * 15
   const showUrgency = isTimeSensitive(timing.phase)
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       {showLabel && (
-        <span className={`${sizeClasses[size]} font-medium text-gray-600 dark:text-gray-300`}>
+        <span className={`${sizeClasses[size]} font-medium text-fg3`}>
           Time remaining:
         </span>
       )}
       <div
         className={`
-          ${sizeClasses[size]} font-mono font-bold px-2 py-1 rounded
+          ${sizeClasses[size]} font-mono font-semibold px-2 py-0.5 rounded border
           ${
             showUrgency && isCritical
-              ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
+              ? 'bg-crit-bg text-crit border-crit/30'
               : showUrgency && isUrgent
-                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
+                ? 'bg-warn-bg text-warn border-warn/30'
+                : 'bg-surface3 text-fg border-line2'
           }
         `}
       >
@@ -94,20 +94,20 @@ export function CompactCountdown({ timing, className = '' }: CompactCountdownPro
     return () => clearInterval(interval)
   }, [timing.timeRemaining])
 
-  const isUrgent = timeRemaining < 60 * 60 // Less than 1 hour
-  const isCritical = timeRemaining < 60 * 15 // Less than 15 minutes
+  const isUrgent = timeRemaining < 60 * 60
+  const isCritical = timeRemaining < 60 * 15
   const showUrgency = isTimeSensitive(timing.phase)
 
   return (
     <div
       className={`
-        inline-flex items-center px-2 py-1 rounded-full text-xs font-mono font-bold
+        inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-semibold border
         ${
           showUrgency && isCritical
-            ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
+            ? 'bg-crit-bg text-crit border-crit/30'
             : showUrgency && isUrgent
-              ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
-              : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+              ? 'bg-warn-bg text-warn border-warn/30'
+              : 'bg-pink-bg text-brand-pink border-brand-pink/30'
         }
         ${className}
       `}
