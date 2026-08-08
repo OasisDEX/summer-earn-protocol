@@ -1,65 +1,66 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { ConnectButton } from './ConnectButton'
+import { DarkModeToggle } from './DarkModeToggle'
 
 export function TopNavBar() {
   const pathname = usePathname()
 
-  const isActive = (path: string) => {
-    if (path === '/proposals') return pathname === '/proposals' || pathname === '/'
-    return pathname.startsWith(path)
+  const tabs = [
+    { label: 'Proposals', href: '/proposals' },
+    { label: 'Treasury', href: '/treasury' },
+    { label: 'Delegates', href: '/delegates' },
+    { label: 'Create proposal', href: '/create-proposal' },
+  ]
+
+  const isActive = (href: string) => {
+    if (href === '/proposals') return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
+    return pathname.startsWith(href)
   }
 
   return (
-    <nav className="sticky top-0 z-50 flex justify-between items-center w-full px-6 py-4 bg-surface-dim/60 backdrop-blur-xl border-b border-outline/20 shadow-[0_0_30px_rgba(255,73,164,0.05)] font-sans antialiased tracking-tight">
-      <div className="flex items-center gap-8">
-        <Link href="/proposals" className="flex items-center gap-3 group transition-all">
-          <div className="relative w-64 h-10 overflow-hidden rounded-xl border border-outline/20 group-hover:border-primary/40 group-hover:shadow-primary/20 transition-all bg-surface/40">
-            <Image
-              src="/images/lazy_summer_dao_logo.png"
-              alt="Lazy Summer DAO"
-              fill
-              className="object-contain p-1.5"
-            />
-          </div>
-          {/* <span className="text-2xl font-semibold tracking-tighter text-sky-300 group-hover:text-primary transition-colors hidden sm:block">
-            Glacier
-          </span> */}
+    <header className="sticky top-0 z-20 bg-console-surface border-b border-line">
+      <div className="max-w-[1240px] mx-auto px-5 py-2.5 flex items-center justify-between flex-wrap gap-4">
+        <Link href="/proposals" className="flex items-center gap-2.5 mr-auto group">
+          <div className="w-6 h-6 rounded-full bg-brand-gradient flex-shrink-0" />
+          <span className="text-[15px] font-semibold tracking-tight text-fg group-hover:text-brand-pink transition-colors">
+            Lazy Summer DAO
+          </span>
         </Link>
-        <div className="hidden md:flex gap-6">
+
+        <div className="flex items-center gap-3">
+          <DarkModeToggle />
           <Link
-            href="/proposals"
-            className={`${isActive('/proposals') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
+            href="/create-proposal"
+            className="h-8 px-3.5 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-medium hover:bg-surface2 transition-colors flex items-center whitespace-nowrap"
           >
-            Proposals
+            New proposal
           </Link>
-          <Link
-            href="/treasury"
-            className={`${isActive('/treasury') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
-          >
-            Treasury
-          </Link>
-          <Link
-            href="/delegates"
-            className={`${isActive('/delegates') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
-          >
-            Delegates
-          </Link>
-          <Link
-            href="/cross-chain"
-            className={`${isActive('/cross-chain') ? 'text-primary border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary transition-colors'}`}
-          >
-            Cross-Chain
-          </Link>
+          <ConnectButton />
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <ConnectButton />
+
+      <div className="max-w-[1240px] mx-auto px-5 flex gap-0.5 overflow-x-auto no-scrollbar">
+        {tabs.map((tab) => {
+          const active = isActive(tab.href)
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`px-3.5 py-2.5 text-xs border-b-2 transition-colors whitespace-nowrap ${
+                active
+                  ? 'border-brand-pink text-fg font-semibold'
+                  : 'border-transparent text-fg2 hover:text-fg font-normal'
+              }`}
+            >
+              {tab.label}
+            </Link>
+          )
+        })}
       </div>
-    </nav>
+    </header>
   )
 }

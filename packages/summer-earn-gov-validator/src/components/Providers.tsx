@@ -57,6 +57,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       networks: appkitNetworks,
       projectId,
       allowUnsupportedChain: true,
+      themeMode: 'dark',
+      themeVariables: {
+        '--w3m-accent': '#FF49A4',
+        '--w3m-border-radius-master': '1px',
+      },
       metadata: {
         name: 'Summer Earn Governance Validator',
         description: 'Validate governance proposals for Summer Earn Protocol',
