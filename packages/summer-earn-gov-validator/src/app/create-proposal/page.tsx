@@ -1106,9 +1106,7 @@ function CreateProposalPageContent() {
               )}
             </div>
           </div>
-        </div>
 
-        <div className="xl:col-span-7 space-y-3.5 min-w-0">
           <div className="border border-line rounded-xl bg-console-surface overflow-hidden">
             <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-line">
               <h2 className="text-[13px] font-semibold text-fg">
