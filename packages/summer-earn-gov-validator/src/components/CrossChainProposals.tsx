@@ -3,6 +3,7 @@ import { keccak256, stringToBytes } from 'viem'
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { CrossChainProposal, Proposal, ProposalWithCrossChain } from '@/types/governance'
+import { stripMarkdownForPreview } from '@/utils/text'
 import { calculateProposalTiming } from '@/utils/timing'
 
 import config from '../config/index.json'
@@ -620,8 +621,10 @@ export const CrossChainProposals: React.FC = () => {
                 </div>
 
                 <p className="text-fg2 text-sm leading-relaxed bg-surface2 p-3 rounded-lg border border-line">
-                  {baseProposal.description.slice(0, 100)}
-                  {baseProposal.description.length > 100 && '...'}
+                  {(() => {
+                    const preview = stripMarkdownForPreview(baseProposal.description)
+                    return preview.length > 160 ? `${preview.slice(0, 160)}…` : preview
+                  })()}
                 </p>
                 <div className="flex flex-wrap gap-3 text-sm">
                   <span className="px-3 py-1.5 bg-surface2 border border-line rounded-full flex items-center space-x-2">

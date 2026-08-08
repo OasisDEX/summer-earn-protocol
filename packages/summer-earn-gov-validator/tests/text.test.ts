@@ -1,4 +1,8 @@
-import { convertRawUrlsToMarkdown, extractProposalMetadata } from '@/utils/text'
+import {
+  convertRawUrlsToMarkdown,
+  extractProposalMetadata,
+  stripMarkdownForPreview,
+} from '@/utils/text'
 
 describe('convertRawUrlsToMarkdown', () => {
   it('wraps a bare URL into a markdown link', () => {
@@ -129,6 +133,43 @@ describe('extractProposalMetadata', () => {
     const result = extractProposalMetadata(desc)
     expect(result.cleanDescription).toBe(
       'Paragraph before separator.\n\n---\n\n### Section 2\n\nParagraph text.',
+    )
+  })
+})
+
+describe('stripMarkdownForPreview', () => {
+  it('returns empty string for empty input', () => {
+    expect(stripMarkdownForPreview('')).toBe('')
+  })
+
+  it('strips bold markers and list prefixes', () => {
+    expect(
+      stripMarkdownForPreview(
+        '1. Overview: Extend the period from **3 days to 7 days**, leaving delay unchanged.',
+      ),
+    ).toBe('Overview: Extend the period from 3 days to 7 days, leaving delay unchanged.')
+  })
+
+  it('drops markdown tables and keeps surrounding prose', () => {
+    const input = [
+      'Extend the voting period from **3 days to 7 days**.',
+      '',
+      '| Parameter | Current | Proposed |',
+      '| --- | --- | --- |',
+      '| Voting delay | 86400 | unchanged |',
+      '| Voting period | 3 days | 7 days |',
+      '',
+      'No other parameters change.',
+    ].join('\n')
+
+    expect(stripMarkdownForPreview(input)).toBe(
+      'Extend the voting period from 3 days to 7 days. No other parameters change.',
+    )
+  })
+
+  it('converts links to labels and removes inline code ticks', () => {
+    expect(stripMarkdownForPreview('See [docs](https://example.com) and `code`.')).toBe(
+      'See docs and code.',
     )
   })
 })

@@ -19,6 +19,52 @@ export function convertRawUrlsToMarkdown(text: string): string {
   })
 }
 
+/**
+ * Collapse proposal markdown into a single plain-text snippet for list cards.
+ * Keeps prose; drops tables, code fences, and formatting markers.
+ */
+export function stripMarkdownForPreview(markdown: string): string {
+  if (!markdown) return ''
+
+  let text = markdown
+    // Fenced code blocks
+    .replace(/```[\s\S]*?```/g, ' ')
+    // Images ![alt](src)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    // Links [label](url) → label
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    // Reference-style links [label][id] → label
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, '$1')
+    // Inline code
+    .replace(/`([^`]+)`/g, '$1')
+    // Headings
+    .replace(/^#{1,6}\s+/gm, '')
+    // Bold / italic / strikethrough
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/~~(.*?)~~/g, '$1')
+    // Blockquotes
+    .replace(/^>\s?/gm, '')
+    // Unordered / ordered list markers
+    .replace(/^[\t ]*([-*+]|\d+\.)\s+/gm, '')
+    // Horizontal rules
+    .replace(/^(-{3,}|\*{3,}|_{3,})\s*$/gm, ' ')
+
+  // Drop markdown table rows (multi-pipe lines and |---|---| separators)
+  text = text
+    .split('\n')
+    .filter((line) => {
+      const trimmed = line.trim()
+      if (!trimmed.includes('|')) return true
+      if (/^\|?[\s:-]+\|[\s|:-]*$/.test(trimmed)) return false
+      if ((trimmed.match(/\|/g) || []).length >= 2) return false
+      return true
+    })
+    .join(' ')
+
+  return text.replace(/\s+/g, ' ').trim()
+}
+
 export interface ProposalMetadata {
   title: string
   displayId: string | null

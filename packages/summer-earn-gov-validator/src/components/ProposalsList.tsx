@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 import { TransformedProposal } from '@/types/governance'
+import { stripMarkdownForPreview } from '@/utils/text'
 import { formatTimeRemaining, formatTimestamp } from '@/utils/timing'
 
 interface ProposalsListProps {
@@ -147,7 +148,7 @@ export function ProposalsList({
                     {p.title}
                   </h2>
                   <p className="m-0 text-fg2 text-xs max-w-[62ch] line-clamp-3">
-                    {p.description}
+                    {stripMarkdownForPreview(p.description)}
                   </p>
                   <div className="flex gap-2.5 flex-wrap mt-3.5 items-center">
                     <Link
