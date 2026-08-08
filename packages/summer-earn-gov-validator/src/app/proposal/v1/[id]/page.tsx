@@ -74,8 +74,20 @@ function PhaseTimeline({ status }: { status: FinalStatus }) {
 
   return (
     <div className="flex items-start gap-0 px-5 py-4 border-t border-line overflow-x-auto">
+      {/* The terminal phase (Executed) has no "next" step pending, so it renders
+          as done/green rather than current/pink — otherwise a fully executed
+          proposal's last node looks like it's still in progress. */}
       {PHASES.map((phase, i) => {
-        const state = i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'future'
+        // "Executed on Hub" shares the same phase index as "Executed" but the
+        // satellite legs are still pending, so only the fully-executed status
+        // should render the last node as done/green.
+        const isTerminalDone = status === 'Executed' && currentIndex === PHASES.length - 1
+        const state =
+          i < currentIndex || (isTerminalDone && i === currentIndex)
+            ? 'done'
+            : i === currentIndex
+              ? 'current'
+              : 'future'
         const nodeClass =
           state === 'future'
             ? 'bg-surface3 text-fg3'
@@ -83,7 +95,7 @@ function PhaseTimeline({ status }: { status: FinalStatus }) {
               ? 'bg-brand-pink text-white'
               : 'bg-ok text-white'
         const barClass =
-          i < currentIndex ? 'bg-ok' : state === 'current' ? 'bg-brand-pink' : 'bg-line2'
+          state === 'done' ? 'bg-ok' : state === 'current' ? 'bg-brand-pink' : 'bg-line2'
         const labelClass = state === 'future' ? 'text-fg3' : 'text-fg'
 
         return (
@@ -175,7 +187,7 @@ export default async function V1ProposalDetailPage({ params }: PageProps) {
             className="absolute left-0 top-7 w-[3px] h-14 rounded-r-full"
             style={{ background: statusStyle.fg }}
           />
-          <div className="px-5 py-4.5 sm:px-5 sm:py-[18px]">
+          <div className="px-5 py-[18px]">
             <div className="mb-3">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-warn-bg border border-warn/20 text-warn text-[10px] font-bold uppercase tracking-widest">
                 V1 Archive

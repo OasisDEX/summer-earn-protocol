@@ -31,7 +31,7 @@ export function SimulationModal({
       <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden bg-console-surface border border-line rounded-xl shadow-2xl flex flex-col">
-        <div className="flex items-center justify-between p-4.5 border-b border-line">
+        <div className="flex items-center justify-between p-[18px] border-b border-line">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-pink-bg flex items-center justify-center text-brand-pink">
               <Play size={16} fill="currentColor" />
@@ -55,7 +55,7 @@ export function SimulationModal({
           <SimulationCenter results={results} targetChainIds={targetChainIds} />
         </div>
 
-        <div className="p-4.5 border-t border-line flex justify-end gap-2.5 bg-surface2">
+        <div className="p-[18px] border-t border-line flex justify-end gap-2.5 bg-surface2">
           <button
             onClick={onClose}
             className="h-[34px] px-4 rounded-lg border border-line2 bg-surface3 text-fg text-xs font-semibold hover:bg-surface2 transition-colors"
