@@ -14,10 +14,12 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Summer.fi | Earn Protocol',
-  description: 'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
+  description:
+    'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
   openGraph: {
     title: 'Summer.fi | Earn Protocol',
-    description: 'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
+    description:
+      'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
     url: 'https://app.summer.fi',
     siteName: 'Summer.fi Earn',
     images: [
@@ -33,7 +35,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Summer.fi | Earn Protocol',
-    description: 'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
+    description:
+      'Maximize your DeFi yields safely with the Summer Earn Protocol. Explore automated strategies, optimized returns, and seamless asset management.',
     creator: '@summerfinance_',
   },
 }

@@ -1,6 +1,7 @@
-import Link from 'next/link'
 import Markdown from 'react-markdown'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 
@@ -121,6 +122,7 @@ interface PageProps {
 }
 
 export default async function V1ProposalDetailPage({ params }: PageProps) {
+  await connection()
   const { id } = await params
   const fullProposal = await getProposalByIdCached(id, true)
 

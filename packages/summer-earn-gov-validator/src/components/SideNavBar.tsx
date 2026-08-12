@@ -7,7 +7,8 @@ export function SideNavBar() {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
-    if (path === '/proposals') return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
+    if (path === '/proposals')
+      return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
     return pathname.startsWith(path)
   }
 

@@ -17,7 +17,8 @@ export function TopNavBar() {
   ]
 
   const isActive = (href: string) => {
-    if (href === '/proposals') return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
+    if (href === '/proposals')
+      return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
     return pathname.startsWith(href)
   }
 

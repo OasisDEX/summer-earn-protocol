@@ -413,7 +413,6 @@ function CreateProposalPageContent() {
     return list
     // lastSimSignatureRef is a ref; actionsSignature already captures every
     // input that would change its value.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     title,
     description,

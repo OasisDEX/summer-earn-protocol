@@ -9,18 +9,23 @@ import { DarkModeToggle } from './DarkModeToggle'
 
 export function Header() {
   const pathname = usePathname()
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [_theme, setTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+    const currentTheme =
+      document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
     setTheme(currentTheme)
 
     const observer = new MutationObserver(() => {
-      const updated = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+      const updated =
+        document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
       setTheme(updated)
     })
 
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
     return () => observer.disconnect()
   }, [])
 
@@ -32,7 +37,8 @@ export function Header() {
   ]
 
   const isActive = (href: string) => {
-    if (href === '/proposals') return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
+    if (href === '/proposals')
+      return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
     return pathname.startsWith(href)
   }
 

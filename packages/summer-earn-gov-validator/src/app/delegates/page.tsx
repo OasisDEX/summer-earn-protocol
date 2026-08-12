@@ -14,7 +14,6 @@ function resolveDelegateInfo(address: string) {
 }
 
 export default async function DelegatesPage() {
-
   let delegates: Delegate[] = []
   try {
     const subgraphDelegates = await getDelegatesCached()

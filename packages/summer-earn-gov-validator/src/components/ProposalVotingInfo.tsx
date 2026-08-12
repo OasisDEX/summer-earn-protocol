@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 import { ArrowRight, Clock } from 'lucide-react'
+import { useAccount, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { GOVERNOR_ABI } from '@/hooks/useProposalVoting'
 import { TransformedProposal } from '@/types/governance'

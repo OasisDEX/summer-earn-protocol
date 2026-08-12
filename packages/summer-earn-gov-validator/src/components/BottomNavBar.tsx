@@ -7,7 +7,8 @@ export function BottomNavBar() {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
-    if (path === '/proposals') return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
+    if (path === '/proposals')
+      return pathname === '/proposals' || pathname === '/' || pathname.startsWith('/proposal/')
     return pathname.startsWith(path)
   }
 
@@ -30,9 +31,7 @@ export function BottomNavBar() {
               active ? 'text-brand-pink' : 'text-fg3 hover:text-fg2'
             }`}
           >
-            <span className="material-symbols-outlined text-xl">
-              {item.icon}
-            </span>
+            <span className="material-symbols-outlined text-xl">{item.icon}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider mt-0.5">
               {item.label}
             </span>

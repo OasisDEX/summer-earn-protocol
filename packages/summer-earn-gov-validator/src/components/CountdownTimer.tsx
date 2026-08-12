@@ -48,9 +48,7 @@ export function CountdownTimer({
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       {showLabel && (
-        <span className={`${sizeClasses[size]} font-medium text-fg3`}>
-          Time remaining:
-        </span>
+        <span className={`${sizeClasses[size]} font-medium text-fg3`}>Time remaining:</span>
       )}
       <div
         className={`

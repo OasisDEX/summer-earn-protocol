@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 import { AlertTriangle, Clock, Gauge, Layers, Network, Repeat, Terminal, Zap } from 'lucide-react'
+import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { CrossChainProposal, Proposal } from '@/types/governance'
 

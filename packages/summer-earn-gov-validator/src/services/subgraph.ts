@@ -18,8 +18,7 @@ const SUBGRAPH_ENDPOINTS = {
     process.env.SONIC_SUBGRAPH_URL ||
     'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-sonic',
   mainnet:
-    process.env.MAINNET_SUBGRAPH_URL ||
-    'https://subgraph.staging.oasisapp.dev/summer-protocol-gov',
+    process.env.MAINNET_SUBGRAPH_URL || 'https://subgraph.staging.oasisapp.dev/summer-protocol-gov',
   hyperliquid:
     process.env.HYPERLIQUID_SUBGRAPH_URL ||
     'https://subgraph.staging.oasisapp.dev/summer-protocol-gov-hyperliquid',
