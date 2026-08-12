@@ -40,7 +40,7 @@ export function transformProposal(
 
   // Extract title and displayId from description
   const { title, displayId, cleanDescription } = extractProposalMetadata(proposal.description || '')
-  const currentTimestampSeconds = now ?? 1785936000
+  const currentTimestampSeconds = now ?? Math.floor(Date.now() / 1000)
   const voteStartSeconds = Number(proposal.voteStart)
   const voteEndSeconds = Number(proposal.voteEnd)
 
