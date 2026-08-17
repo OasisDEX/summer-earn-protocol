@@ -6,6 +6,7 @@ import { CrossChainProposal, Proposal, ProposalWithCrossChain } from '@/types/go
 import { stripMarkdownForPreview } from '@/utils/text'
 import { calculateProposalTiming } from '@/utils/timing'
 
+import { getNormalizedChainInfo } from '../config/chains'
 import config from '../config/index.json'
 import { GOVERNOR_ABI, useMultipleProposalVoting, VoteSupport } from '../hooks/useProposalVoting'
 import { fetchAllProposals } from '../services/subgraph'
@@ -28,15 +29,6 @@ const TIMELOCK_ABI = [
     type: 'function',
   },
 ] as const
-
-// Chain ID to network name mapping
-const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
-  '1': 'mainnet',
-  '8453': 'base',
-  '42161': 'arbitrum',
-  '146': 'sonic',
-  '999': 'hyperliquid',
-}
 
 // Helper function to calculate effective proposal status
 const getEffectiveProposalStatus = (proposal: Proposal) => {
@@ -83,7 +75,7 @@ export const CrossChainProposals: React.FC = () => {
 
   const { address, isConnected, chainId } = useAccount()
   const { writeContract, isPending } = useWriteContract()
-  const { switchChain } = useSwitchChain()
+  const { switchChainAsync } = useSwitchChain()
 
   // Get active proposal IDs for voting data (including PENDING proposals that are now active)
   const activeProposalIds = filteredProposals
@@ -103,10 +95,9 @@ export const CrossChainProposals: React.FC = () => {
       return
     }
 
-    const proposalChainId = parseInt(proposal.chainId)
-    const networkName = CHAIN_ID_TO_NETWORK[proposal.chainId]
+    const { chainId: proposalChainId, networkName } = getNormalizedChainInfo(proposal.chainId)
 
-    if (!networkName) {
+    if (!networkName || isNaN(proposalChainId)) {
       alert(`Unsupported chain ID: ${proposal.chainId}`)
       return
     }
@@ -124,7 +115,7 @@ export const CrossChainProposals: React.FC = () => {
 
       // Switch chain if needed
       if (chainId !== proposalChainId) {
-        await switchChain({ chainId: proposalChainId })
+        await switchChainAsync({ chainId: proposalChainId })
       }
 
       // Convert values from string to bigint
@@ -132,6 +123,7 @@ export const CrossChainProposals: React.FC = () => {
 
       // Execute the proposal
       await writeContract({
+        chainId: proposalChainId,
         address: timelockAddress as `0x${string}`,
         abi: TIMELOCK_ABI,
         functionName: 'executeBatch',
@@ -188,7 +180,7 @@ export const CrossChainProposals: React.FC = () => {
 
       // Switch to Base if needed
       if (chainId !== 8453) {
-        await switchChain({ chainId: 8453 })
+        await switchChainAsync({ chainId: 8453 })
       }
 
       // Create description hash
@@ -196,6 +188,7 @@ export const CrossChainProposals: React.FC = () => {
 
       // Execute the proposal
       await writeContract({
+        chainId: 8453,
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
         functionName: 'execute',
@@ -251,7 +244,7 @@ export const CrossChainProposals: React.FC = () => {
 
       // Switch to Base if needed
       if (chainId !== 8453) {
-        await switchChain({ chainId: 8453 })
+        await switchChainAsync({ chainId: 8453 })
       }
 
       // Create description hash
@@ -260,6 +253,7 @@ export const CrossChainProposals: React.FC = () => {
       // Queue the proposal
 
       writeContract({
+        chainId: 8453,
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
         functionName: 'queue',
@@ -305,7 +299,7 @@ export const CrossChainProposals: React.FC = () => {
 
       // Switch to Base if needed
       if (chainId !== 8453) {
-        await switchChain({ chainId: 8453 })
+        await switchChainAsync({ chainId: 8453 })
       }
 
       // Cast the vote

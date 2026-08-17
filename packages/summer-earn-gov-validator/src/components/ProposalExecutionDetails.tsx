@@ -6,7 +6,7 @@ import { useAccount, useSwitchChain, useWriteContract } from 'wagmi'
 
 import { CrossChainProposal, Proposal } from '@/types/governance'
 
-import { ChainTheme, getChainTheme } from '../config/chains'
+import { ChainTheme, getChainTheme, getNormalizedChainInfo } from '../config/chains'
 import config from '../config/index.json'
 import {
   addresToContractName,
@@ -25,9 +25,12 @@ const EXPLORER_URLS: Record<string, string> = {
   hyperliquid: 'https://explorer.hyperliquid.xyz/address/',
 }
 
-const getExplorerUrl = (address: string, chainId: string) => {
-  const networkName = CHAIN_ID_TO_NETWORK[chainId] || 'base'
-  const baseUrl = EXPLORER_URLS[networkName as string] || EXPLORER_URLS.base
+const getExplorerUrl = (address: string, chainIdOrNetwork: string) => {
+  const { networkName } = getNormalizedChainInfo(chainIdOrNetwork)
+  const network =
+    networkName ||
+    (EXPLORER_URLS[chainIdOrNetwork.toLowerCase()] ? chainIdOrNetwork.toLowerCase() : 'base')
+  const baseUrl = EXPLORER_URLS[network as string] || EXPLORER_URLS.base
   return `${baseUrl}${address}`
 }
 
@@ -65,15 +68,6 @@ const TIMELOCK_ABI = [
   },
 ] as const
 
-// Chain ID to network name mapping
-const CHAIN_ID_TO_NETWORK: Record<string, keyof typeof config> = {
-  '1': 'mainnet',
-  '8453': 'base',
-  '42161': 'arbitrum',
-  '146': 'sonic',
-  '999': 'hyperliquid',
-}
-
 interface ProposalExecutionDetailsProps {
   baseProposal: Proposal
   crossChainProposals: CrossChainProposal[]
@@ -87,7 +81,7 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
 }) => {
   const { address, isConnected, chainId } = useAccount()
   const { writeContract, isPending } = useWriteContract()
-  const { switchChain } = useSwitchChain()
+  const { switchChainAsync } = useSwitchChain()
   const [executingProposals, setExecutingProposals] = useState<Set<string>>(new Set())
   const [validatedActions, setValidatedActions] = useState<Set<string>>(new Set())
 
@@ -109,10 +103,9 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
       return
     }
 
-    const proposalChainId = parseInt(proposal.chainId)
-    const networkName = CHAIN_ID_TO_NETWORK[proposal.chainId]
+    const { chainId: proposalChainId, networkName } = getNormalizedChainInfo(proposal.chainId)
 
-    if (!networkName) {
+    if (!networkName || isNaN(proposalChainId)) {
       alert(`Unsupported chain ID: ${proposal.chainId}`)
       return
     }
@@ -127,10 +120,11 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
       setExecutingProposals((prev) => new Set(prev).add(proposal.id))
 
       if (chainId !== proposalChainId) {
-        await switchChain({ chainId: proposalChainId })
+        await switchChainAsync({ chainId: proposalChainId })
       }
 
       await writeContract({
+        chainId: proposalChainId,
         address: timelockAddress as `0x${string}`,
         abi: TIMELOCK_ABI,
         functionName: 'executeBatch',
@@ -643,9 +637,10 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
               <p className="text-[10px] font-semibold text-fg3 uppercase tracking-[0.07em] mb-3">
                 Satellite proposal status
               </p>
-              {crossChainProposals.filter(
-                (ccp) => CHAIN_ID_TO_NETWORK[ccp.chainId] === container.chain,
-              ).length === 0 ? (
+              {crossChainProposals.filter((ccp) => {
+                const { networkName } = getNormalizedChainInfo(ccp.chainId)
+                return networkName === container.chain
+              }).length === 0 ? (
                 <div className="p-5 bg-surface2 border border-dashed border-line rounded-lg text-center">
                   <Clock className="w-6 h-6 mx-auto mb-2 text-fg3 opacity-50" />
                   <p className="text-xs text-fg3">
@@ -655,7 +650,10 @@ export const ProposalExecutionDetails: React.FC<ProposalExecutionDetailsProps> =
               ) : (
                 <div className="space-y-3">
                   {crossChainProposals
-                    .filter((ccp) => CHAIN_ID_TO_NETWORK[ccp.chainId] === container.chain)
+                    .filter((ccp) => {
+                      const { networkName } = getNormalizedChainInfo(ccp.chainId)
+                      return networkName === container.chain
+                    })
                     .map((ccp) => {
                       const status = getCrossChainProposalStatus(ccp)
                       const eta = Number(ccp.eta)

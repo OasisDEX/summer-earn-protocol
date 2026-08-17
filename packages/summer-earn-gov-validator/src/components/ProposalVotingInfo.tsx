@@ -18,7 +18,7 @@ interface ProposalVotingInfoProps {
 export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoProps) {
   const { address, isConnected, chainId } = useAccount()
   const { writeContract, isPending } = useWriteContract()
-  const { switchChain } = useSwitchChain()
+  const { switchChainAsync } = useSwitchChain()
   const [isExecuting, setIsExecuting] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [showVotingModal, setShowVotingModal] = useState(false)
@@ -48,8 +48,9 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
 
     try {
       setIsCancelling(true)
-      if (chainId !== 8453) await switchChain({ chainId: 8453 })
+      if (chainId !== 8453) await switchChainAsync({ chainId: 8453 })
       await writeContract({
+        chainId: 8453,
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
         functionName: 'cancel',
@@ -90,8 +91,9 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
 
     try {
       setIsExecuting(true)
-      if (chainId !== 8453) await switchChain({ chainId: 8453 })
+      if (chainId !== 8453) await switchChainAsync({ chainId: 8453 })
       await writeContract({
+        chainId: 8453,
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
         functionName: 'queue',
@@ -117,9 +119,10 @@ export function ProposalVotingInfo({ proposal, displayId }: ProposalVotingInfoPr
 
     try {
       setIsExecuting(true)
-      if (chainId !== 8453) await switchChain({ chainId: 8453 })
+      if (chainId !== 8453) await switchChainAsync({ chainId: 8453 })
 
       await writeContract({
+        chainId: 8453,
         address: governorAddress as `0x${string}`,
         abi: GOVERNOR_ABI,
         functionName: 'execute',

@@ -70,6 +70,45 @@ export const CHAINS = [
   { id: '146', name: 'Sonic', key: 'sonic', eID: '30332', tenderlyId: '146' },
   { id: '999', name: 'HyperLiquid', key: 'hyperliquid', eID: '30367', tenderlyId: null },
 ]
+export const CHAIN_ID_TO_NETWORK: Record<string, string> = {
+  '1': 'mainnet',
+  '8453': 'base',
+  '42161': 'arbitrum',
+  '146': 'sonic',
+  '999': 'hyperliquid',
+}
+
+export function getNormalizedChainInfo(rawChainIdOrName?: string | null): {
+  chainId: number
+  networkName: string | undefined
+} {
+  if (!rawChainIdOrName) return { chainId: NaN, networkName: undefined }
+
+  if (/^\d+$/.test(rawChainIdOrName)) {
+    const numericId = parseInt(rawChainIdOrName, 10)
+    const networkName =
+      CHAIN_ID_TO_NETWORK[rawChainIdOrName] || CHAINS.find((c) => c.id === rawChainIdOrName)?.key
+    return { chainId: numericId, networkName }
+  }
+
+  const lower = rawChainIdOrName.toLowerCase()
+  if (lower === 'hyperevm' || lower === 'hyperliquid') {
+    return { chainId: 999, networkName: 'hyperliquid' }
+  }
+
+  const chainObj = CHAINS.find(
+    (c) => c.key.toLowerCase() === lower || c.name.toLowerCase() === lower,
+  )
+  if (chainObj) {
+    return {
+      chainId: parseInt(chainObj.id, 10),
+      networkName: chainObj.key,
+    }
+  }
+
+  return { chainId: NaN, networkName: undefined }
+}
+
 export function getChainNameById(id: string) {
   return CHAINS.find((chain) => chain.id === id)?.name || 'Unknown'
 }
